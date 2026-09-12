@@ -42,6 +42,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
+  const [storedImageUrl, setStoredImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
 
@@ -70,6 +71,23 @@ export default function ProductDetailPage() {
 
         const data = await response.json();
         setProduct(data.product);
+
+        if (data.product.primary_image_id) {
+          const imageResponse = await fetch(
+            `${API_URL}/api/products/${productId}/primary-image`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (imageResponse.ok) {
+            const imageBlob = await imageResponse.blob();
+            const imageObjectUrl = URL.createObjectURL(imageBlob);
+            setStoredImageUrl(imageObjectUrl);
+          }
+        }
       } catch (error) {
         console.error(error);
         setMessage("Unable to load product.");
@@ -217,9 +235,9 @@ export default function ProductDetailPage() {
 
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
               <div className="relative flex min-h-72 items-center justify-center bg-slate-50 p-5">
-                {previewUrl ? (
+                {previewUrl || storedImageUrl ? (
                   <img
-                    src={previewUrl}
+                    src={previewUrl || storedImageUrl}
                     alt={product.name}
                     className="max-h-80 w-full rounded-xl object-contain"
                   />
@@ -244,7 +262,7 @@ export default function ProductDetailPage() {
                 >
                   {uploading
                     ? "Uploading..."
-                    : previewUrl
+                    : previewUrl || storedImageUrl
                       ? "📷 Change Photo"
                       : "📷 Add Photo"}
 
