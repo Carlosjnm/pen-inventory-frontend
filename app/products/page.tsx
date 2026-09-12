@@ -172,7 +172,7 @@ export default function ProductsPage() {
           <NavItem label="Inventory" icon="▣" />
           <NavItem label="Purchases" icon="↓" />
           <NavItem label="Sales" icon="↑" />
-          <NavItem label="Suppliers" icon="♢" />
+          <NavItem label="Suppliers" icon="♢" href="/suppliers" />
           <NavItem label="Customers" icon="♙" />
           <NavItem label="Reports" icon="▤" />
           <NavItem label="Users" icon="♧" />
@@ -407,17 +407,24 @@ function NavItem({
   label,
   icon,
   active = false,
+  href,
 }: {
   label: string;
   icon: string;
   active?: boolean;
+  href?: string;
 }) {
   return (
     <div
-      className={`flex cursor-default items-center gap-3 rounded-xl px-4 py-3 font-medium ${
+      onClick={() => {
+        if (href) window.location.href = href;
+      }}
+      className={`flex items-center gap-3 rounded-xl px-4 py-3 font-medium ${
         active
           ? "bg-white text-slate-950"
-          : "text-slate-400 transition hover:bg-white/10 hover:text-white"
+          : href
+          ? "cursor-pointer text-slate-400 transition hover:bg-white/10 hover:text-white"
+          : "cursor-default text-slate-400"
       }`}
     >
       <span className="w-5 text-center text-base">{icon}</span>
