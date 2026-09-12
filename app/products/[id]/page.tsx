@@ -41,7 +41,6 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
@@ -82,13 +81,8 @@ export default function ProductDetailPage() {
     return () => unsubscribe();
   }, [productId]);
 
-  async function uploadPhoto() {
-    if (!selectedFile) {
-      setUploadMessage("Please choose a photo first.");
-      return;
-    }
-
-    if (selectedFile.size > 10 * 1024 * 1024) {
+  async function uploadPhoto(file: File) {
+    if (file.size > 10 * 1024 * 1024) {
       setUploadMessage("Photo must be 10 MB or smaller.");
       return;
     }
@@ -102,12 +96,12 @@ export default function ProductDetailPage() {
 
     try {
       setUploading(true);
-      setUploadMessage("");
+      setUploadMessage("Uploading photo...");
 
       const token = await user.getIdToken();
 
       const formData = new FormData();
-      formData.append("file", selectedFile);
+      formData.append("file", file);
 
       const response = await fetch(
         `${API_URL}/api/products/${productId}/images`,
@@ -127,7 +121,7 @@ export default function ProductDetailPage() {
         );
       }
 
-      setUploadMessage("Photo uploaded successfully.");
+      setUploadMessage("✓ Photo saved");
     } catch (error) {
       console.error(error);
 
@@ -211,61 +205,87 @@ export default function ProductDetailPage() {
           </div>
 
           <section className="mb-8">
-            <h2 className="mb-4 text-xl font-semibold text-slate-900">
-              Product Photo
-            </h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-slate-900">
+                Photos
+              </h2>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              {previewUrl ? (
-                <img
-                  src={previewUrl}
-                  alt={product.name}
-                  className="mb-4 h-64 w-full rounded-xl object-contain bg-white"
-                />
-              ) : (
-                <div className="mb-4 flex h-64 items-center justify-center rounded-xl bg-white text-slate-400">
-                  No photo selected
-                </div>
-              )}
+              <span className="text-sm text-slate-500">
+                JPEG, PNG or WEBP · Max 10 MB
+              </span>
+            </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] || null;
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <div className="relative flex min-h-72 items-center justify-center bg-slate-50 p-5">
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt={product.name}
+                    className="max-h-80 w-full rounded-xl object-contain"
+                  />
+                ) : (
+                  <div className="px-6 py-12 text-center">
+                    <div className="mb-3 text-5xl">📷</div>
+                    <p className="font-semibold text-slate-700">
+                      No product photo yet
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Add a photo to make this product easier to identify.
+                    </p>
+                  </div>
+                )}
 
-                    setSelectedFile(file);
-                    setUploadMessage("");
-
-                    if (file) {
-                      setPreviewUrl(URL.createObjectURL(file));
-                    } else {
-                      setPreviewUrl("");
-                    }
-                  }}
-                  className="block w-full text-sm text-slate-700"
-                />
-
-                <button
-                  type="button"
-                  onClick={uploadPhoto}
-                  disabled={!selectedFile || uploading}
-                  className="rounded-lg bg-slate-900 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                <label
+                  className={`absolute bottom-4 right-4 inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold text-white shadow-lg transition ${
+                    uploading
+                      ? "cursor-wait bg-slate-500"
+                      : "cursor-pointer bg-slate-900 hover:bg-slate-700"
+                  }`}
                 >
-                  {uploading ? "Uploading..." : "Upload Photo"}
-                </button>
+                  {uploading
+                    ? "Uploading..."
+                    : previewUrl
+                      ? "📷 Change Photo"
+                      : "📷 Add Photo"}
+
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+
+                      if (!file) return;
+
+                      setPreviewUrl(URL.createObjectURL(file));
+                      setUploadMessage("");
+
+                      await uploadPhoto(file);
+
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
               </div>
 
-              {uploadMessage && (
-                <p className="mt-3 text-sm font-medium text-slate-700">
-                  {uploadMessage}
-                </p>
-              )}
-
-              <p className="mt-3 text-xs text-slate-500">
-                JPEG, PNG or WEBP. Maximum size 10 MB.
-              </p>
+              <div className="border-t border-slate-200 px-5 py-3">
+                {uploadMessage ? (
+                  <p
+                    className={`text-sm font-medium ${
+                      uploadMessage.startsWith("✓")
+                        ? "text-green-700"
+                        : "text-slate-600"
+                    }`}
+                  >
+                    {uploadMessage}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-500">
+                    Choose a photo and it will save automatically.
+                  </p>
+                )}
+              </div>
             </div>
           </section>
 
