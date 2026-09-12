@@ -28,6 +28,10 @@ type Product = {
   quantity_reserved: number;
   quantity_available: number;
   stock_status: string;
+  primary_image_id: string | null;
+  primary_image_bucket: string | null;
+  primary_image_object_key: string | null;
+  primary_image_url: string | null;
 };
 
 export default function ProductDetailPage() {
@@ -37,6 +41,10 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -73,6 +81,65 @@ export default function ProductDetailPage() {
 
     return () => unsubscribe();
   }, [productId]);
+
+  async function uploadPhoto() {
+    if (!selectedFile) {
+      setUploadMessage("Please choose a photo first.");
+      return;
+    }
+
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      setUploadMessage("Photo must be 10 MB or smaller.");
+      return;
+    }
+
+    const user = auth.currentUser;
+
+    if (!user) {
+      window.location.href = "/";
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadMessage("");
+
+      const token = await user.getIdToken();
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const response = await fetch(
+        `${API_URL}/api/products/${productId}/images`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.detail || "Unable to upload photo."
+        );
+      }
+
+      setUploadMessage("Photo uploaded successfully.");
+    } catch (error) {
+      console.error(error);
+
+      setUploadMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to upload photo."
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
 
   function formatStatus(value: string) {
     return value
@@ -142,6 +209,65 @@ export default function ProductDetailPage() {
               {formatStatus(product.status)}
             </span>
           </div>
+
+          <section className="mb-8">
+            <h2 className="mb-4 text-xl font-semibold text-slate-900">
+              Product Photo
+            </h2>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              {previewUrl ? (
+                <img
+                  src={previewUrl}
+                  alt={product.name}
+                  className="mb-4 h-64 w-full rounded-xl object-contain bg-white"
+                />
+              ) : (
+                <div className="mb-4 flex h-64 items-center justify-center rounded-xl bg-white text-slate-400">
+                  No photo selected
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null;
+
+                    setSelectedFile(file);
+                    setUploadMessage("");
+
+                    if (file) {
+                      setPreviewUrl(URL.createObjectURL(file));
+                    } else {
+                      setPreviewUrl("");
+                    }
+                  }}
+                  className="block w-full text-sm text-slate-700"
+                />
+
+                <button
+                  type="button"
+                  onClick={uploadPhoto}
+                  disabled={!selectedFile || uploading}
+                  className="rounded-lg bg-slate-900 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {uploading ? "Uploading..." : "Upload Photo"}
+                </button>
+              </div>
+
+              {uploadMessage && (
+                <p className="mt-3 text-sm font-medium text-slate-700">
+                  {uploadMessage}
+                </p>
+              )}
+
+              <p className="mt-3 text-xs text-slate-500">
+                JPEG, PNG or WEBP. Maximum size 10 MB.
+              </p>
+            </div>
+          </section>
 
           <section className="mb-8">
             <h2 className="mb-4 text-xl font-semibold text-slate-900">
