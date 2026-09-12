@@ -17,6 +17,21 @@ type ProductImage = {
   url: string;
 };
 
+type ProductEditForm = {
+  name: string;
+  barcode: string;
+  category: string;
+  description: string;
+  brand: string;
+  status: string;
+  selling_price: string;
+  wholesale_price: string;
+  selling_currency: string;
+  reorder_level: string;
+  reorder_quantity: string;
+  notes: string;
+};
+
 type Product = {
   id: string;
   sku: string;
@@ -56,6 +71,10 @@ export default function ProductDetailPage() {
   const [uploadMessage, setUploadMessage] = useState("");
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
   const [galleryBusy, setGalleryBusy] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [editMessage, setEditMessage] = useState("");
+  const [editForm, setEditForm] = useState<ProductEditForm | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -319,6 +338,126 @@ export default function ProductDetailPage() {
     }
   }
 
+  function beginEditProduct() {
+    if (!product) return;
+
+    setEditForm({
+      name: product.name || "",
+      barcode: product.barcode || "",
+      category: product.category || "",
+      description: product.description || "",
+      brand: product.brand || "",
+      status: product.status || "researching",
+      selling_price:
+        product.selling_price === null
+          ? ""
+          : String(product.selling_price),
+      wholesale_price:
+        product.wholesale_price === null
+          ? ""
+          : String(product.wholesale_price),
+      selling_currency: product.selling_currency || "AOA",
+      reorder_level: String(product.reorder_level ?? 0),
+      reorder_quantity: String(product.reorder_quantity ?? 0),
+      notes: product.notes || "",
+    });
+
+    setEditMessage("");
+    setEditing(true);
+  }
+
+  function cancelEditProduct() {
+    setEditing(false);
+    setEditForm(null);
+    setEditMessage("");
+  }
+
+  async function saveProduct() {
+    if (!product || !editForm) return;
+
+    const user = auth.currentUser;
+
+    if (!user) {
+      window.location.href = "/";
+      return;
+    }
+
+    if (!editForm.name.trim()) {
+      setEditMessage("Product name is required.");
+      return;
+    }
+
+    try {
+      setSavingProduct(true);
+      setEditMessage("Saving product...");
+
+      const token = await user.getIdToken();
+
+      const payload = {
+        name: editForm.name.trim(),
+        barcode: editForm.barcode.trim() || null,
+        category: editForm.category.trim(),
+        description: editForm.description.trim() || null,
+        brand: editForm.brand.trim() || null,
+        status: editForm.status,
+        selling_price:
+          editForm.selling_price.trim() === ""
+            ? null
+            : Number(editForm.selling_price),
+        wholesale_price:
+          editForm.wholesale_price.trim() === ""
+            ? null
+            : Number(editForm.wholesale_price),
+        selling_currency: editForm.selling_currency,
+        reorder_level:
+          editForm.reorder_level.trim() === ""
+            ? 0
+            : Number(editForm.reorder_level),
+        reorder_quantity:
+          editForm.reorder_quantity.trim() === ""
+            ? 0
+            : Number(editForm.reorder_quantity),
+        notes: editForm.notes.trim() || null,
+      };
+
+      const response = await fetch(
+        `${API_URL}/api/products/${productId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+
+        throw new Error(
+          errorData?.detail || "Unable to save product."
+        );
+      }
+
+      setEditMessage("✓ Product saved successfully.");
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error) {
+      console.error(error);
+
+      setEditMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to save product."
+      );
+    } finally {
+      setSavingProduct(false);
+    }
+  }
+
   async function handleLogout() {
     await signOut(auth);
     window.location.href = "/";
@@ -490,14 +629,241 @@ export default function ProductDetailPage() {
                 {product.sku}
               </span>
 
-              <span
-                className={`ml-auto rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset sm:hidden ${productStatusClass(
-                  product.status
-                )}`}
-              >
-                {formatStatus(product.status)}
-              </span>
+              <div className="ml-auto flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={beginEditProduct}
+                  className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                >
+                  Edit Product
+                </button>
+
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset sm:hidden ${productStatusClass(
+                    product.status
+                  )}`}
+                >
+                  {formatStatus(product.status)}
+                </span>
+              </div>
             </div>
+
+            {editing && editForm && (
+              <section className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                  <div>
+                    <h2 className="font-semibold text-slate-900">
+                      Edit Product
+                    </h2>
+                    <p className="mt-1 text-xs text-slate-500">
+                      SKU {product.sku} is protected and cannot be changed.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={cancelEditProduct}
+                    disabled={savingProduct}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                <div className="grid gap-5 p-5 md:grid-cols-2 xl:grid-cols-3">
+                  <EditField
+                    label="Product Name"
+                    value={editForm.name}
+                    onChange={(value) =>
+                      setEditForm({ ...editForm, name: value })
+                    }
+                  />
+
+                  <EditField
+                    label="Category"
+                    value={editForm.category}
+                    onChange={(value) =>
+                      setEditForm({ ...editForm, category: value })
+                    }
+                  />
+
+                  <EditField
+                    label="Brand"
+                    value={editForm.brand}
+                    onChange={(value) =>
+                      setEditForm({ ...editForm, brand: value })
+                    }
+                  />
+
+                  <EditField
+                    label="Barcode"
+                    value={editForm.barcode}
+                    onChange={(value) =>
+                      setEditForm({ ...editForm, barcode: value })
+                    }
+                  />
+
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Status
+                    </span>
+
+                    <select
+                      value={editForm.status}
+                      onChange={(event) =>
+                        setEditForm({
+                          ...editForm,
+                          status: event.target.value,
+                        })
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
+                    >
+                      <option value="idea">Idea</option>
+                      <option value="researching">Researching</option>
+                      <option value="sample_ordered">Sample Ordered</option>
+                      <option value="testing">Testing</option>
+                      <option value="approved">Approved</option>
+                      <option value="ordered">Ordered</option>
+                      <option value="in_stock">In Stock</option>
+                      <option value="selling">Selling</option>
+                      <option value="discontinued">Discontinued</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Currency
+                    </span>
+
+                    <select
+                      value={editForm.selling_currency}
+                      onChange={(event) =>
+                        setEditForm({
+                          ...editForm,
+                          selling_currency: event.target.value,
+                        })
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
+                    >
+                      <option value="AOA">AOA / Kz</option>
+                      <option value="USD">USD</option>
+                      <option value="ZAR">ZAR</option>
+                      <option value="CNY">CNY</option>
+                    </select>
+                  </label>
+
+                  <EditField
+                    label="Selling Price"
+                    value={editForm.selling_price}
+                    type="number"
+                    onChange={(value) =>
+                      setEditForm({
+                        ...editForm,
+                        selling_price: value,
+                      })
+                    }
+                  />
+
+                  <EditField
+                    label="Wholesale Price"
+                    value={editForm.wholesale_price}
+                    type="number"
+                    onChange={(value) =>
+                      setEditForm({
+                        ...editForm,
+                        wholesale_price: value,
+                      })
+                    }
+                  />
+
+                  <EditField
+                    label="Reorder Level"
+                    value={editForm.reorder_level}
+                    type="number"
+                    onChange={(value) =>
+                      setEditForm({
+                        ...editForm,
+                        reorder_level: value,
+                      })
+                    }
+                  />
+
+                  <EditField
+                    label="Reorder Quantity"
+                    value={editForm.reorder_quantity}
+                    type="number"
+                    onChange={(value) =>
+                      setEditForm({
+                        ...editForm,
+                        reorder_quantity: value,
+                      })
+                    }
+                  />
+
+                  <label className="block md:col-span-2 xl:col-span-3">
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Description
+                    </span>
+
+                    <textarea
+                      rows={4}
+                      value={editForm.description}
+                      onChange={(event) =>
+                        setEditForm({
+                          ...editForm,
+                          description: event.target.value,
+                        })
+                      }
+                      className="w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
+                    />
+                  </label>
+
+                  <label className="block md:col-span-2 xl:col-span-3">
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Notes
+                    </span>
+
+                    <textarea
+                      rows={4}
+                      value={editForm.notes}
+                      onChange={(event) =>
+                        setEditForm({
+                          ...editForm,
+                          notes: event.target.value,
+                        })
+                      }
+                      className="w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
+                    />
+                  </label>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 px-5 py-4">
+                  <div>
+                    {editMessage && (
+                      <p
+                        className={`text-sm font-medium ${
+                          editMessage.startsWith("✓")
+                            ? "text-emerald-700"
+                            : "text-slate-600"
+                        }`}
+                      >
+                        {editMessage}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={saveProduct}
+                    disabled={savingProduct}
+                    className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-wait disabled:bg-slate-500"
+                  >
+                    {savingProduct ? "Saving..." : "Save Product"}
+                  </button>
+                </div>
+              </section>
+            )}
 
             <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
               <StockCard
@@ -857,6 +1223,35 @@ export default function ProductDetailPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+function EditField({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </span>
+
+      <input
+        type={type}
+        min={type === "number" ? "0" : undefined}
+        step={type === "number" ? "any" : undefined}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
+      />
+    </label>
   );
 }
 
