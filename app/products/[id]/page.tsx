@@ -86,8 +86,7 @@ type SupplierOffer = {
   last_quoted_at: string | null;
 };
 
-const SUPPLIER_API_URL =
-  "https://pen-inventory-backend-import-test-250574343787.africa-south1.run.app";
+const SUPPLIER_API_URL = API_URL;
 
 export default function ProductDetailPage() {
   const params = useParams();
