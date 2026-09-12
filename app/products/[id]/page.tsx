@@ -1,12 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useParams } from "next/navigation";
 import { auth } from "@/lib/firebase";
 
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
+
+type ProductImage = {
+  id: string;
+  alt_text: string | null;
+  sort_order: number;
+  is_primary: boolean;
+  created_at: string;
+  url: string;
+};
 
 type Product = {
   id: string;
@@ -45,6 +54,8 @@ export default function ProductDetailPage() {
   const [storedImageUrl, setStoredImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
+  const [productImages, setProductImages] = useState<ProductImage[]>([]);
+  const [galleryBusy, setGalleryBusy] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -74,8 +85,9 @@ export default function ProductDetailPage() {
 
         if (data.product.primary_image_id) {
           const imageResponse = await fetch(
-            `${API_URL}/api/products/${productId}/primary-image`,
+            `${API_URL}/api/products/${productId}/primary-image?v=${Date.now()}`,
             {
+              cache: "no-store",
               headers: {
                 Authorization: `Bearer ${token}`,
               },
@@ -87,6 +99,46 @@ export default function ProductDetailPage() {
             const imageObjectUrl = URL.createObjectURL(imageBlob);
             setStoredImageUrl(imageObjectUrl);
           }
+        }
+
+        const galleryResponse = await fetch(
+          `${API_URL}/api/products/${productId}/images`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (galleryResponse.ok) {
+          const galleryData = await galleryResponse.json();
+
+          const galleryWithUrls = await Promise.all(
+            galleryData.images.map(async (image: Omit<ProductImage, "url">) => {
+              const contentResponse = await fetch(
+                `${API_URL}/api/products/${productId}/images/${image.id}/content`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+              );
+
+              let url = "";
+
+              if (contentResponse.ok) {
+                const blob = await contentResponse.blob();
+                url = URL.createObjectURL(blob);
+              }
+
+              return {
+                ...image,
+                url,
+              };
+            })
+          );
+
+          setProductImages(galleryWithUrls);
         }
       } catch (error) {
         console.error(error);
@@ -134,12 +186,21 @@ export default function ProductDetailPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+
         throw new Error(
           errorData?.detail || "Unable to upload photo."
         );
       }
 
       setUploadMessage("✓ Photo saved");
+
+      // Stop using the temporary local preview after the server
+      // has successfully saved and selected the new primary photo.
+      setPreviewUrl("");
+
+      // Reload so main photo, PRIMARY badge and database
+      // always show exactly the same image.
+      window.location.reload();
     } catch (error) {
       console.error(error);
 
@@ -153,10 +214,123 @@ export default function ProductDetailPage() {
     }
   }
 
+  async function makePrimaryImage(imageId: string) {
+    const user = auth.currentUser;
+
+    if (!user) {
+      window.location.href = "/";
+      return;
+    }
+
+    try {
+      setGalleryBusy(imageId);
+      setUploadMessage("Changing primary photo...");
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        `${API_URL}/api/products/${productId}/images/${imageId}/primary`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.detail || "Unable to change primary photo."
+        );
+      }
+
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+      setUploadMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to change primary photo."
+      );
+      setGalleryBusy("");
+    }
+  }
+
+  async function deleteProductImage(imageId: string) {
+    const image = productImages.find(
+      (item) => item.id === imageId
+    );
+
+    if (!image) return;
+
+    if (image.is_primary) {
+      setUploadMessage(
+        "Choose another primary photo before deleting this photo."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Delete this photo from this product? This cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    const user = auth.currentUser;
+
+    if (!user) {
+      window.location.href = "/";
+      return;
+    }
+
+    try {
+      setGalleryBusy(imageId);
+      setUploadMessage("Deleting photo...");
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        `${API_URL}/api/products/${productId}/images/${imageId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.detail || "Unable to delete photo."
+        );
+      }
+
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+      setUploadMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete photo."
+      );
+      setGalleryBusy("");
+    }
+  }
+
+  async function handleLogout() {
+    await signOut(auth);
+    window.location.href = "/";
+  }
+
   function formatStatus(value: string) {
     return value
       .split("_")
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .map(
+        (part) =>
+          part.charAt(0).toUpperCase() + part.slice(1)
+      )
       .join(" ");
   }
 
@@ -169,24 +343,49 @@ export default function ProductDetailPage() {
     return `${currency} ${Number(value).toLocaleString()}`;
   }
 
+  function productStatusClass(value: string) {
+    if (value === "selling" || value === "in_stock") {
+      return "bg-emerald-50 text-emerald-700 ring-emerald-600/20";
+    }
+
+    if (value === "researching" || value === "testing") {
+      return "bg-blue-50 text-blue-700 ring-blue-600/20";
+    }
+
+    if (value === "ordered" || value === "sample_ordered") {
+      return "bg-amber-50 text-amber-700 ring-amber-600/20";
+    }
+
+    if (value === "discontinued" || value === "archived") {
+      return "bg-slate-100 text-slate-600 ring-slate-500/20";
+    }
+
+    return "bg-violet-50 text-violet-700 ring-violet-600/20";
+  }
+
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-100 p-8">
-        Loading product...
-      </main>
+      <div className="min-h-screen bg-slate-50 lg:pl-64">
+        <div className="p-8 text-slate-600">
+          Loading product...
+        </div>
+      </div>
     );
   }
 
   if (message || !product) {
     return (
-      <main className="min-h-screen bg-slate-100 p-8">
-        <div className="mx-auto max-w-5xl rounded-2xl bg-white p-8 shadow-sm">
-          <p className="text-red-600">{message || "Product not found."}</p>
+      <main className="min-h-screen bg-slate-50 p-8">
+        <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <p className="text-red-600">
+            {message || "Product not found."}
+          </p>
+
           <button
             onClick={() => {
               window.location.href = "/products";
             }}
-            className="mt-5 rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white"
+            className="mt-5 rounded-xl bg-slate-950 px-4 py-2 font-semibold text-white"
           >
             Back to Products
           </button>
@@ -196,214 +395,520 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-4 md:p-8">
-      <div className="mx-auto max-w-5xl">
-        <button
-          onClick={() => {
-            window.location.href = "/products";
-          }}
-          className="mb-5 rounded-lg border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 hover:bg-slate-50"
-        >
-          ← Back to Products
-        </button>
+    <div className="min-h-screen bg-slate-50">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-slate-950 text-white lg:block">
+        <div className="flex h-20 items-center border-b border-white/10 px-6">
+          <div>
+            <div className="text-xl font-bold tracking-tight">
+              PEN
+            </div>
+            <div className="text-xs text-slate-400">
+              Inventory
+            </div>
+          </div>
+        </div>
 
-        <div className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
-          <div className="mb-8">
-            <div className="text-sm font-semibold text-slate-500">
-              {product.sku}
+        <nav className="space-y-1 px-3 py-5 text-sm">
+          <NavItem label="Dashboard" icon="⌂" />
+          <NavItem
+            label="Products"
+            icon="▦"
+            active
+            onClick={() => {
+              window.location.href = "/products";
+            }}
+          />
+          <NavItem label="Inventory" icon="▣" />
+          <NavItem label="Purchases" icon="↓" />
+          <NavItem label="Sales" icon="↑" />
+          <NavItem label="Suppliers" icon="♢" />
+          <NavItem label="Customers" icon="♙" />
+          <NavItem label="Reports" icon="▤" />
+          <NavItem label="Users" icon="♧" />
+          <NavItem label="Settings" icon="⚙" />
+        </nav>
+
+        <div className="absolute bottom-0 left-0 right-0 border-t border-white/10 p-4">
+          <button
+            onClick={handleLogout}
+            className="w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            Sign out
+          </button>
+        </div>
+      </aside>
+
+      <div className="lg:pl-64">
+        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+          <div className="flex min-h-20 items-center justify-between gap-4 px-4 py-4 md:px-8">
+            <div className="flex min-w-0 items-center gap-4">
+              <button
+                onClick={() => {
+                  window.location.href = "/products";
+                }}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50"
+              >
+                ←
+              </button>
+
+              <div className="min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  {product.sku}
+                </div>
+
+                <h1 className="truncate text-xl font-bold tracking-tight text-slate-950 md:text-2xl">
+                  {product.name}
+                </h1>
+              </div>
             </div>
 
-            <h1 className="mt-1 text-3xl font-bold text-slate-900">
-              {product.name}
-            </h1>
-
-            <span className="mt-3 inline-block rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">
+            <span
+              className={`hidden rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset sm:inline-flex ${productStatusClass(
+                product.status
+              )}`}
+            >
               {formatStatus(product.status)}
             </span>
           </div>
+        </header>
 
-          <section className="mb-8">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-slate-900">
-                Photos
-              </h2>
+        <main className="p-4 md:p-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => {
+                  window.location.href = "/products";
+                }}
+                className="text-sm font-semibold text-slate-500 transition hover:text-slate-900"
+              >
+                Products
+              </button>
 
-              <span className="text-sm text-slate-500">
-                JPEG, PNG or WEBP · Max 10 MB
+              <span className="text-slate-300">/</span>
+
+              <span className="text-sm font-semibold text-slate-800">
+                {product.sku}
+              </span>
+
+              <span
+                className={`ml-auto rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset sm:hidden ${productStatusClass(
+                  product.status
+                )}`}
+              >
+                {formatStatus(product.status)}
               </span>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              <div className="relative flex min-h-72 items-center justify-center bg-slate-50 p-5">
-                {previewUrl || storedImageUrl ? (
-                  <img
-                    src={previewUrl || storedImageUrl}
-                    alt={product.name}
-                    className="max-h-80 w-full rounded-xl object-contain"
-                  />
-                ) : (
-                  <div className="px-6 py-12 text-center">
-                    <div className="mb-3 text-5xl">📷</div>
-                    <p className="font-semibold text-slate-700">
-                      No product photo yet
-                    </p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Add a photo to make this product easier to identify.
-                    </p>
-                  </div>
-                )}
-
-                <label
-                  className={`absolute bottom-4 right-4 inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold text-white shadow-lg transition ${
-                    uploading
-                      ? "cursor-wait bg-slate-500"
-                      : "cursor-pointer bg-slate-900 hover:bg-slate-700"
-                  }`}
-                >
-                  {uploading
-                    ? "Uploading..."
-                    : previewUrl || storedImageUrl
-                      ? "📷 Change Photo"
-                      : "📷 Add Photo"}
-
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    disabled={uploading}
-                    onChange={async (event) => {
-                      const file = event.target.files?.[0];
-
-                      if (!file) return;
-
-                      setPreviewUrl(URL.createObjectURL(file));
-                      setUploadMessage("");
-
-                      await uploadPhoto(file);
-
-                      event.target.value = "";
-                    }}
-                  />
-                </label>
-              </div>
-
-              <div className="border-t border-slate-200 px-5 py-3">
-                {uploadMessage ? (
-                  <p
-                    className={`text-sm font-medium ${
-                      uploadMessage.startsWith("✓")
-                        ? "text-green-700"
-                        : "text-slate-600"
-                    }`}
-                  >
-                    {uploadMessage}
-                  </p>
-                ) : (
-                  <p className="text-sm text-slate-500">
-                    Choose a photo and it will save automatically.
-                  </p>
-                )}
-              </div>
-            </div>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="mb-4 text-xl font-semibold text-slate-900">
-              Stock
-            </h2>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
               <StockCard
                 label="On Hand"
                 value={product.quantity_on_hand}
               />
+
               <StockCard
                 label="Reserved"
                 value={product.quantity_reserved}
               />
+
               <StockCard
                 label="Available"
                 value={product.quantity_available}
+                emphasis
               />
+
               <StockCard
                 label="Reorder Level"
                 value={product.reorder_level}
               />
+
               <StockCard
-                label="Status"
+                label="Stock Status"
                 value={formatStatus(product.stock_status)}
               />
+            </section>
+
+            <div className="grid gap-6 xl:grid-cols-[1.05fr_1fr]">
+              <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                  <div>
+                    <h2 className="font-semibold text-slate-900">
+                      Product Photo
+                    </h2>
+
+                    <p className="mt-0.5 text-xs text-slate-400">
+                      JPEG, PNG or WEBP · Max 10 MB
+                    </p>
+                  </div>
+
+                  {product.primary_image_id && (
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                      Primary photo
+                    </span>
+                  )}
+                </div>
+
+                <div className="relative flex min-h-[420px] items-center justify-center bg-slate-50 p-6">
+                  {previewUrl || storedImageUrl ? (
+                    <img
+                      src={previewUrl || storedImageUrl}
+                      alt={product.name}
+                      className="max-h-[390px] w-full rounded-xl object-contain"
+                    />
+                  ) : (
+                    <div className="px-6 py-16 text-center">
+                      <div className="mb-4 text-6xl">
+                        📷
+                      </div>
+
+                      <p className="font-semibold text-slate-700">
+                        No product photo yet
+                      </p>
+
+                      <p className="mt-2 text-sm text-slate-500">
+                        Add a photo to make this product easier
+                        to identify.
+                      </p>
+                    </div>
+                  )}
+
+                  <label
+                    className={`absolute bottom-5 right-5 inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-lg transition ${
+                      uploading
+                        ? "cursor-wait bg-slate-500"
+                        : "cursor-pointer bg-slate-950 hover:bg-slate-800"
+                    }`}
+                  >
+                    {uploading
+                      ? "Uploading..."
+                      : "📷 Add Photo"}
+
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      disabled={uploading}
+                      onChange={async (event) => {
+                        const file =
+                          event.target.files?.[0];
+
+                        if (!file) return;
+
+                        setPreviewUrl(
+                          URL.createObjectURL(file)
+                        );
+
+                        setUploadMessage("");
+
+                        await uploadPhoto(file);
+
+                        event.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div className="border-t border-slate-100 p-5">
+                  {productImages.length > 0 && (
+                    <div>
+                      <div className="mb-3 flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900">
+                            Product Photos
+                          </h3>
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            Select any previous photo to make it primary again.
+                          </p>
+                        </div>
+
+                        <span className="text-xs font-medium text-slate-400">
+                          {productImages.length}{" "}
+                          {productImages.length === 1 ? "photo" : "photos"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                        {productImages.map((image) => (
+                          <div
+                            key={image.id}
+                            className={`overflow-hidden rounded-xl border bg-white ${
+                              image.is_primary
+                                ? "border-slate-950 ring-2 ring-slate-950/10"
+                                : "border-slate-200"
+                            }`}
+                          >
+                            <div className="relative aspect-square bg-slate-50">
+                              {image.url ? (
+                                <img
+                                  src={image.url}
+                                  alt={
+                                    image.alt_text ||
+                                    product.name
+                                  }
+                                  className="h-full w-full object-contain"
+                                />
+                              ) : (
+                                <div className="flex h-full items-center justify-center text-2xl text-slate-300">
+                                  📷
+                                </div>
+                              )}
+
+                              {image.is_primary && (
+                                <span className="absolute left-2 top-2 rounded-full bg-slate-950 px-2 py-1 text-[10px] font-bold text-white shadow">
+                                  PRIMARY
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="space-y-2 p-2">
+                              {!image.is_primary && (
+                                <button
+                                  type="button"
+                                  disabled={galleryBusy === image.id}
+                                  onClick={() =>
+                                    makePrimaryImage(image.id)
+                                  }
+                                  className="w-full rounded-lg bg-slate-950 px-2 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:opacity-50"
+                                >
+                                  {galleryBusy === image.id
+                                    ? "Please wait..."
+                                    : "Make Primary"}
+                                </button>
+                              )}
+
+                              {!image.is_primary && (
+                                <button
+                                  type="button"
+                                  disabled={galleryBusy === image.id}
+                                  onClick={() =>
+                                    deleteProductImage(image.id)
+                                  }
+                                  className="w-full rounded-lg border border-red-200 px-2 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-50"
+                                >
+                                  Delete
+                                </button>
+                              )}
+
+                              {image.is_primary && (
+                                <div className="rounded-lg bg-emerald-50 px-2 py-2 text-center text-xs font-semibold text-emerald-700">
+                                  Current Primary
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div
+                    className={
+                      productImages.length > 0
+                        ? "mt-4 border-t border-slate-100 pt-4"
+                        : ""
+                    }
+                  >
+                    {uploadMessage ? (
+                      <p
+                        className={`text-sm font-medium ${
+                          uploadMessage.startsWith("✓")
+                            ? "text-emerald-700"
+                            : "text-slate-600"
+                        }`}
+                      >
+                        {uploadMessage}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-slate-500">
+                        Add as many photos as needed. Any previous photo
+                        can be made primary again.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              <div className="space-y-6">
+                <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <div className="border-b border-slate-100 px-5 py-4">
+                    <h2 className="font-semibold text-slate-900">
+                      Product Information
+                    </h2>
+                  </div>
+
+                  <div className="grid gap-x-8 gap-y-6 p-5 sm:grid-cols-2">
+                    <Field
+                      label="SKU"
+                      value={product.sku}
+                      mono
+                    />
+
+                    <Field
+                      label="Category"
+                      value={product.category || "—"}
+                    />
+
+                    <Field
+                      label="Brand"
+                      value={product.brand || "—"}
+                    />
+
+                    <Field
+                      label="Barcode"
+                      value={product.barcode || "—"}
+                      mono
+                    />
+
+                    <Field
+                      label="Status"
+                      value={formatStatus(product.status)}
+                    />
+
+                    <Field
+                      label="Active"
+                      value={
+                        product.is_active ? "Yes" : "No"
+                      }
+                    />
+
+                    <Field
+                      label="Reorder Quantity"
+                      value={product.reorder_quantity}
+                    />
+
+                    <Field
+                      label="Reorder Level"
+                      value={product.reorder_level}
+                    />
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <div className="border-b border-slate-100 px-5 py-4">
+                    <h2 className="font-semibold text-slate-900">
+                      Pricing
+                    </h2>
+                  </div>
+
+                  <div className="grid gap-4 p-5 sm:grid-cols-2">
+                    <PriceCard
+                      label="Selling Price"
+                      value={formatPrice(
+                        product.selling_price,
+                        product.selling_currency
+                      )}
+                    />
+
+                    <PriceCard
+                      label="Wholesale Price"
+                      value={formatPrice(
+                        product.wholesale_price,
+                        product.selling_currency
+                      )}
+                    />
+                  </div>
+                </section>
+              </div>
             </div>
-          </section>
 
-          <section>
-            <h2 className="mb-4 text-xl font-semibold text-slate-900">
-              Product Information
-            </h2>
+            <div className="mt-6 grid gap-6 xl:grid-cols-2">
+              <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-100 px-5 py-4">
+                  <h2 className="font-semibold text-slate-900">
+                    Description
+                  </h2>
+                </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-              <Field label="Category" value={product.category || "—"} />
-              <Field label="Brand" value={product.brand || "—"} />
-              <Field label="Barcode" value={product.barcode || "—"} />
-              <Field
-                label="Selling Price"
-                value={formatPrice(
-                  product.selling_price,
-                  product.selling_currency
-                )}
-              />
-              <Field
-                label="Wholesale Price"
-                value={formatPrice(
-                  product.wholesale_price,
-                  product.selling_currency
-                )}
-              />
-              <Field
-                label="Reorder Quantity"
-                value={product.reorder_quantity}
-              />
+                <div className="p-5">
+                  <p className="whitespace-pre-wrap leading-7 text-slate-700">
+                    {product.description ||
+                      "No description has been added yet."}
+                  </p>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-100 px-5 py-4">
+                  <h2 className="font-semibold text-slate-900">
+                    Notes
+                  </h2>
+                </div>
+
+                <div className="p-5">
+                  <p className="whitespace-pre-wrap leading-7 text-slate-700">
+                    {product.notes ||
+                      "No notes have been added yet."}
+                  </p>
+                </div>
+              </section>
             </div>
-          </section>
 
-          <section className="mt-8">
-            <h2 className="mb-4 text-xl font-semibold text-slate-900">
-              Description
-            </h2>
+            <section className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white/50 p-6">
+              <h2 className="font-semibold text-slate-800">
+                More product information
+              </h2>
 
-            <div className="rounded-xl bg-slate-50 p-4 text-slate-700">
-              {product.description || "—"}
-            </div>
-          </section>
-
-          <section className="mt-8">
-            <h2 className="mb-4 text-xl font-semibold text-slate-900">
-              Notes
-            </h2>
-
-            <div className="rounded-xl bg-slate-50 p-4 text-slate-700">
-              {product.notes || "—"}
-            </div>
-          </section>
-        </div>
+              <p className="mt-1 text-sm text-slate-500">
+                Supplier offers, purchase history, stock
+                movements and activity will appear here as we
+                activate the next PEN Inventory modules.
+              </p>
+            </section>
+          </div>
+        </main>
       </div>
-    </main>
+    </div>
+  );
+}
+
+function NavItem({
+  label,
+  icon,
+  active = false,
+  onClick,
+}: {
+  label: string;
+  icon: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-medium ${
+        active
+          ? "bg-white text-slate-950"
+          : "text-slate-400 transition hover:bg-white/10 hover:text-white"
+      }`}
+    >
+      <span className="w-5 text-center text-base">
+        {icon}
+      </span>
+      <span>{label}</span>
+    </button>
   );
 }
 
 function Field({
   label,
   value,
+  mono = false,
 }: {
   label: string;
   value: string | number;
+  mono?: boolean;
 }) {
   return (
     <div>
-      <div className="text-sm font-medium text-slate-500">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
         {label}
       </div>
-      <div className="mt-1 font-semibold text-slate-900">
+
+      <div
+        className={`mt-1.5 font-semibold text-slate-900 ${
+          mono ? "font-mono text-sm" : ""
+        }`}
+      >
         {value}
       </div>
     </div>
@@ -413,14 +918,53 @@ function Field({
 function StockCard({
   label,
   value,
+  emphasis = false,
 }: {
   label: string;
   value: string | number;
+  emphasis?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border p-5 shadow-sm ${
+        emphasis
+          ? "border-slate-900 bg-slate-950 text-white"
+          : "border-slate-200 bg-white"
+      }`}
+    >
+      <div
+        className={`text-sm font-medium ${
+          emphasis ? "text-slate-400" : "text-slate-500"
+        }`}
+      >
+        {label}
+      </div>
+
+      <div
+        className={`mt-2 text-2xl font-bold tracking-tight ${
+          emphasis ? "text-white" : "text-slate-950"
+        }`}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function PriceCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
 }) {
   return (
     <div className="rounded-xl bg-slate-50 p-4">
-      <div className="text-sm text-slate-500">{label}</div>
-      <div className="mt-1 text-xl font-bold text-slate-900">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        {label}
+      </div>
+
+      <div className="mt-2 text-xl font-bold text-slate-950">
         {value}
       </div>
     </div>
