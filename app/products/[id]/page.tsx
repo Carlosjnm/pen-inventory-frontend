@@ -63,6 +63,32 @@ type Product = {
   primary_image_url: string | null;
 };
 
+type Supplier = {
+  id: string;
+  supplier_code: string;
+  name: string;
+  default_currency: string | null;
+};
+
+type SupplierOffer = {
+  id: string;
+  supplier_id: string;
+  supplier_code: string;
+  supplier_name: string;
+  supplier_sku: string | null;
+  supplier_product_url: string | null;
+  currency: string;
+  unit_cost: number;
+  minimum_order_quantity: number | null;
+  lead_time_days: number | null;
+  is_preferred: boolean;
+  is_active: boolean;
+  last_quoted_at: string | null;
+};
+
+const SUPPLIER_API_URL =
+  "https://pen-inventory-backend-import-test-250574343787.africa-south1.run.app";
+
 export default function ProductDetailPage() {
   const params = useParams();
   const productId = params.id as string;
@@ -81,6 +107,39 @@ export default function ProductDetailPage() {
   const [savingProduct, setSavingProduct] = useState(false);
   const [editMessage, setEditMessage] = useState("");
   const [editForm, setEditForm] = useState<ProductEditForm | null>(null);
+  const [supplierOffers, setSupplierOffers] = useState<SupplierOffer[]>([]);
+  const [supplierOffersLoading, setSupplierOffersLoading] = useState(true);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [showSupplierOfferForm, setShowSupplierOfferForm] = useState(false);
+  const [savingSupplierOffer, setSavingSupplierOffer] = useState(false);
+  const [supplierOfferMessage, setSupplierOfferMessage] = useState("");
+  const [supplierOfferForm, setSupplierOfferForm] = useState({
+    supplier_id: "",
+    supplier_sku: "",
+    supplier_product_url: "",
+    currency: "AOA",
+    unit_cost: "",
+    minimum_order_quantity: "",
+    lead_time_days: "",
+    is_preferred: false,
+  });
+
+  const [editingSupplierOfferId, setEditingSupplierOfferId] =
+    useState<string | null>(null);
+
+  const [editSupplierOfferForm, setEditSupplierOfferForm] = useState({
+    supplier_sku: "",
+    supplier_product_url: "",
+    currency: "AOA",
+    unit_cost: "",
+    minimum_order_quantity: "",
+    lead_time_days: "",
+    is_preferred: false,
+    is_active: true,
+  });
+
+  const [savingSupplierOfferEdit, setSavingSupplierOfferEdit] =
+    useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -120,6 +179,45 @@ export default function ProductDetailPage() {
         if (categoriesResponse.ok) {
           const categoriesData = await categoriesResponse.json();
           setCategories(categoriesData.categories || []);
+        }
+
+        const suppliersResponse = await fetch(
+          `${API_URL}/api/suppliers`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (suppliersResponse.ok) {
+          const suppliersData = await suppliersResponse.json();
+          setSuppliers(suppliersData.suppliers || []);
+        }
+
+        try {
+          const supplierResponse = await fetch(
+            `${SUPPLIER_API_URL}/api/products/${productId}/supplier-offers`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (supplierResponse.ok) {
+            const supplierData = await supplierResponse.json();
+            setSupplierOffers(supplierData.offers || []);
+          } else {
+            console.error(
+              "Unable to load supplier offers:",
+              supplierResponse.status
+            );
+          }
+        } catch (supplierError) {
+          console.error("Unable to load supplier offers:", supplierError);
+        } finally {
+          setSupplierOffersLoading(false);
         }
 
         if (data.product.primary_image_id) {
@@ -189,6 +287,185 @@ export default function ProductDetailPage() {
 
     return () => unsubscribe();
   }, [productId]);
+
+  async function saveSupplierOffer() {
+    if (!supplierOfferForm.supplier_id) {
+      setSupplierOfferMessage("Select a supplier.");
+      return;
+    }
+
+    if (!supplierOfferForm.unit_cost) {
+      setSupplierOfferMessage("Unit cost is required.");
+      return;
+    }
+
+    try {
+      setSavingSupplierOffer(true);
+      setSupplierOfferMessage("");
+
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error("You are not signed in.");
+      }
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        `${SUPPLIER_API_URL}/api/products/${productId}/supplier-offers`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            supplier_id: supplierOfferForm.supplier_id,
+            supplier_sku: supplierOfferForm.supplier_sku || null,
+            supplier_product_url:
+              supplierOfferForm.supplier_product_url || null,
+            currency: supplierOfferForm.currency,
+            unit_cost: Number(supplierOfferForm.unit_cost),
+            minimum_order_quantity:
+              supplierOfferForm.minimum_order_quantity === ""
+                ? null
+                : Number(supplierOfferForm.minimum_order_quantity),
+            lead_time_days:
+              supplierOfferForm.lead_time_days === ""
+                ? null
+                : Number(supplierOfferForm.lead_time_days),
+            is_preferred: supplierOfferForm.is_preferred,
+            is_active: true,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unable to create supplier offer.");
+      }
+
+      setSupplierOffers((current) => [
+        ...current,
+        data.offer,
+      ]);
+
+      setSupplierOfferForm({
+        supplier_id: "",
+        supplier_sku: "",
+        supplier_product_url: "",
+        currency: "AOA",
+        unit_cost: "",
+        minimum_order_quantity: "",
+        lead_time_days: "",
+        is_preferred: false,
+      });
+
+      setSupplierOfferMessage("Supplier offer added successfully.");
+      setShowSupplierOfferForm(false);
+    } catch (error) {
+      setSupplierOfferMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to create supplier offer."
+      );
+    } finally {
+      setSavingSupplierOffer(false);
+    }
+  }
+
+  function startEditingSupplierOffer(offer: SupplierOffer) {
+    setEditingSupplierOfferId(offer.id);
+
+    setEditSupplierOfferForm({
+      supplier_sku: offer.supplier_sku || "",
+      supplier_product_url: offer.supplier_product_url || "",
+      currency: offer.currency,
+      unit_cost: String(offer.unit_cost),
+      minimum_order_quantity:
+        offer.minimum_order_quantity === null
+          ? ""
+          : String(offer.minimum_order_quantity),
+      lead_time_days:
+        offer.lead_time_days === null
+          ? ""
+          : String(offer.lead_time_days),
+      is_preferred: offer.is_preferred,
+      is_active: offer.is_active,
+    });
+
+    setSupplierOfferMessage("");
+  }
+
+  async function saveSupplierOfferEdit(offerId: string) {
+    if (!editSupplierOfferForm.unit_cost) {
+      setSupplierOfferMessage("Unit cost is required.");
+      return;
+    }
+
+    try {
+      setSavingSupplierOfferEdit(true);
+      setSupplierOfferMessage("");
+
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error("You are not signed in.");
+      }
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        `${SUPPLIER_API_URL}/api/products/${productId}/supplier-offers/${offerId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            supplier_sku: editSupplierOfferForm.supplier_sku || null,
+            supplier_product_url:
+              editSupplierOfferForm.supplier_product_url || null,
+            currency: editSupplierOfferForm.currency,
+            unit_cost: Number(editSupplierOfferForm.unit_cost),
+            minimum_order_quantity:
+              editSupplierOfferForm.minimum_order_quantity === ""
+                ? null
+                : Number(editSupplierOfferForm.minimum_order_quantity),
+            lead_time_days:
+              editSupplierOfferForm.lead_time_days === ""
+                ? null
+                : Number(editSupplierOfferForm.lead_time_days),
+            is_preferred: editSupplierOfferForm.is_preferred,
+            is_active: editSupplierOfferForm.is_active,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unable to update supplier offer.");
+      }
+
+      setSupplierOffers((current) =>
+        current.map((offer) =>
+          offer.id === offerId ? data.offer : offer
+        )
+      );
+
+      setEditingSupplierOfferId(null);
+      setSupplierOfferMessage("Supplier offer updated successfully.");
+    } catch (error) {
+      setSupplierOfferMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to update supplier offer."
+      );
+    } finally {
+      setSavingSupplierOfferEdit(false);
+    }
+  }
 
   async function uploadPhoto(file: File) {
     if (file.size > 10 * 1024 * 1024) {
@@ -1250,15 +1527,501 @@ export default function ProductDetailPage() {
               </section>
             </div>
 
+            <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                <div>
+                  <h2 className="font-semibold text-slate-900">
+                    Supplier Offers
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Compare supplier cost, MOQ and lead time for this product.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                    {supplierOffers.length}{" "}
+                    {supplierOffers.length === 1 ? "offer" : "offers"}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowSupplierOfferForm((value) => !value)
+                    }
+                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+                  >
+                    {showSupplierOfferForm ? "Close" : "+ Add Supplier Offer"}
+                  </button>
+                </div>
+              </div>
+
+              {showSupplierOfferForm && (
+                <div className="border-b border-slate-100 bg-slate-50 p-5">
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <label className="text-sm font-medium text-slate-700">
+                      Supplier
+                      <select
+                        value={supplierOfferForm.supplier_id}
+                        onChange={(e) => {
+                          const selected = suppliers.find(
+                            (supplier) => supplier.id === e.target.value
+                          );
+
+                          setSupplierOfferForm((current) => ({
+                            ...current,
+                            supplier_id: e.target.value,
+                            currency:
+                              selected?.default_currency ||
+                              current.currency,
+                          }));
+                        }}
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                      >
+                        <option value="">Select supplier</option>
+                        {suppliers.map((supplier) => (
+                          <option key={supplier.id} value={supplier.id}>
+                            {supplier.supplier_code} · {supplier.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="text-sm font-medium text-slate-700">
+                      Supplier SKU
+                      <input
+                        value={supplierOfferForm.supplier_sku}
+                        onChange={(e) =>
+                          setSupplierOfferForm((current) => ({
+                            ...current,
+                            supplier_sku: e.target.value,
+                          }))
+                        }
+                        className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                      />
+                    </label>
+
+                    <label className="text-sm font-medium text-slate-700">
+                      Currency
+                      <select
+                        value={supplierOfferForm.currency}
+                        onChange={(e) =>
+                          setSupplierOfferForm((current) => ({
+                            ...current,
+                            currency: e.target.value,
+                          }))
+                        }
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                      >
+                        <option value="AOA">AOA</option>
+                        <option value="USD">USD</option>
+                        <option value="ZAR">ZAR</option>
+                        <option value="CNY">CNY</option>
+                      </select>
+                    </label>
+
+                    <label className="text-sm font-medium text-slate-700">
+                      Unit Cost
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={supplierOfferForm.unit_cost}
+                        onChange={(e) =>
+                          setSupplierOfferForm((current) => ({
+                            ...current,
+                            unit_cost: e.target.value,
+                          }))
+                        }
+                        className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                      />
+                    </label>
+
+                    <label className="text-sm font-medium text-slate-700">
+                      MOQ
+                      <input
+                        type="number"
+                        min="0"
+                        value={supplierOfferForm.minimum_order_quantity}
+                        onChange={(e) =>
+                          setSupplierOfferForm((current) => ({
+                            ...current,
+                            minimum_order_quantity: e.target.value,
+                          }))
+                        }
+                        className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                      />
+                    </label>
+
+                    <label className="text-sm font-medium text-slate-700">
+                      Lead Time (days)
+                      <input
+                        type="number"
+                        min="0"
+                        value={supplierOfferForm.lead_time_days}
+                        onChange={(e) =>
+                          setSupplierOfferForm((current) => ({
+                            ...current,
+                            lead_time_days: e.target.value,
+                          }))
+                        }
+                        className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                      />
+                    </label>
+
+                    <label className="text-sm font-medium text-slate-700 md:col-span-2">
+                      Supplier Product URL
+                      <input
+                        type="url"
+                        value={supplierOfferForm.supplier_product_url}
+                        onChange={(e) =>
+                          setSupplierOfferForm((current) => ({
+                            ...current,
+                            supplier_product_url: e.target.value,
+                          }))
+                        }
+                        placeholder="https://..."
+                        className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={supplierOfferForm.is_preferred}
+                        onChange={(e) =>
+                          setSupplierOfferForm((current) => ({
+                            ...current,
+                            is_preferred: e.target.checked,
+                          }))
+                        }
+                      />
+                      Preferred supplier
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={saveSupplierOffer}
+                      disabled={savingSupplierOffer}
+                      className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {savingSupplierOffer
+                        ? "Saving..."
+                        : "Save Supplier Offer"}
+                    </button>
+                  </div>
+
+                  {supplierOfferMessage && (
+                    <p className="mt-3 text-sm text-slate-600">
+                      {supplierOfferMessage}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {supplierOffersLoading ? (
+                <div className="p-6 text-sm text-slate-500">
+                  Loading supplier offers...
+                </div>
+              ) : supplierOffers.length === 0 ? (
+                <div className="p-6">
+                  <p className="text-sm font-medium text-slate-700">
+                    No supplier offers yet.
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Supplier quotations for this product will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-100">
+                    <thead className="bg-slate-50">
+                      <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th className="px-5 py-3">Supplier</th>
+                        <th className="px-5 py-3">Supplier SKU</th>
+                        <th className="px-5 py-3">Cost</th>
+                        <th className="px-5 py-3">MOQ</th>
+                        <th className="px-5 py-3">Lead Time</th>
+                        <th className="px-5 py-3">Status</th>
+                        <th className="px-5 py-3"></th>
+                      </tr>
+                    </thead>
+
+                    <tbody className="divide-y divide-slate-100">
+                      {supplierOffers.map((offer) => (
+                        <>
+                          <tr
+                            key={offer.id}
+                            className="hover:bg-slate-50/70"
+                          >
+                            <td className="px-5 py-4">
+                              <div className="font-medium text-slate-900">
+                                {offer.supplier_name}
+                              </div>
+                              <div className="mt-1 text-xs text-slate-500">
+                                {offer.supplier_code}
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-4 text-sm text-slate-700">
+                              {offer.supplier_sku || "—"}
+                            </td>
+
+                            <td className="px-5 py-4">
+                              <div className="font-semibold text-slate-900">
+                                {offer.currency}{" "}
+                                {Number(offer.unit_cost).toLocaleString(
+                                  undefined,
+                                  {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  }
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-4 text-sm text-slate-700">
+                              {offer.minimum_order_quantity ?? "—"}
+                            </td>
+
+                            <td className="px-5 py-4 text-sm text-slate-700">
+                              {offer.lead_time_days !== null
+                                ? `${offer.lead_time_days} days`
+                                : "—"}
+                            </td>
+
+                            <td className="px-5 py-4">
+                              <div className="flex flex-wrap gap-2">
+                                {offer.is_preferred && (
+                                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                                    Preferred
+                                  </span>
+                                )}
+
+                                {!offer.is_active && (
+                                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">
+                                    Inactive
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-4 text-right">
+                              <div className="flex justify-end gap-3">
+                                {offer.supplier_product_url && (
+                                  <a
+                                    href={offer.supplier_product_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+                                  >
+                                    View ↗
+                                  </a>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    startEditingSupplierOffer(offer)
+                                  }
+                                  className="text-sm font-semibold text-slate-700 hover:text-slate-950"
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {editingSupplierOfferId === offer.id && (
+                            <tr key={`${offer.id}-edit`}>
+                              <td
+                                colSpan={7}
+                                className="bg-slate-50 px-5 py-5"
+                              >
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                  <label className="text-sm font-medium text-slate-700">
+                                    Supplier SKU
+                                    <input
+                                      value={editSupplierOfferForm.supplier_sku}
+                                      onChange={(e) =>
+                                        setEditSupplierOfferForm((current) => ({
+                                          ...current,
+                                          supplier_sku: e.target.value,
+                                        }))
+                                      }
+                                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                                    />
+                                  </label>
+
+                                  <label className="text-sm font-medium text-slate-700">
+                                    Currency
+                                    <select
+                                      value={editSupplierOfferForm.currency}
+                                      onChange={(e) =>
+                                        setEditSupplierOfferForm((current) => ({
+                                          ...current,
+                                          currency: e.target.value,
+                                        }))
+                                      }
+                                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                                    >
+                                      <option value="AOA">AOA</option>
+                                      <option value="USD">USD</option>
+                                      <option value="ZAR">ZAR</option>
+                                      <option value="CNY">CNY</option>
+                                    </select>
+                                  </label>
+
+                                  <label className="text-sm font-medium text-slate-700">
+                                    Unit Cost
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={editSupplierOfferForm.unit_cost}
+                                      onChange={(e) =>
+                                        setEditSupplierOfferForm((current) => ({
+                                          ...current,
+                                          unit_cost: e.target.value,
+                                        }))
+                                      }
+                                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                                    />
+                                  </label>
+
+                                  <label className="text-sm font-medium text-slate-700">
+                                    MOQ
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={
+                                        editSupplierOfferForm.minimum_order_quantity
+                                      }
+                                      onChange={(e) =>
+                                        setEditSupplierOfferForm((current) => ({
+                                          ...current,
+                                          minimum_order_quantity:
+                                            e.target.value,
+                                        }))
+                                      }
+                                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                                    />
+                                  </label>
+
+                                  <label className="text-sm font-medium text-slate-700">
+                                    Lead Time (days)
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={editSupplierOfferForm.lead_time_days}
+                                      onChange={(e) =>
+                                        setEditSupplierOfferForm((current) => ({
+                                          ...current,
+                                          lead_time_days: e.target.value,
+                                        }))
+                                      }
+                                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                                    />
+                                  </label>
+
+                                  <label className="text-sm font-medium text-slate-700 md:col-span-2">
+                                    Supplier Product URL
+                                    <input
+                                      type="url"
+                                      value={
+                                        editSupplierOfferForm.supplier_product_url
+                                      }
+                                      onChange={(e) =>
+                                        setEditSupplierOfferForm((current) => ({
+                                          ...current,
+                                          supplier_product_url:
+                                            e.target.value,
+                                        }))
+                                      }
+                                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                                    />
+                                  </label>
+                                </div>
+
+                                <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+                                  <div className="flex flex-wrap gap-5">
+                                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                      <input
+                                        type="checkbox"
+                                        checked={
+                                          editSupplierOfferForm.is_preferred
+                                        }
+                                        onChange={(e) =>
+                                          setEditSupplierOfferForm((current) => ({
+                                            ...current,
+                                            is_preferred: e.target.checked,
+                                          }))
+                                        }
+                                      />
+                                      Preferred supplier
+                                    </label>
+
+                                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                      <input
+                                        type="checkbox"
+                                        checked={editSupplierOfferForm.is_active}
+                                        onChange={(e) =>
+                                          setEditSupplierOfferForm((current) => ({
+                                            ...current,
+                                            is_active: e.target.checked,
+                                          }))
+                                        }
+                                      />
+                                      Active
+                                    </label>
+                                  </div>
+
+                                  <div className="flex gap-3">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setEditingSupplierOfferId(null)
+                                      }
+                                      className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                                    >
+                                      Cancel
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        saveSupplierOfferEdit(offer.id)
+                                      }
+                                      disabled={savingSupplierOfferEdit}
+                                      className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                                    >
+                                      {savingSupplierOfferEdit
+                                        ? "Saving..."
+                                        : "Save Changes"}
+                                    </button>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
             <section className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white/50 p-6">
               <h2 className="font-semibold text-slate-800">
                 More product information
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Supplier offers, purchase history, stock
-                movements and activity will appear here as we
-                activate the next PEN Inventory modules.
+                Purchase history, stock movements and activity will appear
+                here as we activate the next PEN Inventory modules.
               </p>
             </section>
           </div>
