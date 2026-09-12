@@ -8,6 +8,11 @@ import { auth } from "@/lib/firebase";
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
 
+type Category = {
+  id: string;
+  name: string;
+};
+
 type ProductImage = {
   id: string;
   alt_text: string | null;
@@ -71,6 +76,7 @@ export default function ProductDetailPage() {
   const [uploadMessage, setUploadMessage] = useState("");
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
   const [galleryBusy, setGalleryBusy] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
   const [editing, setEditing] = useState(false);
   const [savingProduct, setSavingProduct] = useState(false);
   const [editMessage, setEditMessage] = useState("");
@@ -101,6 +107,20 @@ export default function ProductDetailPage() {
 
         const data = await response.json();
         setProduct(data.product);
+
+        const categoriesResponse = await fetch(
+          `${API_URL}/api/categories`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (categoriesResponse.ok) {
+          const categoriesData = await categoriesResponse.json();
+          setCategories(categoriesData.categories || []);
+        }
 
         if (data.product.primary_image_id) {
           const imageResponse = await fetch(
@@ -679,13 +699,35 @@ export default function ProductDetailPage() {
                     }
                   />
 
-                  <EditField
-                    label="Category"
-                    value={editForm.category}
-                    onChange={(value) =>
-                      setEditForm({ ...editForm, category: value })
-                    }
-                  />
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Category
+                    </span>
+
+                    <select
+                      value={editForm.category}
+                      onChange={(event) =>
+                        setEditForm({
+                          ...editForm,
+                          category: event.target.value,
+                        })
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
+                    >
+                      <option value="" disabled>
+                        Select category
+                      </option>
+
+                      {categories.map((category) => (
+                        <option
+                          key={category.id}
+                          value={category.name}
+                        >
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
                   <EditField
                     label="Brand"
