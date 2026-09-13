@@ -64,6 +64,13 @@ type TopProduct = {
   sales_count: number;
 };
 
+type PaymentSummary = {
+  date_from: string | null;
+  date_to: string | null;
+  payments_received: number;
+  payment_count: number;
+};
+
 type ProfitSummary = {
   date_from: string | null;
   date_to: string | null;
@@ -96,6 +103,8 @@ export default function ReportsPage() {
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [profitSummary, setProfitSummary] =
     useState<ProfitSummary | null>(null);
+  const [paymentSummary, setPaymentSummary] =
+    useState<PaymentSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [period, setPeriod] = useState<ReportPeriod>("month");
@@ -246,23 +255,33 @@ export default function ReportsPage() {
           Authorization: `Bearer ${token}`,
         };
 
-        const [topProductsResponse, profitResponse] =
-          await Promise.all([
-            fetch(
-              `${API_URL}/api/reports/top-products?${topProductsParams.toString()}`,
-              {
-                headers,
-                cache: "no-store",
-              }
-            ),
-            fetch(
-              `${API_URL}/api/reports/profit-summary?${params.toString()}`,
-              {
-                headers,
-                cache: "no-store",
-              }
-            ),
-          ]);
+        const [
+          topProductsResponse,
+          profitResponse,
+          paymentResponse,
+        ] = await Promise.all([
+          fetch(
+            `${API_URL}/api/reports/top-products?${topProductsParams.toString()}`,
+            {
+              headers,
+              cache: "no-store",
+            }
+          ),
+          fetch(
+            `${API_URL}/api/reports/profit-summary?${params.toString()}`,
+            {
+              headers,
+              cache: "no-store",
+            }
+          ),
+          fetch(
+            `${API_URL}/api/reports/payment-summary?${params.toString()}`,
+            {
+              headers,
+              cache: "no-store",
+            }
+          ),
+        ]);
 
         if (!topProductsResponse.ok) {
           throw new Error("Unable to load top products report data.");
@@ -272,11 +291,17 @@ export default function ReportsPage() {
           throw new Error("Unable to load profit summary report data.");
         }
 
+        if (!paymentResponse.ok) {
+          throw new Error("Unable to load payment summary report data.");
+        }
+
         const topProductsData = await topProductsResponse.json();
         const profitData = await profitResponse.json();
+        const paymentData = await paymentResponse.json();
 
         setTopProducts(topProductsData.products || []);
         setProfitSummary(profitData);
+        setPaymentSummary(paymentData);
       } catch (error) {
         console.error(error);
       }
@@ -363,9 +388,8 @@ export default function ReportsPage() {
       0
     );
 
-    const paymentsReceived = filteredSales.reduce(
-      (sum, sale) => sum + Number(sale.amount_paid || 0),
-      0
+    const paymentsReceived = Number(
+      paymentSummary?.payments_received || 0
     );
 
     const outstanding = filteredSales
@@ -412,7 +436,7 @@ export default function ReportsPage() {
       notStockedYet,
       paidOrders: paidSales.length,
     };
-  }, [filteredSales, balances]);
+  }, [filteredSales, balances, paymentSummary]);
 
   const salesByChannel = useMemo(() => {
     const channels = new Map<
