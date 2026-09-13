@@ -32,6 +32,8 @@ export default function SalesPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [channel, setChannel] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -97,9 +99,35 @@ export default function SalesPage() {
       const matchesStatus = !status || order.status === status;
       const matchesChannel = !channel || order.sales_channel === channel;
 
-      return matchesSearch && matchesStatus && matchesChannel;
+      const saleDate = order.sale_date
+        ? new Date(order.sale_date)
+        : null;
+
+      const fromDate = dateFrom
+        ? new Date(`${dateFrom}T00:00:00`)
+        : null;
+
+      const toDate = dateTo
+        ? new Date(`${dateTo}T23:59:59.999`)
+        : null;
+
+      const matchesDateFrom =
+        !fromDate ||
+        (saleDate !== null && saleDate >= fromDate);
+
+      const matchesDateTo =
+        !toDate ||
+        (saleDate !== null && saleDate <= toDate);
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesChannel &&
+        matchesDateFrom &&
+        matchesDateTo
+      );
     });
-  }, [salesOrders, search, status, channel]);
+  }, [salesOrders, search, status, channel, dateFrom, dateTo]);
 
   const totalSales = salesOrders.reduce(
     (sum, order) => sum + Number(order.total_amount || 0),
@@ -129,6 +157,8 @@ export default function SalesPage() {
     setSearch("");
     setStatus("");
     setChannel("");
+    setDateFrom("");
+    setDateTo("");
   }
 
   function formatStatus(value: string) {
@@ -277,7 +307,7 @@ export default function SalesPage() {
             </section>
 
             <section className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-              <div className="grid gap-3 xl:grid-cols-[1.6fr_1fr_1fr_auto]">
+              <div className="grid gap-3 xl:grid-cols-[1.6fr_1fr_1fr_1fr_1fr_auto]">
                 <div className="relative">
                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                     ⌕
@@ -317,6 +347,32 @@ export default function SalesPage() {
                     </option>
                   ))}
                 </select>
+
+                <label className="relative">
+                  <span className="absolute -top-2 left-3 z-10 bg-white px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    From
+                  </span>
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(event) => setDateFrom(event.target.value)}
+                    aria-label="Date from"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white"
+                  />
+                </label>
+
+                <label className="relative">
+                  <span className="absolute -top-2 left-3 z-10 bg-white px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    To
+                  </span>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(event) => setDateTo(event.target.value)}
+                    aria-label="Date to"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white"
+                  />
+                </label>
 
                 <button
                   onClick={clearFilters}
