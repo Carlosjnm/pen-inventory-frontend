@@ -101,16 +101,21 @@ export default function SaleDetailPage({
         Authorization: `Bearer ${token}`,
       };
 
-      const [saleResponse, paymentsResponse] = await Promise.all([
-        fetch(`${API_URL}/api/sales-orders/${id}`, {
-          headers,
-          cache: "no-store",
-        }),
-        fetch(`${API_URL}/api/sales-orders/${id}/payments`, {
-          headers,
-          cache: "no-store",
-        }),
-      ]);
+      const [saleResponse, paymentsResponse, settingsResponse] =
+        await Promise.all([
+          fetch(`${API_URL}/api/sales-orders/${id}`, {
+            headers,
+            cache: "no-store",
+          }),
+          fetch(`${API_URL}/api/sales-orders/${id}/payments`, {
+            headers,
+            cache: "no-store",
+          }),
+          fetch(`${API_URL}/api/settings`, {
+            headers,
+            cache: "no-store",
+          }),
+        ]);
 
       const saleData = await saleResponse.json().catch(() => ({}));
 
@@ -127,6 +132,29 @@ export default function SaleDetailPage({
         setPayments(paymentData.payments || []);
       } else {
         setPayments([]);
+      }
+
+      if (settingsResponse.ok) {
+        const settingsData = await settingsResponse.json();
+
+        const defaultPaymentSetting = (
+          settingsData.settings || []
+        ).find(
+          (setting: {
+            setting_key: string;
+            setting_value: unknown;
+          }) =>
+            setting.setting_key === "default_payment_method"
+        );
+
+        if (
+          defaultPaymentSetting &&
+          typeof defaultPaymentSetting.setting_value === "string"
+        ) {
+          setPaymentMethod(
+            defaultPaymentSetting.setting_value
+          );
+        }
       }
     } catch (error) {
       console.error(error);
