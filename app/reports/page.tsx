@@ -34,6 +34,17 @@ type PurchaseOrder = {
   created_at: string;
 };
 
+type TopProduct = {
+  product_id: string;
+  sku: string;
+  product_name: string;
+  units_sold: number;
+  sales_revenue: number;
+  gross_profit: number;
+  gross_margin_percent: number;
+  sales_count: number;
+};
+
 type Balance = {
   product_id: string;
   sku: string;
@@ -53,6 +64,7 @@ export default function ReportsPage() {
   const [sales, setSales] = useState<SalesOrder[]>([]);
   const [purchases, setPurchases] = useState<PurchaseOrder[]>([]);
   const [balances, setBalances] = useState<Balance[]>([]);
+  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -72,8 +84,12 @@ export default function ReportsPage() {
           Authorization: `Bearer ${token}`,
         };
 
-        const [salesResponse, purchasesResponse, balancesResponse] =
-          await Promise.all([
+        const [
+          salesResponse,
+          purchasesResponse,
+          balancesResponse,
+          topProductsResponse,
+        ] = await Promise.all([
             fetch(`${API_URL}/api/sales-orders`, {
               headers,
               cache: "no-store",
@@ -83,6 +99,10 @@ export default function ReportsPage() {
               cache: "no-store",
             }),
             fetch(`${API_URL}/api/inventory/balances`, {
+              headers,
+              cache: "no-store",
+            }),
+            fetch(`${API_URL}/api/reports/top-products?limit=10`, {
               headers,
               cache: "no-store",
             }),
@@ -100,13 +120,19 @@ export default function ReportsPage() {
           throw new Error("Unable to load inventory report data.");
         }
 
+        if (!topProductsResponse.ok) {
+          throw new Error("Unable to load top products report data.");
+        }
+
         const salesData = await salesResponse.json();
         const purchasesData = await purchasesResponse.json();
         const balancesData = await balancesResponse.json();
+        const topProductsData = await topProductsResponse.json();
 
         setSales(salesData.sales_orders || []);
         setPurchases(purchasesData.purchase_orders || []);
         setBalances(balancesData.balances || []);
+        setTopProducts(topProductsData.products || []);
       } catch (error) {
         console.error(error);
         setMessage(
@@ -515,6 +541,66 @@ export default function ReportsPage() {
                     )}
                   </ReportTable>
                 </section>
+
+                <div className="mb-6">
+                  <ReportTable
+                    title="Top Products"
+                    actionLabel="View Sales"
+                    actionHref="/sales"
+                  >
+                    <table className="min-w-full text-left">
+                      <thead className="border-b border-slate-200 bg-slate-50">
+                        <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          <th className="px-5 py-3">SKU</th>
+                          <th className="px-5 py-3">Product</th>
+                          <th className="px-5 py-3 text-right">Units Sold</th>
+                          <th className="px-5 py-3 text-right">Revenue</th>
+                          <th className="px-5 py-3 text-right">Gross Profit</th>
+                          <th className="px-5 py-3 text-right">Margin</th>
+                          <th className="px-5 py-3 text-right">Sales</th>
+                        </tr>
+                      </thead>
+
+                      <tbody className="divide-y divide-slate-100">
+                        {topProducts.map((product) => (
+                          <tr key={product.product_id}>
+                            <td className="px-5 py-4 font-mono text-sm font-semibold text-slate-900">
+                              {product.sku}
+                            </td>
+                            <td className="px-5 py-4 text-sm text-slate-700">
+                              {product.product_name}
+                            </td>
+                            <td className="px-5 py-4 text-right text-sm text-slate-700">
+                              {Number(product.units_sold || 0).toLocaleString()}
+                            </td>
+                            <td className="px-5 py-4 text-right text-sm font-semibold text-slate-900">
+                              {formatMoney(product.sales_revenue)}
+                            </td>
+                            <td className="px-5 py-4 text-right text-sm font-semibold text-emerald-700">
+                              {formatMoney(product.gross_profit)}
+                            </td>
+                            <td className="px-5 py-4 text-right text-sm text-slate-700">
+                              {Number(
+                                product.gross_margin_percent || 0
+                              ).toLocaleString("en-US", {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 1,
+                              })}
+                              %
+                            </td>
+                            <td className="px-5 py-4 text-right text-sm text-slate-700">
+                              {Number(product.sales_count || 0).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {topProducts.length === 0 && (
+                      <EmptyState text="No paid product sales yet." />
+                    )}
+                  </ReportTable>
+                </div>
 
                 <ReportTable
                   title="Stock Alerts"
