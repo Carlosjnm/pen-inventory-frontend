@@ -64,6 +64,16 @@ type TopProduct = {
   sales_count: number;
 };
 
+type ProfitSummary = {
+  date_from: string | null;
+  date_to: string | null;
+  sales_revenue: number;
+  cost_of_goods_sold: number;
+  gross_profit: number;
+  gross_margin_percent: number;
+  paid_order_count: number;
+};
+
 type Balance = {
   product_id: string;
   sku: string;
@@ -84,6 +94,8 @@ export default function ReportsPage() {
   const [purchases, setPurchases] = useState<PurchaseOrder[]>([]);
   const [balances, setBalances] = useState<Balance[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [profitSummary, setProfitSummary] =
+    useState<ProfitSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [period, setPeriod] = useState<ReportPeriod>("month");
@@ -209,7 +221,7 @@ export default function ReportsPage() {
   }, [period, customFrom, customTo]);
 
   useEffect(() => {
-    async function loadTopProducts() {
+    async function loadPeriodReports() {
       const user = auth.currentUser;
 
       if (!user) return;
@@ -218,7 +230,6 @@ export default function ReportsPage() {
         const token = await user.getIdToken();
 
         const params = new URLSearchParams();
-        params.set("limit", "10");
 
         if (reportDates.from) {
           params.set("date_from", reportDates.from);
@@ -228,28 +239,50 @@ export default function ReportsPage() {
           params.set("date_to", reportDates.to);
         }
 
-        const response = await fetch(
-          `${API_URL}/api/reports/top-products?${params.toString()}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            cache: "no-store",
-          }
-        );
+        const topProductsParams = new URLSearchParams(params);
+        topProductsParams.set("limit", "10");
 
-        if (!response.ok) {
+        const headers = {
+          Authorization: `Bearer ${token}`,
+        };
+
+        const [topProductsResponse, profitResponse] =
+          await Promise.all([
+            fetch(
+              `${API_URL}/api/reports/top-products?${topProductsParams.toString()}`,
+              {
+                headers,
+                cache: "no-store",
+              }
+            ),
+            fetch(
+              `${API_URL}/api/reports/profit-summary?${params.toString()}`,
+              {
+                headers,
+                cache: "no-store",
+              }
+            ),
+          ]);
+
+        if (!topProductsResponse.ok) {
           throw new Error("Unable to load top products report data.");
         }
 
-        const data = await response.json();
-        setTopProducts(data.products || []);
+        if (!profitResponse.ok) {
+          throw new Error("Unable to load profit summary report data.");
+        }
+
+        const topProductsData = await topProductsResponse.json();
+        const profitData = await profitResponse.json();
+
+        setTopProducts(topProductsData.products || []);
+        setProfitSummary(profitData);
       } catch (error) {
         console.error(error);
       }
     }
 
-    loadTopProducts();
+    loadPeriodReports();
   }, [reportDates]);
 
   const filteredSales = useMemo(() => {
@@ -767,6 +800,53 @@ export default function ReportsPage() {
                     value={formatMoney(metrics.inventoryValue)}
                     detail={`${metrics.unitsOnHand.toLocaleString()} units on hand`}
                   />
+                </section>
+
+                <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="mb-5">
+                    <h2 className="text-base font-semibold text-slate-950">
+                      Profit Overview
+                    </h2>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Revenue, cost and gross profit for paid sales in the selected period
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <SummaryCard
+                      label="Revenue"
+                      value={formatMoney(
+                        Number(profitSummary?.sales_revenue || 0)
+                      )}
+                      detail={`${Number(
+                        profitSummary?.paid_order_count || 0
+                      ).toLocaleString()} paid orders`}
+                    />
+
+                    <SummaryCard
+                      label="Cost of Goods Sold"
+                      value={formatMoney(
+                        Number(profitSummary?.cost_of_goods_sold || 0)
+                      )}
+                      detail="Historical cost of sold items"
+                    />
+
+                    <SummaryCard
+                      label="Gross Profit"
+                      value={formatMoney(
+                        Number(profitSummary?.gross_profit || 0)
+                      )}
+                      detail="Revenue less cost of goods sold"
+                    />
+
+                    <SummaryCard
+                      label="Gross Margin"
+                      value={`${Number(
+                        profitSummary?.gross_margin_percent || 0
+                      ).toFixed(1)}%`}
+                      detail="Gross profit as a percentage of revenue"
+                    />
+                  </div>
                 </section>
 
                 <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
