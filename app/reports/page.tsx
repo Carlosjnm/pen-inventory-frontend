@@ -338,16 +338,49 @@ export default function ReportsPage() {
     [filteredSales]
   );
 
+  const filteredPurchases = useMemo(() => {
+    if (!reportDates.from && !reportDates.to) {
+      return purchases;
+    }
+
+    return purchases.filter((purchase) => {
+      const rawDate = purchase.order_date || purchase.created_at;
+      const purchaseDate = new Date(rawDate);
+
+      if (Number.isNaN(purchaseDate.getTime())) {
+        return false;
+      }
+
+      if (reportDates.from) {
+        const from = new Date(`${reportDates.from}T00:00:00`);
+
+        if (purchaseDate < from) {
+          return false;
+        }
+      }
+
+      if (reportDates.to) {
+        const to = new Date(`${reportDates.to}T23:59:59.999`);
+
+        if (purchaseDate > to) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [purchases, reportDates]);
+
   const recentPurchases = useMemo(
     () =>
-      [...purchases]
+      [...filteredPurchases]
         .sort(
           (a, b) =>
             new Date(b.created_at).getTime() -
             new Date(a.created_at).getTime()
         )
         .slice(0, 5),
-    [purchases]
+    [filteredPurchases]
   );
 
   const stockAlerts = useMemo(
@@ -592,7 +625,7 @@ export default function ReportsPage() {
                   />
                   <SmallCard
                     label="Purchase Orders"
-                    value={purchases.length}
+                    value={filteredPurchases.length}
                   />
                   <SmallCard
                     label="Out of Stock"
