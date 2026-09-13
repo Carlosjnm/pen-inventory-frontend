@@ -7,6 +7,13 @@ import { auth } from "@/lib/firebase";
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
 
+type ReportPeriod =
+  | "today"
+  | "week"
+  | "month"
+  | "all"
+  | "custom";
+
 type SalesOrder = {
   id: string;
   sale_number: string;
@@ -67,6 +74,9 @@ export default function ReportsPage() {
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [period, setPeriod] = useState<ReportPeriod>("month");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -88,7 +98,6 @@ export default function ReportsPage() {
           salesResponse,
           purchasesResponse,
           balancesResponse,
-          topProductsResponse,
         ] = await Promise.all([
             fetch(`${API_URL}/api/sales-orders`, {
               headers,
@@ -99,10 +108,6 @@ export default function ReportsPage() {
               cache: "no-store",
             }),
             fetch(`${API_URL}/api/inventory/balances`, {
-              headers,
-              cache: "no-store",
-            }),
-            fetch(`${API_URL}/api/reports/top-products?limit=10`, {
               headers,
               cache: "no-store",
             }),
@@ -120,19 +125,13 @@ export default function ReportsPage() {
           throw new Error("Unable to load inventory report data.");
         }
 
-        if (!topProductsResponse.ok) {
-          throw new Error("Unable to load top products report data.");
-        }
-
         const salesData = await salesResponse.json();
         const purchasesData = await purchasesResponse.json();
         const balancesData = await balancesResponse.json();
-        const topProductsData = await topProductsResponse.json();
 
         setSales(salesData.sales_orders || []);
         setPurchases(purchasesData.purchase_orders || []);
         setBalances(balancesData.balances || []);
-        setTopProducts(topProductsData.products || []);
       } catch (error) {
         console.error(error);
         setMessage(
@@ -148,20 +147,147 @@ export default function ReportsPage() {
     return () => unsubscribe();
   }, []);
 
+  const reportDates = useMemo(() => {
+    const formatInputDate = (value: Date) => {
+      const year = value.getFullYear();
+      const month = String(value.getMonth() + 1).padStart(2, "0");
+      const day = String(value.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
+    const now = new Date();
+
+    if (period === "today") {
+      const today = formatInputDate(now);
+      return { from: today, to: today };
+    }
+
+    if (period === "week") {
+      const start = new Date(now);
+      const day = start.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      start.setDate(start.getDate() + diff);
+
+      return {
+        from: formatInputDate(start),
+        to: formatInputDate(now),
+      };
+    }
+
+    if (period === "month") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      return {
+        from: formatInputDate(start),
+        to: formatInputDate(now),
+      };
+    }
+
+    if (period === "custom") {
+      return {
+        from: customFrom || null,
+        to: customTo || null,
+      };
+    }
+
+    return {
+      from: null,
+      to: null,
+    };
+  }, [period, customFrom, customTo]);
+
+  useEffect(() => {
+    async function loadTopProducts() {
+      const user = auth.currentUser;
+
+      if (!user) return;
+
+      try {
+        const token = await user.getIdToken();
+
+        const params = new URLSearchParams();
+        params.set("limit", "10");
+
+        if (reportDates.from) {
+          params.set("date_from", reportDates.from);
+        }
+
+        if (reportDates.to) {
+          params.set("date_to", reportDates.to);
+        }
+
+        const response = await fetch(
+          `${API_URL}/api/reports/top-products?${params.toString()}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            cache: "no-store",
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Unable to load top products report data.");
+        }
+
+        const data = await response.json();
+        setTopProducts(data.products || []);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    loadTopProducts();
+  }, [reportDates]);
+
+  const filteredSales = useMemo(() => {
+    if (!reportDates.from && !reportDates.to) {
+      return sales;
+    }
+
+    return sales.filter((sale) => {
+      const saleDate = new Date(sale.sale_date);
+
+      if (Number.isNaN(saleDate.getTime())) {
+        return false;
+      }
+
+      if (reportDates.from) {
+        const from = new Date(`${reportDates.from}T00:00:00`);
+
+        if (saleDate < from) {
+          return false;
+        }
+      }
+
+      if (reportDates.to) {
+        const to = new Date(`${reportDates.to}T23:59:59.999`);
+
+        if (saleDate > to) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [sales, reportDates]);
+
   const metrics = useMemo(() => {
-    const paidSales = sales.filter((sale) => sale.status === "paid");
+    const paidSales = filteredSales.filter(
+      (sale) => sale.status === "paid"
+    );
 
     const salesRevenue = paidSales.reduce(
       (sum, sale) => sum + Number(sale.total_amount || 0),
       0
     );
 
-    const paymentsReceived = sales.reduce(
+    const paymentsReceived = filteredSales.reduce(
       (sum, sale) => sum + Number(sale.amount_paid || 0),
       0
     );
 
-    const outstanding = sales
+    const outstanding = filteredSales
       .filter(
         (sale) =>
           sale.status !== "draft" &&
@@ -205,11 +331,11 @@ export default function ReportsPage() {
       notStockedYet,
       paidOrders: paidSales.length,
     };
-  }, [sales, balances]);
+  }, [filteredSales, balances]);
 
   const recentSales = useMemo(
-    () => sales.slice(0, 5),
-    [sales]
+    () => filteredSales.slice(0, 5),
+    [filteredSales]
   );
 
   const recentPurchases = useMemo(
@@ -368,6 +494,71 @@ export default function ReportsPage() {
               </div>
             ) : (
               <>
+                <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900">
+                        Reporting Period
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        Filter sales and profitability results by period
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-end gap-2">
+                      {[
+                        ["today", "Today"],
+                        ["week", "This Week"],
+                        ["month", "This Month"],
+                        ["all", "All Time"],
+                        ["custom", "Custom"],
+                      ].map(([value, label]) => (
+                        <button
+                          key={value}
+                          onClick={() =>
+                            setPeriod(value as ReportPeriod)
+                          }
+                          className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                            period === value
+                              ? "bg-slate-950 text-white"
+                              : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+
+                      {period === "custom" && (
+                        <>
+                          <label className="text-xs font-medium text-slate-500">
+                            <span className="mb-1 block">From</span>
+                            <input
+                              type="date"
+                              value={customFrom}
+                              onChange={(event) =>
+                                setCustomFrom(event.target.value)
+                              }
+                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-400"
+                            />
+                          </label>
+
+                          <label className="text-xs font-medium text-slate-500">
+                            <span className="mb-1 block">To</span>
+                            <input
+                              type="date"
+                              value={customTo}
+                              onChange={(event) =>
+                                setCustomTo(event.target.value)
+                              }
+                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-400"
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </section>
+
                 <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <SummaryCard
                     label="Sales Revenue"
@@ -397,7 +588,7 @@ export default function ReportsPage() {
                 <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <SmallCard
                     label="Sales Orders"
-                    value={sales.length}
+                    value={filteredSales.length}
                   />
                   <SmallCard
                     label="Purchase Orders"
