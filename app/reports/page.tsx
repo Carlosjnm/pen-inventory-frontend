@@ -3,6 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
@@ -271,6 +280,42 @@ export default function ReportsPage() {
       return true;
     });
   }, [sales, reportDates]);
+
+  const salesTrend = useMemo(() => {
+    const totals = new Map<string, number>();
+
+    filteredSales
+      .filter((sale) => sale.status === "paid")
+      .forEach((sale) => {
+        const date = new Date(sale.sale_date);
+
+        if (Number.isNaN(date.getTime())) {
+          return;
+        }
+
+        const key = [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, "0"),
+          String(date.getDate()).padStart(2, "0"),
+        ].join("-");
+
+        totals.set(
+          key,
+          (totals.get(key) || 0) + Number(sale.total_amount || 0)
+        );
+      });
+
+    return [...totals.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, revenue]) => ({
+        date,
+        label: new Date(`${date}T00:00:00`).toLocaleDateString("en-ZA", {
+          day: "2-digit",
+          month: "short",
+        }),
+        revenue,
+      }));
+  }, [filteredSales]);
 
   const metrics = useMemo(() => {
     const paidSales = filteredSales.filter(
@@ -636,6 +681,68 @@ export default function ReportsPage() {
                     label="Not Stocked Yet"
                     value={metrics.notStockedYet}
                   />
+                </section>
+
+                <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="mb-5">
+                    <h2 className="text-base font-semibold text-slate-950">
+                      Sales Trends
+                    </h2>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Paid sales revenue for the selected reporting period
+                    </p>
+                  </div>
+
+                  {salesTrend.length > 0 ? (
+                    <div className="h-80 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={salesTrend}
+                          margin={{
+                            top: 10,
+                            right: 20,
+                            left: 10,
+                            bottom: 10,
+                          }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            vertical={false}
+                          />
+                          <XAxis
+                            dataKey="label"
+                            tickLine={false}
+                            axisLine={false}
+                          />
+                          <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(value) =>
+                              Number(value).toLocaleString("en-US")
+                            }
+                          />
+                          <Tooltip
+                            formatter={(value) => [
+                              formatMoney(Number(value)),
+                              "Revenue",
+                            ]}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="revenue"
+                            stroke="#0f172a"
+                            strokeWidth={3}
+                            dot={{ r: 4 }}
+                            activeDot={{ r: 6 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="flex h-48 items-center justify-center text-sm text-slate-400">
+                      No paid sales for this period.
+                    </div>
+                  )}
                 </section>
 
                 <section className="mb-6 grid gap-6 xl:grid-cols-2">
