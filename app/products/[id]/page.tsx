@@ -844,7 +844,7 @@ export default function ProductDetailPage() {
         </div>
 
         <nav className="space-y-1 px-3 py-5 text-sm">
-          <NavItem label="Dashboard" icon="⌂" />
+          <NavItem label="Dashboard" icon="⌂" href="/dashboard" />
           <NavItem
             label="Products"
             icon="▦"
@@ -853,14 +853,14 @@ export default function ProductDetailPage() {
               window.location.href = "/products";
             }}
           />
-          <NavItem label="Inventory" icon="▣" />
-          <NavItem label="Purchases" icon="↓" />
-          <NavItem label="Sales" icon="↑" />
-          <NavItem label="Suppliers" icon="♢" />
-          <NavItem label="Customers" icon="♙" />
-          <NavItem label="Reports" icon="▤" />
-          <NavItem label="Users" icon="♧" />
-          <NavItem label="Settings" icon="⚙" />
+          <NavItem label="Inventory" icon="▣" href="/inventory" />
+          <NavItem label="Purchases" icon="↓" href="/purchases" />
+          <NavItem label="Sales" icon="↑" href="/sales" />
+          <NavItem label="Suppliers" icon="♢" href="/suppliers" />
+          <NavItem label="Customers" icon="♙" href="/customers" />
+          <NavItem label="Reports" icon="▤" href="/reports" />
+          <NavItem label="Users" icon="♧" href="/users" />
+          <NavItem label="Settings" icon="⚙" href="/settings" />
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 border-t border-white/10 p-4">
@@ -2064,26 +2064,38 @@ function NavItem({
   icon,
   active = false,
   onClick,
+  href,
 }: {
   label: string;
   icon: string;
   active?: boolean;
   onClick?: () => void;
+  href?: string;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-medium ${
-        active
-          ? "bg-white text-slate-950"
-          : "text-slate-400 transition hover:bg-white/10 hover:text-white"
-      }`}
-    >
-      <span className="w-5 text-center text-base">
-        {icon}
-      </span>
+  const className = `flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-medium ${
+    active
+      ? "bg-white text-slate-950"
+      : "text-slate-400 transition hover:bg-white/10 hover:text-white"
+  }`;
+
+  const content = (
+    <>
+      <span className="w-5 text-center text-base">{icon}</span>
       <span>{label}</span>
+    </>
+  );
+
+  if (href) {
+    return (
+      <a href={href} className={className}>
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <button type="button" onClick={onClick} className={className}>
+      {content}
     </button>
   );
 }

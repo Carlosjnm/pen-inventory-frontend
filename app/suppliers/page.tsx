@@ -230,16 +230,16 @@ export default function SuppliersPage() {
         </div>
 
         <nav className="space-y-1 px-3 py-5 text-sm">
-          <NavItem label="Dashboard" icon="⌂" />
+          <NavItem label="Dashboard" icon="⌂" href="/dashboard" />
           <NavItem label="Products" icon="▦" href="/products" />
-          <NavItem label="Inventory" icon="▣" />
-          <NavItem label="Purchases" icon="↓" />
-          <NavItem label="Sales" icon="↑" />
-          <NavItem label="Suppliers" icon="♢" active />
-          <NavItem label="Customers" icon="♙" />
-          <NavItem label="Reports" icon="▤" />
-          <NavItem label="Users" icon="♧" />
-          <NavItem label="Settings" icon="⚙" />
+          <NavItem label="Inventory" icon="▣" href="/inventory" />
+          <NavItem label="Purchases" icon="↓" href="/purchases" />
+          <NavItem label="Sales" icon="↑" href="/sales" />
+          <NavItem label="Suppliers" icon="♢" active href="/suppliers" />
+          <NavItem label="Customers" icon="♙" href="/customers" />
+          <NavItem label="Reports" icon="▤" href="/reports" />
+          <NavItem label="Users" icon="♧" href="/users" />
+          <NavItem label="Settings" icon="⚙" href="/settings" />
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 border-t border-white/10 p-4">
