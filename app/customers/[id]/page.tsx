@@ -26,6 +26,21 @@ type Customer = {
   updated_at: string;
 };
 
+type CustomerForm = {
+  name: string;
+  phone: string;
+  whatsapp: string;
+  email: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  province: string;
+  postal_code: string;
+  country: string;
+  notes: string;
+  is_active: boolean;
+};
+
 type Sale = {
   id: string;
   sale_number: string;
@@ -54,6 +69,23 @@ export default function CustomerDetailPage({
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [form, setForm] = useState<CustomerForm>({
+    name: "",
+    phone: "",
+    whatsapp: "",
+    email: "",
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    province: "",
+    postal_code: "",
+    country: "",
+    notes: "",
+    is_active: true,
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -119,6 +151,89 @@ export default function CustomerDetailPage({
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  function openEditCustomer() {
+    if (!customer) return;
+
+    setForm({
+      name: customer.name || "",
+      phone: customer.phone || "",
+      whatsapp: customer.whatsapp || "",
+      email: customer.email || "",
+      address_line1: customer.address_line1 || "",
+      address_line2: customer.address_line2 || "",
+      city: customer.city || "",
+      province: customer.province || "",
+      postal_code: customer.postal_code || "",
+      country: customer.country || "",
+      notes: customer.notes || "",
+      is_active: customer.is_active,
+    });
+
+    setEditError("");
+    setEditing(true);
+  }
+
+  async function saveCustomer() {
+    if (!firebaseUser) return;
+
+    if (!form.name.trim()) {
+      setEditError("Customer name is required.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setEditError("");
+
+      const token = await firebaseUser.getIdToken();
+
+      const response = await fetch(
+        `${API_URL}/api/customers/${id}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: form.name,
+            phone: form.phone,
+            whatsapp: form.whatsapp,
+            email: form.email,
+            address_line1: form.address_line1,
+            address_line2: form.address_line2,
+            city: form.city,
+            province: form.province,
+            postal_code: form.postal_code,
+            country: form.country,
+            notes: form.notes,
+            is_active: form.is_active,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Unable to update customer."
+        );
+      }
+
+      setCustomer(data.customer);
+      setEditing(false);
+    } catch (error) {
+      console.error(error);
+      setEditError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update customer."
+      );
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -240,15 +355,25 @@ export default function CustomerDetailPage({
               </p>
             </div>
 
-            <span
-              className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                customer.is_active
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-slate-100 text-slate-500"
-              }`}
-            >
-              {customer.is_active ? "Active" : "Inactive"}
-            </span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={openEditCustomer}
+                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+              >
+                Edit Customer
+              </button>
+
+              <span
+                className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
+                  customer.is_active
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-slate-100 text-slate-500"
+                }`}
+              >
+                {customer.is_active ? "Active" : "Inactive"}
+              </span>
+            </div>
           </div>
         </div>
       </header>
@@ -390,6 +515,191 @@ export default function CustomerDetailPage({
           </section>
         </div>
       </main>
+
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+              <div>
+                <h2 className="text-xl font-bold text-slate-950">
+                  Edit Customer
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {customer.customer_number} — {customer.name}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid gap-5 p-6 md:grid-cols-2">
+              <EditField
+                label="Customer Name"
+                value={form.name}
+                required
+                onChange={(value) =>
+                  setForm((current) => ({ ...current, name: value }))
+                }
+              />
+
+              <EditField
+                label="Phone"
+                value={form.phone}
+                onChange={(value) =>
+                  setForm((current) => ({ ...current, phone: value }))
+                }
+              />
+
+              <EditField
+                label="WhatsApp"
+                value={form.whatsapp}
+                onChange={(value) =>
+                  setForm((current) => ({ ...current, whatsapp: value }))
+                }
+              />
+
+              <EditField
+                label="Email"
+                value={form.email}
+                type="email"
+                onChange={(value) =>
+                  setForm((current) => ({ ...current, email: value }))
+                }
+              />
+
+              <EditField
+                label="Address Line 1"
+                value={form.address_line1}
+                onChange={(value) =>
+                  setForm((current) => ({
+                    ...current,
+                    address_line1: value,
+                  }))
+                }
+              />
+
+              <EditField
+                label="Address Line 2"
+                value={form.address_line2}
+                onChange={(value) =>
+                  setForm((current) => ({
+                    ...current,
+                    address_line2: value,
+                  }))
+                }
+              />
+
+              <EditField
+                label="City"
+                value={form.city}
+                onChange={(value) =>
+                  setForm((current) => ({ ...current, city: value }))
+                }
+              />
+
+              <EditField
+                label="Province"
+                value={form.province}
+                onChange={(value) =>
+                  setForm((current) => ({ ...current, province: value }))
+                }
+              />
+
+              <EditField
+                label="Postal Code"
+                value={form.postal_code}
+                onChange={(value) =>
+                  setForm((current) => ({
+                    ...current,
+                    postal_code: value,
+                  }))
+                }
+              />
+
+              <EditField
+                label="Country"
+                value={form.country}
+                onChange={(value) =>
+                  setForm((current) => ({ ...current, country: value }))
+                }
+              />
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-700">
+                  Notes
+                </label>
+                <textarea
+                  value={form.notes}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      notes: event.target.value,
+                    }))
+                  }
+                  rows={4}
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-500"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-4">
+                  <input
+                    type="checkbox"
+                    checked={form.is_active}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        is_active: event.target.checked,
+                      }))
+                    }
+                    className="h-4 w-4"
+                  />
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900">
+                      Active customer
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Inactive customers remain in sales history.
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              {editError && (
+                <div className="md:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  {editError}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-5">
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                disabled={saving}
+                className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={saveCustomer}
+                disabled={saving}
+                className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -429,6 +739,36 @@ function InfoRow({
       <div className="mt-1 text-sm font-medium text-slate-800">
         {value}
       </div>
+    </div>
+  );
+}
+
+
+function EditField({
+  label,
+  value,
+  onChange,
+  type = "text",
+  required = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  required?: boolean;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-slate-700">
+        {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-500"
+      />
     </div>
   );
 }
