@@ -32,6 +32,8 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("");
   const [reorderLevel, setReorderLevel] = useState("5");
   const [defaultPaymentMethod, setDefaultPaymentMethod] = useState("cash");
+  const [businessName, setBusinessName] = useState("PEN");
+  const [businessSubtitle, setBusinessSubtitle] = useState("Inventory & Sales");
   const [businessTaxNumber, setBusinessTaxNumber] = useState("");
   const [businessPhone, setBusinessPhone] = useState("");
   const [businessEmail, setBusinessEmail] = useState("");
@@ -93,6 +95,10 @@ export default function SettingsPage() {
           ])
         );
 
+        setBusinessName(String(settingMap.business_name ?? "PEN"));
+        setBusinessSubtitle(
+          String(settingMap.business_subtitle ?? "Inventory & Sales")
+        );
         setBusinessTaxNumber(String(settingMap.business_tax_number ?? ""));
         setBusinessPhone(String(settingMap.business_phone ?? ""));
         setBusinessEmail(String(settingMap.business_email ?? ""));
@@ -523,6 +529,32 @@ export default function SettingsPage() {
                         {saving ? "Saving..." : "Save"}
                       </button>
                     </div>
+                  ) : setting.setting_key === "business_name" ? (
+                    <SettingTextEditor
+                      value={businessName}
+                      onChange={setBusinessName}
+                      onSave={() =>
+                        saveReceiptSetting(
+                          "business_name",
+                          businessName,
+                          "Business name saved successfully."
+                        )
+                      }
+                      saving={saving}
+                    />
+                  ) : setting.setting_key === "business_subtitle" ? (
+                    <SettingTextEditor
+                      value={businessSubtitle}
+                      onChange={setBusinessSubtitle}
+                      onSave={() =>
+                        saveReceiptSetting(
+                          "business_subtitle",
+                          businessSubtitle,
+                          "Business subtitle saved successfully."
+                        )
+                      }
+                      saving={saving}
+                    />
                   ) : setting.setting_key === "business_tax_number" ? (
                     <SettingTextEditor
                       value={businessTaxNumber}

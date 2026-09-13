@@ -56,6 +56,8 @@ type Payment = {
 };
 
 type ReceiptSettings = {
+  business_name: string;
+  business_subtitle: string;
   business_tax_number: string;
   business_phone: string;
   business_email: string;
@@ -85,6 +87,8 @@ export default function SaleDetailPage({
   const [paymentError, setPaymentError] = useState("");
 
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings>({
+    business_name: "PEN",
+    business_subtitle: "Inventory & Sales",
     business_tax_number: "",
     business_phone: "",
     business_email: "",
@@ -169,6 +173,12 @@ export default function SaleDetailPage({
         }
 
         setReceiptSettings({
+          business_name: String(
+            settingMap.business_name ?? "PEN"
+          ),
+          business_subtitle: String(
+            settingMap.business_subtitle ?? "Inventory & Sales"
+          ),
           business_tax_number: String(
             settingMap.business_tax_number ?? ""
           ),
@@ -603,9 +613,11 @@ export default function SaleDetailPage({
 
             <div class="header">
               <div>
-                <div class="brand">PEN</div>
+                <div class="brand">
+                  ${escapeHtml(receiptSettings.business_name)}
+                </div>
                 <div class="subtitle">
-                  Inventory & Sales
+                  ${escapeHtml(receiptSettings.business_subtitle)}
                 </div>
 
                 <div class="business-details">
