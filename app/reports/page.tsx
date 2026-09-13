@@ -69,6 +69,11 @@ type PaymentSummary = {
   date_to: string | null;
   payments_received: number;
   payment_count: number;
+  by_method: {
+    payment_method: string;
+    amount: number;
+    payment_count: number;
+  }[];
 };
 
 type ProfitSummary = {
@@ -106,6 +111,7 @@ export default function ReportsPage() {
   const [paymentSummary, setPaymentSummary] =
     useState<PaymentSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
   const [message, setMessage] = useState("");
   const [period, setPeriod] = useState<ReportPeriod>("month");
   const [customFrom, setCustomFrom] = useState("");
@@ -114,9 +120,12 @@ export default function ReportsPage() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
+        setAuthReady(false);
         window.location.href = "/";
         return;
       }
+
+      setAuthReady(true);
 
       try {
         setLoading(true);
@@ -231,6 +240,8 @@ export default function ReportsPage() {
 
   useEffect(() => {
     async function loadPeriodReports() {
+      if (!authReady) return;
+
       const user = auth.currentUser;
 
       if (!user) return;
@@ -308,7 +319,7 @@ export default function ReportsPage() {
     }
 
     loadPeriodReports();
-  }, [reportDates]);
+  }, [reportDates, authReady]);
 
   const filteredSales = useMemo(() => {
     if (!reportDates.from && !reportDates.to) {
@@ -1284,6 +1295,55 @@ export default function ReportsPage() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="mb-4">
+                    <h2 className="text-lg font-semibold text-slate-950">
+                      Payments by Method
+                    </h2>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Completed payments received during the selected period
+                    </p>
+                  </div>
+
+                  {paymentSummary?.by_method?.length ? (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      {paymentSummary.by_method.map((method) => {
+                        const label = method.payment_method
+                          .split("_")
+                          .map(
+                            (part) =>
+                              part.charAt(0).toUpperCase() + part.slice(1)
+                          )
+                          .join(" ");
+
+                        return (
+                          <div
+                            key={method.payment_method}
+                            className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4"
+                          >
+                            <div className="text-xs font-medium text-slate-500">
+                              {label}
+                            </div>
+                            <div className="mt-1 text-lg font-semibold text-slate-950">
+                              {formatMoney(Number(method.amount))}
+                            </div>
+                            <div className="mt-1 text-xs text-slate-400">
+                              {Number(method.payment_count).toLocaleString()}{" "}
+                              {Number(method.payment_count) === 1
+                                ? "payment"
+                                : "payments"}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex h-28 items-center justify-center text-sm text-slate-400">
+                      No payments received for this period.
                     </div>
                   )}
                 </section>
