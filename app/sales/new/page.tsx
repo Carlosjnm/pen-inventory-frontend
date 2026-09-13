@@ -7,6 +7,15 @@ import { auth } from "@/lib/firebase";
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
 
+type Customer = {
+  id: string;
+  customer_number: string;
+  name: string;
+  phone: string | null;
+  whatsapp: string | null;
+  email: string | null;
+};
+
 type Location = {
   id: string;
   location_code: string;
@@ -57,11 +66,13 @@ const CHANNELS = [
 export default function NewSalePage() {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [balances, setBalances] = useState<Balance[]>([]);
   const [items, setItems] = useState<DraftItem[]>([]);
 
   const [locationId, setLocationId] = useState("");
+  const [customerId, setCustomerId] = useState("");
   const [salesChannel, setSalesChannel] = useState("walk_in");
   const [customerReference, setCustomerReference] = useState("");
   const [shippingAmount, setShippingAmount] = useState("0");
@@ -102,42 +113,58 @@ export default function NewSalePage() {
         Authorization: `Bearer ${token}`,
       };
 
-      const [locationResponse, productResponse, balanceResponse] =
-        await Promise.all([
-          fetch(`${API_URL}/api/locations`, {
-            headers,
-            cache: "no-store",
-          }),
-          fetch(`${API_URL}/api/products`, {
-            headers,
-            cache: "no-store",
-          }),
-          fetch(`${API_URL}/api/inventory/balances`, {
-            headers,
-            cache: "no-store",
-          }),
-        ]);
+      const [
+        locationResponse,
+        customerResponse,
+        productResponse,
+        balanceResponse,
+      ] = await Promise.all([
+        fetch(`${API_URL}/api/locations`, {
+          headers,
+          cache: "no-store",
+        }),
+        fetch(`${API_URL}/api/customers`, {
+          headers,
+          cache: "no-store",
+        }),
+        fetch(`${API_URL}/api/products`, {
+          headers,
+          cache: "no-store",
+        }),
+        fetch(`${API_URL}/api/inventory/balances`, {
+          headers,
+          cache: "no-store",
+        }),
+      ]);
 
       if (
         !locationResponse.ok ||
+        !customerResponse.ok ||
         !productResponse.ok ||
         !balanceResponse.ok
       ) {
         throw new Error("Unable to load sale setup data.");
       }
 
-      const [locationData, productData, balanceData] =
-        await Promise.all([
-          locationResponse.json(),
-          productResponse.json(),
-          balanceResponse.json(),
-        ]);
+      const [
+        locationData,
+        customerData,
+        productData,
+        balanceData,
+      ] = await Promise.all([
+        locationResponse.json(),
+        customerResponse.json(),
+        productResponse.json(),
+        balanceResponse.json(),
+      ]);
 
       const loadedLocations = locationData.locations || [];
+      const loadedCustomers = customerData.customers || [];
       const loadedProducts = productData.products || [];
       const loadedBalances = balanceData.balances || [];
 
       setLocations(loadedLocations);
+      setCustomers(loadedCustomers);
       setProducts(loadedProducts);
       setBalances(loadedBalances);
 
@@ -326,7 +353,7 @@ export default function NewSalePage() {
           method: "POST",
           headers,
           body: JSON.stringify({
-            customer_id: null,
+            customer_id: customerId || null,
             location_id: locationId,
             sales_channel: salesChannel,
             currency: "AOA",
@@ -495,9 +522,24 @@ export default function NewSalePage() {
                 </Field>
 
                 <Field label="Customer">
-                  <div className="input flex items-center text-sm text-slate-500">
-                    Walk-in customer
-                  </div>
+                  <select
+                    value={customerId}
+                    onChange={(event) =>
+                      setCustomerId(event.target.value)
+                    }
+                    className="input"
+                  >
+                    <option value="">Walk-in customer</option>
+
+                    {customers.map((customer) => (
+                      <option
+                        key={customer.id}
+                        value={customer.id}
+                      >
+                        {customer.customer_number} — {customer.name}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
 
                 <Field label="Customer Reference">
