@@ -201,17 +201,35 @@ export default function NewSalePage() {
     () =>
       items.reduce(
         (sum, item) =>
-          sum +
-          item.quantity * item.unit_price -
-          item.discount_amount +
-          item.tax_amount,
+          sum + item.quantity * item.unit_price,
+        0
+      ),
+    [items]
+  );
+
+  const discountTotal = useMemo(
+    () =>
+      items.reduce(
+        (sum, item) => sum + item.discount_amount,
+        0
+      ),
+    [items]
+  );
+
+  const taxTotal = useMemo(
+    () =>
+      items.reduce(
+        (sum, item) => sum + item.tax_amount,
         0
       ),
     [items]
   );
 
   const grandTotal =
-    subtotal + Math.max(0, Number(shippingAmount || 0));
+    subtotal -
+    discountTotal +
+    taxTotal +
+    Math.max(0, Number(shippingAmount || 0));
 
   const selectedBalance = useMemo(
     () =>
@@ -748,11 +766,11 @@ export default function NewSalePage() {
                               {item.quantity}
                             </td>
 
-                            <td className="px-6 py-5 text-right text-sm">
+                            <td className="px-6 py-5 text-right text-sm text-slate-900">
                               {formatMoney(item.unit_price)}
                             </td>
 
-                            <td className="px-6 py-5 text-right font-semibold">
+                            <td className="px-6 py-5 text-right font-semibold text-slate-900">
                               {formatMoney(lineTotal)}
                             </td>
 
@@ -785,6 +803,16 @@ export default function NewSalePage() {
                 <SummaryRow
                   label="Subtotal"
                   value={formatMoney(subtotal)}
+                />
+
+                <SummaryRow
+                  label="Discount"
+                  value={formatMoney(discountTotal)}
+                />
+
+                <SummaryRow
+                  label="Tax"
+                  value={formatMoney(taxTotal)}
                 />
 
                 <Field label="Shipping">
