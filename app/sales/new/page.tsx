@@ -22,6 +22,18 @@ type Product = {
   status: string;
 };
 
+type Balance = {
+  product_id: string;
+  sku: string;
+  product_name: string;
+  location_id: string;
+  location_code: string;
+  location_name: string;
+  quantity_on_hand: number;
+  quantity_reserved: number;
+  quantity_available: number;
+};
+
 type DraftItem = {
   product_id: string;
   product_name: string;
@@ -46,6 +58,7 @@ export default function NewSalePage() {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [balances, setBalances] = useState<Balance[]>([]);
   const [items, setItems] = useState<DraftItem[]>([]);
 
   const [locationId, setLocationId] = useState("");
@@ -89,31 +102,44 @@ export default function NewSalePage() {
         Authorization: `Bearer ${token}`,
       };
 
-      const [locationResponse, productResponse] = await Promise.all([
-        fetch(`${API_URL}/api/locations`, {
-          headers,
-          cache: "no-store",
-        }),
-        fetch(`${API_URL}/api/products`, {
-          headers,
-          cache: "no-store",
-        }),
-      ]);
+      const [locationResponse, productResponse, balanceResponse] =
+        await Promise.all([
+          fetch(`${API_URL}/api/locations`, {
+            headers,
+            cache: "no-store",
+          }),
+          fetch(`${API_URL}/api/products`, {
+            headers,
+            cache: "no-store",
+          }),
+          fetch(`${API_URL}/api/inventory/balances`, {
+            headers,
+            cache: "no-store",
+          }),
+        ]);
 
-      if (!locationResponse.ok || !productResponse.ok) {
+      if (
+        !locationResponse.ok ||
+        !productResponse.ok ||
+        !balanceResponse.ok
+      ) {
         throw new Error("Unable to load sale setup data.");
       }
 
-      const [locationData, productData] = await Promise.all([
-        locationResponse.json(),
-        productResponse.json(),
-      ]);
+      const [locationData, productData, balanceData] =
+        await Promise.all([
+          locationResponse.json(),
+          productResponse.json(),
+          balanceResponse.json(),
+        ]);
 
       const loadedLocations = locationData.locations || [];
       const loadedProducts = productData.products || [];
+      const loadedBalances = balanceData.balances || [];
 
       setLocations(loadedLocations);
       setProducts(loadedProducts);
+      setBalances(loadedBalances);
 
       if (loadedLocations.length > 0) {
         setLocationId(loadedLocations[0].id);
@@ -146,6 +172,38 @@ export default function NewSalePage() {
 
   const grandTotal =
     subtotal + Math.max(0, Number(shippingAmount || 0));
+
+  const selectedBalance = useMemo(
+    () =>
+      balances.find(
+        (balance) =>
+          balance.product_id === selectedProductId &&
+          balance.location_id === locationId
+      ) || null,
+    [balances, selectedProductId, locationId]
+  );
+
+  const availableStock = selectedBalance
+    ? Number(selectedBalance.quantity_available || 0)
+    : 0;
+
+  const quantityAlreadyAdded = useMemo(
+    () =>
+      items
+        .filter(
+          (item) => item.product_id === selectedProductId
+        )
+        .reduce(
+          (sum, item) => sum + Number(item.quantity || 0),
+          0
+        ),
+    [items, selectedProductId]
+  );
+
+  const remainingAvailableStock = Math.max(
+    0,
+    availableStock - quantityAlreadyAdded
+  );
 
   function handleProductChange(productId: string) {
     setSelectedProductId(productId);
@@ -184,6 +242,13 @@ export default function NewSalePage() {
 
     if (!Number.isFinite(qty) || qty <= 0) {
       setMessage("Quantity must be greater than zero.");
+      return;
+    }
+
+    if (qty > remainingAvailableStock) {
+      setMessage(
+        `Insufficient stock. Available: ${remainingAvailableStock}, requested: ${qty}.`
+      );
       return;
     }
 
@@ -488,6 +553,18 @@ export default function NewSalePage() {
                         </option>
                       ))}
                     </select>
+
+                    {selectedProductId && (
+                      <div
+                        className={`mt-2 rounded-lg px-3 py-2 text-sm font-semibold ${
+                          remainingAvailableStock > 0
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-red-50 text-red-700"
+                        }`}
+                      >
+                        Available stock: {remainingAvailableStock}
+                      </div>
+                    )}
                   </Field>
                 </div>
 
@@ -521,9 +598,16 @@ export default function NewSalePage() {
                   <button
                     type="button"
                     onClick={addItem}
-                    className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+                    disabled={
+                      !selectedProductId ||
+                      remainingAvailableStock <= 0
+                    }
+                    className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
                   >
-                    Add Product
+                    {selectedProductId &&
+                    remainingAvailableStock <= 0
+                      ? "Out of Stock"
+                      : "Add Product"}
                   </button>
                 </div>
               </div>
