@@ -32,6 +32,11 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("");
   const [reorderLevel, setReorderLevel] = useState("5");
   const [defaultPaymentMethod, setDefaultPaymentMethod] = useState("cash");
+  const [businessTaxNumber, setBusinessTaxNumber] = useState("");
+  const [businessPhone, setBusinessPhone] = useState("");
+  const [businessEmail, setBusinessEmail] = useState("");
+  const [businessAddress, setBusinessAddress] = useState("");
+  const [receiptFooter, setReceiptFooter] = useState("Obrigado pela sua compra.");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -80,6 +85,24 @@ export default function SettingsPage() {
         if (paymentSetting) {
           setDefaultPaymentMethod(String(paymentSetting.setting_value));
         }
+
+        const settingMap = Object.fromEntries(
+          (data.settings || []).map((setting: Setting) => [
+            setting.setting_key,
+            setting.setting_value,
+          ])
+        );
+
+        setBusinessTaxNumber(String(settingMap.business_tax_number ?? ""));
+        setBusinessPhone(String(settingMap.business_phone ?? ""));
+        setBusinessEmail(String(settingMap.business_email ?? ""));
+        setBusinessAddress(String(settingMap.business_address ?? ""));
+        setReceiptFooter(
+          String(
+            settingMap.receipt_footer ??
+              "Obrigado pela sua compra."
+          )
+        );
       } catch (error) {
         console.error(error);
         setMessage(
@@ -210,6 +233,67 @@ export default function SettingsPage() {
         error instanceof Error
           ? error.message
           : "Unable to save default payment method."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveReceiptSetting(
+    settingKey: string,
+    value: string,
+    successMessage: string
+  ) {
+    const user = auth.currentUser;
+
+    if (!user) {
+      setMessage("Authentication required.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setMessage("");
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        `${API_URL}/api/settings/${settingKey}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            setting_value: value,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Unable to save receipt setting."
+        );
+      }
+
+      setSettings((current) =>
+        current.map((setting) =>
+          setting.setting_key === settingKey
+            ? data.setting
+            : setting
+        )
+      );
+
+      setMessage(successMessage);
+    } catch (error) {
+      console.error(error);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to save receipt setting."
       );
     } finally {
       setSaving(false);
@@ -439,6 +523,73 @@ export default function SettingsPage() {
                         {saving ? "Saving..." : "Save"}
                       </button>
                     </div>
+                  ) : setting.setting_key === "business_tax_number" ? (
+                    <SettingTextEditor
+                      value={businessTaxNumber}
+                      onChange={setBusinessTaxNumber}
+                      onSave={() =>
+                        saveReceiptSetting(
+                          "business_tax_number",
+                          businessTaxNumber,
+                          "Business tax number saved successfully."
+                        )
+                      }
+                      saving={saving}
+                    />
+                  ) : setting.setting_key === "business_phone" ? (
+                    <SettingTextEditor
+                      value={businessPhone}
+                      onChange={setBusinessPhone}
+                      onSave={() =>
+                        saveReceiptSetting(
+                          "business_phone",
+                          businessPhone,
+                          "Business phone saved successfully."
+                        )
+                      }
+                      saving={saving}
+                    />
+                  ) : setting.setting_key === "business_email" ? (
+                    <SettingTextEditor
+                      value={businessEmail}
+                      onChange={setBusinessEmail}
+                      onSave={() =>
+                        saveReceiptSetting(
+                          "business_email",
+                          businessEmail,
+                          "Business email saved successfully."
+                        )
+                      }
+                      saving={saving}
+                    />
+                  ) : setting.setting_key === "business_address" ? (
+                    <SettingTextEditor
+                      value={businessAddress}
+                      onChange={setBusinessAddress}
+                      onSave={() =>
+                        saveReceiptSetting(
+                          "business_address",
+                          businessAddress,
+                          "Business address saved successfully."
+                        )
+                      }
+                      saving={saving}
+                      multiline
+                    />
+                  ) : setting.setting_key === "receipt_footer" ? (
+                    <SettingTextEditor
+                      value={receiptFooter}
+                      onChange={setReceiptFooter}
+                      onSave={() =>
+                        saveReceiptSetting(
+                          "receipt_footer",
+                          receiptFooter,
+                          "Receipt footer saved successfully."
+                        )
+                      }
+                      saving={saving}
+                      multiline
+                    />
                   ) : (
                     formatValue(setting.setting_value)
                   )}
@@ -498,6 +649,49 @@ function NavItem({
     >
       <span className="w-5 text-center text-base">{icon}</span>
       <span>{label}</span>
+    </div>
+  );
+}
+
+function SettingTextEditor({
+  value,
+  onChange,
+  onSave,
+  saving,
+  multiline = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onSave: () => void;
+  saving: boolean;
+  multiline?: boolean;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      {multiline ? (
+        <textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          rows={3}
+          className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-slate-950 outline-none focus:border-slate-500"
+        />
+      ) : (
+        <input
+          type="text"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-slate-950 outline-none focus:border-slate-500"
+        />
+      )}
+
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={saving}
+        className="shrink-0 rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      >
+        {saving ? "Saving..." : "Save"}
+      </button>
     </div>
   );
 }
