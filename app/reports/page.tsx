@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
   Line,
   LineChart,
@@ -378,6 +380,47 @@ export default function ReportsPage() {
       paidOrders: paidSales.length,
     };
   }, [filteredSales, balances]);
+
+  const salesByChannel = useMemo(() => {
+    const channels = new Map<
+      string,
+      {
+        channel: string;
+        revenue: number;
+        orders: number;
+      }
+    >();
+
+    filteredSales
+      .filter((sale) => sale.status === "paid")
+      .forEach((sale) => {
+        const key = sale.sales_channel || "other";
+
+        const existing = channels.get(key) || {
+          channel: key,
+          revenue: 0,
+          orders: 0,
+        };
+
+        existing.revenue += Number(sale.total_amount || 0);
+        existing.orders += 1;
+
+        channels.set(key, existing);
+      });
+
+    return [...channels.values()]
+      .map((item) => ({
+        ...item,
+        label: item.channel
+          .split("_")
+          .map(
+            (part) =>
+              part.charAt(0).toUpperCase() + part.slice(1)
+          )
+          .join(" "),
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+  }, [filteredSales]);
 
   const customerAnalytics = useMemo(() => {
     const customers = new Map<
@@ -1055,6 +1098,91 @@ export default function ReportsPage() {
                     )}
                   </ReportTable>
                 </div>
+
+                <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="mb-5">
+                    <h2 className="text-base font-semibold text-slate-950">
+                      Sales by Channel
+                    </h2>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Paid sales revenue by sales channel for the selected period
+                    </p>
+                  </div>
+
+                  {salesByChannel.length > 0 ? (
+                    <div className="h-80 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={salesByChannel}
+                          margin={{
+                            top: 10,
+                            right: 20,
+                            left: 10,
+                            bottom: 10,
+                          }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            vertical={false}
+                          />
+                          <XAxis
+                            dataKey="label"
+                            tickLine={false}
+                            axisLine={false}
+                          />
+                          <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(value) =>
+                              Number(value).toLocaleString("en-US")
+                            }
+                          />
+                          <Tooltip
+                            formatter={(value, name) => [
+                              name === "Revenue"
+                                ? formatMoney(Number(value))
+                                : Number(value).toLocaleString(),
+                              name,
+                            ]}
+                          />
+                          <Bar
+                            dataKey="revenue"
+                            name="Revenue"
+                            fill="#0f172a"
+                            radius={[6, 6, 0, 0]}
+                            maxBarSize={90}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="flex h-48 items-center justify-center text-sm text-slate-400">
+                      No paid sales for this period.
+                    </div>
+                  )}
+
+                  {salesByChannel.length > 0 && (
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      {salesByChannel.map((channel) => (
+                        <div
+                          key={channel.channel}
+                          className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                        >
+                          <div className="text-xs font-medium text-slate-500">
+                            {channel.label}
+                          </div>
+                          <div className="mt-1 font-semibold text-slate-950">
+                            {formatMoney(channel.revenue)}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-400">
+                            {channel.orders.toLocaleString()} paid{" "}
+                            {channel.orders === 1 ? "order" : "orders"}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
 
                 <ReportTable
                   title="Stock Alerts"
