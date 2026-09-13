@@ -31,6 +31,7 @@ type SalesOrder = {
   currency: string;
   sale_date: string;
   total_amount: number;
+  customer_id: string | null;
   customer_name: string | null;
   location_name: string | null;
   amount_paid: number;
@@ -377,6 +378,68 @@ export default function ReportsPage() {
       paidOrders: paidSales.length,
     };
   }, [filteredSales, balances]);
+
+  const customerAnalytics = useMemo(() => {
+    const customers = new Map<
+      string,
+      {
+        customer_id: string;
+        customer_name: string;
+        order_count: number;
+        paid_revenue: number;
+        outstanding: number;
+      }
+    >();
+
+    filteredSales.forEach((sale) => {
+      if (!sale.customer_id || !sale.customer_name) {
+        return;
+      }
+
+      const existing = customers.get(sale.customer_id) || {
+        customer_id: sale.customer_id,
+        customer_name: sale.customer_name,
+        order_count: 0,
+        paid_revenue: 0,
+        outstanding: 0,
+      };
+
+      if (sale.status !== "cancelled") {
+        existing.order_count += 1;
+      }
+
+      if (sale.status === "paid") {
+        existing.paid_revenue += Number(sale.total_amount || 0);
+      }
+
+      if (
+        sale.status !== "draft" &&
+        sale.status !== "cancelled" &&
+        sale.status !== "paid"
+      ) {
+        existing.outstanding += Number(sale.balance_due || 0);
+      }
+
+      customers.set(sale.customer_id, existing);
+    });
+
+    return [...customers.values()]
+      .map((customer) => ({
+        ...customer,
+        average_order_value:
+          customer.order_count > 0
+            ? customer.paid_revenue / customer.order_count
+            : 0,
+      }))
+      .sort((a, b) => {
+        if (b.paid_revenue !== a.paid_revenue) {
+          return b.paid_revenue - a.paid_revenue;
+        }
+
+        return b.order_count - a.order_count;
+      })
+      .slice(0, 10);
+  }, [filteredSales]);
 
   const recentSales = useMemo(
     () => filteredSales.slice(0, 5),
@@ -929,6 +992,66 @@ export default function ReportsPage() {
 
                     {topProducts.length === 0 && (
                       <EmptyState text="No paid product sales yet." />
+                    )}
+                  </ReportTable>
+                </div>
+
+                <div className="mb-6">
+                  <ReportTable
+                    title="Top Customers"
+                    actionLabel="View Customers"
+                    actionHref="/customers"
+                  >
+                    <table className="min-w-full text-left">
+                      <thead className="border-b border-slate-200 bg-slate-50">
+                        <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          <th className="px-5 py-3">Customer</th>
+                          <th className="px-5 py-3 text-right">Orders</th>
+                          <th className="px-5 py-3 text-right">Revenue</th>
+                          <th className="px-5 py-3 text-right">
+                            Avg Order Value
+                          </th>
+                          <th className="px-5 py-3 text-right">
+                            Outstanding
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody className="divide-y divide-slate-100">
+                        {customerAnalytics.map((customer) => (
+                          <tr
+                            key={customer.customer_id}
+                            onClick={() => {
+                              window.location.href = `/customers/${customer.customer_id}`;
+                            }}
+                            className="cursor-pointer hover:bg-slate-50"
+                          >
+                            <td className="px-5 py-4 text-sm font-semibold text-slate-900">
+                              {customer.customer_name}
+                            </td>
+
+                            <td className="px-5 py-4 text-right text-sm text-slate-700">
+                              {customer.order_count.toLocaleString()}
+                            </td>
+
+                            <td className="px-5 py-4 text-right text-sm font-semibold text-slate-900">
+                              {formatMoney(customer.paid_revenue)}
+                            </td>
+
+                            <td className="px-5 py-4 text-right text-sm text-slate-700">
+                              {formatMoney(customer.average_order_value)}
+                            </td>
+
+                            <td className="px-5 py-4 text-right text-sm font-semibold text-amber-700">
+                              {formatMoney(customer.outstanding)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {customerAnalytics.length === 0 && (
+                      <EmptyState text="No registered customer sales yet." />
                     )}
                   </ReportTable>
                 </div>
