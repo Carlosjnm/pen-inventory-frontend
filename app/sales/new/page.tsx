@@ -168,6 +168,19 @@ export default function NewSalePage() {
       setProducts(loadedProducts);
       setBalances(loadedBalances);
 
+      const preselectedCustomerId =
+        new URLSearchParams(window.location.search).get("customer_id") || "";
+
+      if (
+        preselectedCustomerId &&
+        loadedCustomers.some(
+          (customer: Customer) =>
+            customer.id === preselectedCustomerId
+        )
+      ) {
+        setCustomerId(preselectedCustomerId);
+      }
+
       if (loadedLocations.length > 0) {
         setLocationId(loadedLocations[0].id);
       }
