@@ -55,6 +55,14 @@ type Payment = {
   notes: string | null;
 };
 
+type ReceiptSettings = {
+  business_tax_number: string;
+  business_phone: string;
+  business_email: string;
+  business_address: string;
+  receipt_footer: string;
+};
+
 export default function SaleDetailPage({
   params,
 }: {
@@ -75,6 +83,14 @@ export default function SaleDetailPage({
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [paymentError, setPaymentError] = useState("");
+
+  const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings>({
+    business_tax_number: "",
+    business_phone: "",
+    business_email: "",
+    business_address: "",
+    receipt_footer: "Obrigado pela sua compra.",
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -137,24 +153,39 @@ export default function SaleDetailPage({
       if (settingsResponse.ok) {
         const settingsData = await settingsResponse.json();
 
-        const defaultPaymentSetting = (
-          settingsData.settings || []
-        ).find(
-          (setting: {
-            setting_key: string;
-            setting_value: unknown;
-          }) =>
-            setting.setting_key === "default_payment_method"
+        const settings = settingsData.settings || [];
+
+        const settingMap = Object.fromEntries(
+          settings.map(
+            (setting: {
+              setting_key: string;
+              setting_value: unknown;
+            }) => [setting.setting_key, setting.setting_value]
+          )
         );
 
-        if (
-          defaultPaymentSetting &&
-          typeof defaultPaymentSetting.setting_value === "string"
-        ) {
-          setPaymentMethod(
-            defaultPaymentSetting.setting_value
-          );
+        if (typeof settingMap.default_payment_method === "string") {
+          setPaymentMethod(settingMap.default_payment_method);
         }
+
+        setReceiptSettings({
+          business_tax_number: String(
+            settingMap.business_tax_number ?? ""
+          ),
+          business_phone: String(
+            settingMap.business_phone ?? ""
+          ),
+          business_email: String(
+            settingMap.business_email ?? ""
+          ),
+          business_address: String(
+            settingMap.business_address ?? ""
+          ),
+          receipt_footer: String(
+            settingMap.receipt_footer ??
+              "Obrigado pela sua compra."
+          ),
+        });
       }
     } catch (error) {
       console.error(error);
@@ -270,6 +301,525 @@ export default function SaleDetailPage({
     }
   }
 
+  function printReceipt() {
+    if (!sale) return;
+
+    const receiptWindow = window.open(
+      "",
+      "_blank",
+      "width=900,height=900"
+    );
+
+    if (!receiptWindow) {
+      setMessage(
+        "Your browser blocked the receipt window. Please allow pop-ups and try again."
+      );
+      return;
+    }
+
+    function escapeHtml(
+      value: string | number | null | undefined
+    ) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    const itemRows = sale.items
+      .map(
+        (item) => `
+          <tr>
+            <td>
+              <strong>${escapeHtml(item.product_name)}</strong>
+              <div class="muted">${escapeHtml(item.sku)}</div>
+            </td>
+            <td class="number">${escapeHtml(Number(item.quantity))}</td>
+            <td class="number">${escapeHtml(
+              formatMoney(item.unit_price, sale.currency)
+            )}</td>
+            <td class="number">${escapeHtml(
+              formatMoney(item.line_total, sale.currency)
+            )}</td>
+          </tr>
+        `
+      )
+      .join("");
+
+    const paymentRows = payments.length
+      ? payments
+          .map(
+            (payment) => `
+              <tr>
+                <td>${escapeHtml(
+                  formatStatus(payment.payment_method)
+                )}</td>
+                <td>${escapeHtml(
+                  payment.payment_reference || "—"
+                )}</td>
+                <td class="number">${escapeHtml(
+                  formatMoney(
+                    payment.amount,
+                    payment.currency
+                  )
+                )}</td>
+              </tr>
+            `
+          )
+          .join("")
+      : `
+          <tr>
+            <td colspan="3" class="muted">
+              No payment recorded
+            </td>
+          </tr>
+        `;
+
+    const businessDetails = [
+      receiptSettings.business_address,
+      receiptSettings.business_phone
+        ? `Tel: ${receiptSettings.business_phone}`
+        : "",
+      receiptSettings.business_email
+        ? `Email: ${receiptSettings.business_email}`
+        : "",
+      receiptSettings.business_tax_number
+        ? `NIF / Tax No: ${receiptSettings.business_tax_number}`
+        : "",
+    ]
+      .filter(Boolean)
+      .map(
+        (line) =>
+          `<div>${escapeHtml(line)}</div>`
+      )
+      .join("");
+
+    receiptWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Receipt ${escapeHtml(
+            sale.sale_number
+          )}</title>
+
+          <meta charset="utf-8" />
+
+          <style>
+            * {
+              box-sizing: border-box;
+            }
+
+            body {
+              margin: 0;
+              background: #ffffff;
+              color: #111827;
+              font-family: Arial, Helvetica, sans-serif;
+              font-size: 13px;
+            }
+
+            .receipt {
+              width: 100%;
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 32px;
+            }
+
+            .header {
+              display: flex;
+              justify-content: space-between;
+              gap: 32px;
+              padding-bottom: 22px;
+              border-bottom: 2px solid #111827;
+            }
+
+            .brand {
+              font-size: 30px;
+              font-weight: 800;
+              letter-spacing: -1px;
+            }
+
+            .subtitle {
+              margin-top: 3px;
+              color: #64748b;
+              font-size: 14px;
+              font-weight: 600;
+            }
+
+            .business-details {
+              margin-top: 12px;
+              line-height: 1.6;
+              color: #475569;
+            }
+
+            .receipt-title {
+              text-align: right;
+            }
+
+            .receipt-title h1 {
+              margin: 0;
+              font-size: 22px;
+            }
+
+            .receipt-number {
+              margin-top: 7px;
+              font-weight: 700;
+            }
+
+            .muted {
+              color: #64748b;
+            }
+
+            .info-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 18px 40px;
+              margin: 24px 0;
+            }
+
+            .label {
+              margin-bottom: 4px;
+              color: #64748b;
+              font-size: 10px;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: .08em;
+            }
+
+            .value {
+              font-weight: 600;
+            }
+
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 18px;
+            }
+
+            th {
+              background: #f8fafc;
+              padding: 10px;
+              border-bottom: 1px solid #cbd5e1;
+              text-align: left;
+              font-size: 10px;
+              text-transform: uppercase;
+              letter-spacing: .05em;
+            }
+
+            td {
+              padding: 11px 10px;
+              border-bottom: 1px solid #e2e8f0;
+              vertical-align: top;
+            }
+
+            .number {
+              text-align: right;
+              white-space: nowrap;
+            }
+
+            .totals {
+              width: 330px;
+              margin: 24px 0 0 auto;
+            }
+
+            .total-row {
+              display: flex;
+              justify-content: space-between;
+              gap: 20px;
+              padding: 6px 0;
+            }
+
+            .grand-total {
+              margin-top: 7px;
+              padding-top: 12px;
+              border-top: 2px solid #111827;
+              font-size: 16px;
+              font-weight: 800;
+            }
+
+            .balance {
+              margin-top: 7px;
+              font-weight: 800;
+            }
+
+            .section-title {
+              margin-top: 30px;
+              font-size: 14px;
+              font-weight: 800;
+            }
+
+            .footer {
+              margin-top: 36px;
+              padding-top: 20px;
+              border-top: 1px solid #cbd5e1;
+              text-align: center;
+              color: #64748b;
+              line-height: 1.6;
+            }
+
+            .no-print {
+              margin-bottom: 20px;
+              text-align: right;
+            }
+
+            .print-button {
+              border: 0;
+              border-radius: 8px;
+              background: #0f172a;
+              color: white;
+              padding: 10px 18px;
+              font-weight: 700;
+              cursor: pointer;
+            }
+
+            @media print {
+              .no-print {
+                display: none;
+              }
+
+              .receipt {
+                max-width: none;
+                padding: 0;
+              }
+
+              @page {
+                margin: 15mm;
+              }
+            }
+          </style>
+        </head>
+
+        <body>
+          <div class="receipt">
+            <div class="no-print">
+              <button
+                class="print-button"
+                onclick="window.print()"
+              >
+                Print Receipt
+              </button>
+            </div>
+
+            <div class="header">
+              <div>
+                <div class="brand">PEN</div>
+                <div class="subtitle">
+                  Inventory & Sales
+                </div>
+
+                <div class="business-details">
+                  ${businessDetails}
+                </div>
+              </div>
+
+              <div class="receipt-title">
+                <h1>RECEIPT</h1>
+
+                <div class="receipt-number">
+                  ${escapeHtml(sale.sale_number)}
+                </div>
+
+                <div class="muted">
+                  ${escapeHtml(
+                    formatDate(sale.sale_date)
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div class="info-grid">
+              <div>
+                <div class="label">Customer</div>
+                <div class="value">
+                  ${escapeHtml(
+                    sale.customer_name ||
+                      "Walk-in customer"
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div class="label">Sales Channel</div>
+                <div class="value">
+                  ${escapeHtml(
+                    formatStatus(sale.sales_channel)
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div class="label">Location</div>
+                <div class="value">
+                  ${escapeHtml(
+                    sale.location_name ||
+                      sale.location_code ||
+                      "—"
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div class="label">Status</div>
+                <div class="value">
+                  ${escapeHtml(
+                    formatStatus(sale.status)
+                  )}
+                </div>
+              </div>
+
+              ${
+                sale.customer_reference
+                  ? `
+                    <div>
+                      <div class="label">
+                        Customer Reference
+                      </div>
+                      <div class="value">
+                        ${escapeHtml(
+                          sale.customer_reference
+                        )}
+                      </div>
+                    </div>
+                  `
+                  : ""
+              }
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th class="number">Qty</th>
+                  <th class="number">Unit Price</th>
+                  <th class="number">Total</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                ${itemRows}
+              </tbody>
+            </table>
+
+            <div class="totals">
+              ${
+                sale.subtotal_amount !== undefined
+                  ? `
+                    <div class="total-row">
+                      <span>Subtotal</span>
+                      <span>
+                        ${escapeHtml(
+                          formatMoney(
+                            sale.subtotal_amount,
+                            sale.currency
+                          )
+                        )}
+                      </span>
+                    </div>
+                  `
+                  : ""
+              }
+
+              ${
+                Number(sale.shipping_amount || 0) > 0
+                  ? `
+                    <div class="total-row">
+                      <span>Shipping</span>
+                      <span>
+                        ${escapeHtml(
+                          formatMoney(
+                            sale.shipping_amount || 0,
+                            sale.currency
+                          )
+                        )}
+                      </span>
+                    </div>
+                  `
+                  : ""
+              }
+
+              <div class="total-row grand-total">
+                <span>Total</span>
+                <span>
+                  ${escapeHtml(
+                    formatMoney(
+                      sale.total_amount,
+                      sale.currency
+                    )
+                  )}
+                </span>
+              </div>
+
+              <div class="total-row">
+                <span>Paid</span>
+                <span>
+                  ${escapeHtml(
+                    formatMoney(
+                      sale.amount_paid,
+                      sale.currency
+                    )
+                  )}
+                </span>
+              </div>
+
+              <div class="total-row balance">
+                <span>Balance Due</span>
+                <span>
+                  ${escapeHtml(
+                    formatMoney(
+                      sale.balance_due,
+                      sale.currency
+                    )
+                  )}
+                </span>
+              </div>
+            </div>
+
+            <div class="section-title">
+              Payments
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Reference</th>
+                  <th class="number">Amount</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                ${paymentRows}
+              </tbody>
+            </table>
+
+            ${
+              sale.notes
+                ? `
+                  <div class="section-title">
+                    Notes
+                  </div>
+
+                  <p>
+                    ${escapeHtml(sale.notes)}
+                  </p>
+                `
+                : ""
+            }
+
+            <div class="footer">
+              ${escapeHtml(
+                receiptSettings.receipt_footer
+              )}
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+
+    receiptWindow.document.close();
+  }
+
   function formatMoney(
     value: number | string | null | undefined,
     currency = "AOA"
@@ -374,6 +924,16 @@ export default function SaleDetailPage({
           </div>
 
           <div className="flex flex-wrap gap-3">
+            {sale.status !== "draft" && (
+              <button
+                type="button"
+                onClick={printReceipt}
+                className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+              >
+                Print Receipt
+              </button>
+            )}
+
             {sale.status === "draft" && (
               <button
                 type="button"
