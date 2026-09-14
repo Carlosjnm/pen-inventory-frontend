@@ -46,7 +46,19 @@ export default function Home() {
       window.location.href = "/products";
     } catch (error) {
       console.error(error);
-      setMessage("Falha no início de sessão. Verifique o seu email e a palavra-passe.");
+
+      const errorCode =
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error
+          ? String((error as { code?: string }).code || "")
+          : "";
+
+      setMessage(
+        errorCode
+          ? `Falha no início de sessão. Código: ${errorCode}`
+          : "Falha no início de sessão. Verifique o seu email e a palavra-passe."
+      );
     } finally {
       setLoading(false);
     }
