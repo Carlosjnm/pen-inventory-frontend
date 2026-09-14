@@ -581,7 +581,10 @@ export default function SuppliersPage() {
                       {filteredSuppliers.map((supplier) => (
                         <tr
                           key={supplier.id}
-                          className="group transition hover:bg-slate-50"
+                          onClick={() => {
+                            window.location.href = `/suppliers/${supplier.id}`;
+                          }}
+                          className="group cursor-pointer transition hover:bg-slate-50"
                         >
                           <td className="px-6 py-5 align-top">
                             <span className="rounded-lg bg-slate-100 px-2.5 py-1 font-mono text-xs font-semibold text-slate-700">
