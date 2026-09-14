@@ -160,7 +160,7 @@ export default function ProductDetailPage() {
         );
 
         if (!response.ok) {
-          throw new Error("Unable to load product.");
+          throw new Error("Não foi possível carregar o produto.");
         }
 
         const data = await response.json();
@@ -209,12 +209,12 @@ export default function ProductDetailPage() {
             setSupplierOffers(supplierData.offers || []);
           } else {
             console.error(
-              "Unable to load supplier offers:",
+              "Não foi possível carregar as ofertas dos fornecedores:",
               supplierResponse.status
             );
           }
         } catch (supplierError) {
-          console.error("Unable to load supplier offers:", supplierError);
+          console.error("Não foi possível carregar as ofertas dos fornecedores:", supplierError);
         } finally {
           setSupplierOffersLoading(false);
         }
@@ -278,7 +278,7 @@ export default function ProductDetailPage() {
         }
       } catch (error) {
         console.error(error);
-        setMessage("Unable to load product.");
+        setMessage("Não foi possível carregar o produto.");
       } finally {
         setLoading(false);
       }
@@ -304,7 +304,7 @@ export default function ProductDetailPage() {
 
       const user = auth.currentUser;
       if (!user) {
-        throw new Error("You are not signed in.");
+        throw new Error("A sua sessão não está iniciada.");
       }
 
       const token = await user.getIdToken();
@@ -341,7 +341,7 @@ export default function ProductDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Unable to create supplier offer.");
+        throw new Error(data.detail || "Não foi possível criar a oferta do fornecedor.");
       }
 
       setSupplierOffers((current) => [
@@ -366,7 +366,7 @@ export default function ProductDetailPage() {
       setSupplierOfferMessage(
         error instanceof Error
           ? error.message
-          : "Unable to create supplier offer."
+          : "Não foi possível criar a oferta do fornecedor."
       );
     } finally {
       setSavingSupplierOffer(false);
@@ -408,7 +408,7 @@ export default function ProductDetailPage() {
 
       const user = auth.currentUser;
       if (!user) {
-        throw new Error("You are not signed in.");
+        throw new Error("A sua sessão não está iniciada.");
       }
 
       const token = await user.getIdToken();
@@ -444,7 +444,7 @@ export default function ProductDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Unable to update supplier offer.");
+        throw new Error(data.detail || "Não foi possível atualizar a oferta do fornecedor.");
       }
 
       setSupplierOffers((current) =>
@@ -459,7 +459,7 @@ export default function ProductDetailPage() {
       setSupplierOfferMessage(
         error instanceof Error
           ? error.message
-          : "Unable to update supplier offer."
+          : "Não foi possível atualizar a oferta do fornecedor."
       );
     } finally {
       setSavingSupplierOfferEdit(false);
@@ -468,7 +468,7 @@ export default function ProductDetailPage() {
 
   async function uploadPhoto(file: File) {
     if (file.size > 10 * 1024 * 1024) {
-      setUploadMessage("Photo must be 10 MB or smaller.");
+      setUploadMessage("A fotografia deve ter no máximo 10 MB.");
       return;
     }
 
@@ -481,7 +481,7 @@ export default function ProductDetailPage() {
 
     try {
       setUploading(true);
-      setUploadMessage("Uploading photo...");
+      setUploadMessage("A carregar fotografia...");
 
       const token = await user.getIdToken();
 
@@ -503,11 +503,11 @@ export default function ProductDetailPage() {
         const errorData = await response.json().catch(() => null);
 
         throw new Error(
-          errorData?.detail || "Unable to upload photo."
+          errorData?.detail || "Não foi possível carregar a fotografia."
         );
       }
 
-      setUploadMessage("✓ Photo saved");
+      setUploadMessage("✓ Fotografia guardada");
 
       // Stop using the temporary local preview after the server
       // has successfully saved and selected the new primary photo.
@@ -522,7 +522,7 @@ export default function ProductDetailPage() {
       setUploadMessage(
         error instanceof Error
           ? error.message
-          : "Unable to upload photo."
+          : "Não foi possível carregar a fotografia."
       );
     } finally {
       setUploading(false);
@@ -539,7 +539,7 @@ export default function ProductDetailPage() {
 
     try {
       setGalleryBusy(imageId);
-      setUploadMessage("Changing primary photo...");
+      setUploadMessage("A alterar fotografia principal...");
 
       const token = await user.getIdToken();
 
@@ -556,7 +556,7 @@ export default function ProductDetailPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         throw new Error(
-          errorData?.detail || "Unable to change primary photo."
+          errorData?.detail || "Não foi possível alterar a fotografia principal."
         );
       }
 
@@ -566,7 +566,7 @@ export default function ProductDetailPage() {
       setUploadMessage(
         error instanceof Error
           ? error.message
-          : "Unable to change primary photo."
+          : "Não foi possível alterar a fotografia principal."
       );
       setGalleryBusy("");
     }
@@ -581,13 +581,13 @@ export default function ProductDetailPage() {
 
     if (image.is_primary) {
       setUploadMessage(
-        "Choose another primary photo before deleting this photo."
+        "Escolha outra fotografia principal antes de eliminar esta fotografia."
       );
       return;
     }
 
     const confirmed = window.confirm(
-      "Delete this photo from this product? This cannot be undone."
+      "Eliminar esta fotografia deste produto? Esta ação não pode ser anulada."
     );
 
     if (!confirmed) return;
@@ -601,7 +601,7 @@ export default function ProductDetailPage() {
 
     try {
       setGalleryBusy(imageId);
-      setUploadMessage("Deleting photo...");
+      setUploadMessage("A eliminar fotografia...");
 
       const token = await user.getIdToken();
 
@@ -618,7 +618,7 @@ export default function ProductDetailPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         throw new Error(
-          errorData?.detail || "Unable to delete photo."
+          errorData?.detail || "Não foi possível eliminar a fotografia."
         );
       }
 
@@ -628,7 +628,7 @@ export default function ProductDetailPage() {
       setUploadMessage(
         error instanceof Error
           ? error.message
-          : "Unable to delete photo."
+          : "Não foi possível eliminar a fotografia."
       );
       setGalleryBusy("");
     }
@@ -732,7 +732,7 @@ export default function ProductDetailPage() {
         const errorData = await response.json().catch(() => null);
 
         throw new Error(
-          errorData?.detail || "Unable to save product."
+          errorData?.detail || "Não foi possível guardar o produto."
         );
       }
 
@@ -747,7 +747,7 @@ export default function ProductDetailPage() {
       setEditMessage(
         error instanceof Error
           ? error.message
-          : "Unable to save product."
+          : "Não foi possível guardar o produto."
       );
     } finally {
       setSavingProduct(false);
@@ -822,7 +822,7 @@ export default function ProductDetailPage() {
     return (
       <div className="min-h-screen bg-slate-50 lg:pl-64">
         <div className="p-8 text-slate-600">
-          Loading product...
+          A carregar produto...
         </div>
       </div>
     );
@@ -833,7 +833,7 @@ export default function ProductDetailPage() {
       <main className="min-h-screen bg-slate-50 p-8">
         <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
           <p className="text-red-600">
-            {message || "Product not found."}
+            {message || "Produto não encontrado."}
           </p>
 
           <button
@@ -988,7 +988,7 @@ export default function ProductDetailPage() {
 
                 <div className="grid gap-5 p-5 md:grid-cols-2 xl:grid-cols-3">
                   <EditField
-                    label="Product Name"
+                    label="Nome do Produto"
                     value={editForm.name}
                     onChange={(value) =>
                       setEditForm({ ...editForm, name: value })
@@ -1011,7 +1011,7 @@ export default function ProductDetailPage() {
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
                     >
                       <option value="" disabled>
-                        Select category
+                        Selecionar categoria
                       </option>
 
                       {categories.map((category) => (
@@ -1043,7 +1043,7 @@ export default function ProductDetailPage() {
 
                   <label className="block">
                     <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Status
+                      Estado
                     </span>
 
                     <select
