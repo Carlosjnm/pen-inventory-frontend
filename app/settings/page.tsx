@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import MobileNav from "@/components/MobileNav";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -822,12 +823,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <button
-              onClick={handleLogout}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden"
-            >
-              Terminar Sessão
-            </button>
+            <MobileNav onLogout={handleLogout} />
           </div>
         </header>
 

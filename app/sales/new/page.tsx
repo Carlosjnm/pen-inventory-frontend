@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import MobileNav from "@/components/MobileNav";
 
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
@@ -486,14 +487,18 @@ export default function NewSalePage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={createSale}
-            disabled={saving}
-            className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {saving ? "A criar..." : "Criar Venda"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={createSale}
+              disabled={saving}
+              className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {saving ? "A criar..." : "Criar Venda"}
+            </button>
+
+            <MobileNav />
+          </div>
         </div>
       </header>
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import MobileNav from "@/components/MobileNav";
 
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
@@ -462,6 +463,8 @@ export default function PurchaseOrderDetailPage() {
               )}
             </div>
           </div>
+
+          <MobileNav onLogout={handleLogout} />
         </header>
 
         <main className="p-4 md:p-8">

@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import MobileNav from "@/components/MobileNav";
 
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
@@ -460,15 +461,19 @@ export default function UsersPage() {
               </p>
             </div>
 
-            <button
-              onClick={() => {
-                setShowCreate(true);
-                setFormMessage("");
-              }}
-              className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-            >
-              + Novo Utilizador
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setShowCreate(true);
+                  setFormMessage("");
+                }}
+                className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+              >
+                + Novo Utilizador
+              </button>
+
+              <MobileNav onLogout={handleLogout} />
+            </div>
           </div>
         </header>
 

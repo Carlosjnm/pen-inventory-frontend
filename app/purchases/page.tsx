@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import MobileNav from "@/components/MobileNav";
 
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
@@ -219,12 +220,7 @@ export default function PurchasesPage() {
                 + Nova OC
               </button>
 
-              <button
-                onClick={handleLogout}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden"
-              >
-                Sair
-              </button>
+              <MobileNav onLogout={handleLogout} />
             </div>
           </div>
         </header>

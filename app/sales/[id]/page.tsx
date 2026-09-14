@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import MobileNav from "@/components/MobileNav";
 
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
@@ -1097,6 +1098,8 @@ export default function SaleDetailPage({
               </button>
             )}
           </div>
+
+          <MobileNav />
         </div>
       </header>
 

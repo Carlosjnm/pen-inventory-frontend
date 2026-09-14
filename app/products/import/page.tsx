@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { auth } from "@/lib/firebase";
+import MobileNav from "@/components/MobileNav";
 
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
@@ -110,6 +111,9 @@ export default function ImportProductsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8">
+      <div className="fixed right-4 top-4 z-40 lg:hidden">
+        <MobileNav />
+      </div>
       <div className="mx-auto max-w-7xl">
         <a
           href="/products"

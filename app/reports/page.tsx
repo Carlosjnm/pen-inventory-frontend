@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import MobileNav from "@/components/MobileNav";
 import {
   Bar,
   BarChart,
@@ -725,12 +726,7 @@ export default function ReportsPage() {
               </p>
             </div>
 
-            <button
-              onClick={handleLogout}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden"
-            >
-              Logout
-            </button>
+            <MobileNav onLogout={handleLogout} />
           </div>
         </header>
 

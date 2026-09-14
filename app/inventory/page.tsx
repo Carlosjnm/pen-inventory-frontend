@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import MobileNav from "@/components/MobileNav";
 
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
@@ -129,6 +130,11 @@ export default function InventoryPage() {
     setAdjustReason("");
     setAdjustNotes("");
     setAdjustOpen(true);
+  }
+
+  async function handleLogout() {
+    await signOut(auth);
+    router.replace("/");
   }
 
   async function submitAdjustment() {
@@ -351,49 +357,69 @@ export default function InventoryPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="flex">
-        <aside className="min-h-screen w-64 bg-slate-900 p-5 text-white">
-          <div className="mb-8 text-xl font-bold">PEN Inventário</div>
+      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-slate-950 text-white lg:block">
+        <div className="flex h-20 items-center border-b border-white/10 px-6">
+          <div>
+            <div className="text-xl font-bold tracking-tight">PEN</div>
+            <div className="text-xs text-slate-400">Inventário</div>
+          </div>
+        </div>
 
-          <nav className="space-y-2">
-            {[
-              ["Painel", "/dashboard"],
-              ["Produtos", "/products"],
-              ["Inventário", "/inventory"],
-              ["Compras", "/purchases"],
-              ["Vendas", "/sales"],
-              ["Fornecedores", "/suppliers"],
-              ["Clientes", "/customers"],
-              ["Relatórios", "/reports"],
-              ["Utilizadores", "/users"],
-              ["Definições", "/settings"],
-            ].map(([label, href]) => (
-              <button
-                key={label}
-                onClick={() => router.push(href)}
-                className={`w-full rounded-lg px-4 py-2 text-left ${
-                  href === "/inventory"
-                    ? "bg-slate-700"
-                    : "hover:bg-slate-800"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-        </aside>
+        <nav className="space-y-1 px-3 py-5 text-sm">
+          {[
+            ["Painel", "/dashboard", "⌂"],
+            ["Produtos", "/products", "▦"],
+            ["Inventário", "/inventory", "▣"],
+            ["Compras", "/purchases", "↓"],
+            ["Vendas", "/sales", "↑"],
+            ["Fornecedores", "/suppliers", "♢"],
+            ["Clientes", "/customers", "♙"],
+            ["Relatórios", "/reports", "▤"],
+            ["Utilizadores", "/users", "♧"],
+            ["Definições", "/settings", "⚙"],
+          ].map(([label, href, icon]) => (
+            <button
+              key={label}
+              onClick={() => router.push(href)}
+              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-medium ${
+                href === "/inventory"
+                  ? "bg-white text-slate-950"
+                  : "text-slate-400 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <span className="w-5 text-center">{icon}</span>
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
 
-        <main className="flex-1 p-8">
-          <div className="mb-6 flex items-center justify-between">
+        <div className="absolute bottom-0 left-0 right-0 border-t border-white/10 p-4">
+          <button
+            onClick={handleLogout}
+            className="w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            Terminar Sessão
+          </button>
+        </div>
+      </aside>
+
+      <div className="lg:pl-64">
+        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+          <div className="flex min-h-20 items-center justify-between gap-4 px-4 py-4 md:px-8">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-950">
                 Inventário
               </h1>
-              <p className="mt-1 text-slate-500">
+              <p className="mt-1 text-sm text-slate-500">
                 Saldos de stock e histórico de movimentos de inventário
               </p>
             </div>
+
+            <MobileNav onLogout={handleLogout} />
           </div>
+        </header>
+
+        <main className="p-4 md:p-8">
 
           {error && (
             <div className="mb-5 rounded-lg bg-red-50 p-4 text-red-700">

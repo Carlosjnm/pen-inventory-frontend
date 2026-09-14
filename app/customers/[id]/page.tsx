@@ -3,6 +3,7 @@
 import { use, useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import MobileNav from "@/components/MobileNav";
 
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
@@ -356,6 +357,8 @@ export default function CustomerDetailPage({
             </div>
 
             <div className="flex items-center gap-3">
+              <MobileNav />
+
               <button
                 type="button"
                 onClick={() => {
