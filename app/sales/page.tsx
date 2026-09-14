@@ -248,7 +248,7 @@ export default function SalesPage() {
           <NavItem label="Products" icon="▦" href="/products" />
           <NavItem label="Inventory" icon="▣" href="/inventory" />
           <NavItem label="Purchases" icon="↓" href="/purchases" />
-          <NavItem label="Sales" icon="↑" active href="/sales" />
+          <NavItem label="Vendas" icon="↑" active href="/sales" />
           <NavItem label="Suppliers" icon="♢" href="/suppliers" />
           <NavItem label="Customers" icon="♙" href="/customers" />
           <NavItem label="Reports" icon="▤" href="/reports" />
@@ -261,7 +261,7 @@ export default function SalesPage() {
             onClick={handleLogout}
             className="w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
           >
-            Sign out
+            Terminar Sessão
           </button>
         </div>
       </aside>
@@ -271,10 +271,10 @@ export default function SalesPage() {
           <div className="flex h-20 items-center justify-between px-4 md:px-8">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-                Sales
+                Vendas
               </h1>
               <p className="text-sm text-slate-500">
-                Manage sales orders and payments
+                Gerir vendas e pagamentos
               </p>
             </div>
 
@@ -286,18 +286,18 @@ export default function SalesPage() {
                   window.location.href = "/sales/new";
                 }}
               >
-                New Sale
+                Nova Venda
               </button>
 
               <div className="hidden rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 sm:block">
-                {salesOrders.length} orders
+                {salesOrders.length} vendas
               </div>
 
               <button
                 onClick={handleLogout}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden"
               >
-                Logout
+                Sair
               </button>
             </div>
           </div>
@@ -307,24 +307,24 @@ export default function SalesPage() {
           <div className="mx-auto max-w-7xl">
             <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <SummaryCard
-                label="Total Sales"
+                label="Total de Vendas"
                 value={formatMoney(totalSales)}
-                detail={`${salesOrders.length} sales orders`}
+                detail={`${salesOrders.length} vendas`}
               />
               <SummaryCard
-                label="Paid"
+                label="Pago"
                 value={formatMoney(totalPaid)}
-                detail={`${paidOrders} fully paid`}
+                detail={`${paidOrders} totalmente pagas`}
               />
               <SummaryCard
-                label="Outstanding"
+                label="Por Receber"
                 value={formatMoney(totalOutstanding)}
-                detail="Amount still to collect"
+                detail="Valor ainda por receber"
               />
               <SummaryCard
-                label="Paid Orders"
+                label="Vendas Pagas"
                 value={String(paidOrders)}
-                detail="Completed payment"
+                detail="Pagamento concluído"
               />
             </section>
 
@@ -339,7 +339,7 @@ export default function SalesPage() {
                     type="text"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search sale, customer, reference..."
+                    placeholder="Pesquisar venda, cliente, referência..."
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
                   />
                 </div>
@@ -349,7 +349,7 @@ export default function SalesPage() {
                   onChange={(event) => setStatus(event.target.value)}
                   className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white"
                 >
-                  <option value="">All statuses</option>
+                  <option value="">Todos os estados</option>
                   {statuses.map((value) => (
                     <option key={value} value={value}>
                       {formatStatus(value)}
@@ -362,7 +362,7 @@ export default function SalesPage() {
                   onChange={(event) => setChannel(event.target.value)}
                   className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white"
                 >
-                  <option value="">All channels</option>
+                  <option value="">Todos os canais</option>
                   {channels.map((value) => (
                     <option key={value} value={value}>
                       {formatStatus(value)}
@@ -372,26 +372,26 @@ export default function SalesPage() {
 
                 <label className="relative">
                   <span className="absolute -top-2 left-3 z-10 bg-white px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    From
+                    De
                   </span>
                   <input
                     type="date"
                     value={dateFrom}
                     onChange={(event) => setDateFrom(event.target.value)}
-                    aria-label="Date from"
+                    aria-label="Data inicial"
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white"
                   />
                 </label>
 
                 <label className="relative">
                   <span className="absolute -top-2 left-3 z-10 bg-white px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    To
+                    Até
                   </span>
                   <input
                     type="date"
                     value={dateTo}
                     onChange={(event) => setDateTo(event.target.value)}
-                    aria-label="Date to"
+                    aria-label="Data final"
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white"
                   />
                 </label>
@@ -400,24 +400,24 @@ export default function SalesPage() {
                   onClick={clearFilters}
                   className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
-                  Clear
+                  Limpar
                 </button>
               </div>
             </section>
 
             <div className="mb-3 flex items-center justify-between px-1">
               <p className="text-sm text-slate-500">
-                Showing{" "}
+                A mostrar{" "}
                 <span className="font-semibold text-slate-800">
                   {filteredSales.length}
                 </span>{" "}
-                of {salesOrders.length} orders
+                de {salesOrders.length} vendas
               </p>
             </div>
 
             {loading ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-                Loading sales orders...
+                A carregar vendas...
               </div>
             ) : message ? (
               <div className="rounded-2xl border border-red-200 bg-white p-8 text-red-600 shadow-sm">
@@ -429,14 +429,14 @@ export default function SalesPage() {
                   <table className="min-w-full text-left">
                     <thead className="border-b border-slate-200 bg-slate-50/80">
                       <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <th className="px-6 py-4">Sale</th>
-                        <th className="px-6 py-4">Customer</th>
-                        <th className="px-6 py-4">Channel</th>
-                        <th className="px-6 py-4">Status</th>
-                        <th className="px-6 py-4">Date</th>
+                        <th className="px-6 py-4">Venda</th>
+                        <th className="px-6 py-4">Cliente</th>
+                        <th className="px-6 py-4">Canal</th>
+                        <th className="px-6 py-4">Estado</th>
+                        <th className="px-6 py-4">Data</th>
                         <th className="px-6 py-4 text-right">Total</th>
-                        <th className="px-6 py-4 text-right">Paid</th>
-                        <th className="px-6 py-4 text-right">Balance</th>
+                        <th className="px-6 py-4 text-right">Pago</th>
+                        <th className="px-6 py-4 text-right">Saldo</th>
                         <th className="w-12 px-4 py-4" />
                       </tr>
                     </thead>
@@ -463,11 +463,11 @@ export default function SalesPage() {
 
                           <td className="px-6 py-5">
                             <div className="font-semibold text-slate-900">
-                              {order.customer_name || "Walk-in customer"}
+                              {order.customer_name || "Cliente de Balcão"}
                             </div>
                             {order.customer_reference && (
                               <div className="mt-1 text-xs text-slate-500">
-                                Ref: {order.customer_reference}
+                                Ref.: {order.customer_reference}
                               </div>
                             )}
                           </td>
@@ -514,10 +514,10 @@ export default function SalesPage() {
                 {filteredSales.length === 0 && (
                   <div className="px-6 py-16 text-center">
                     <div className="text-lg font-semibold text-slate-700">
-                      No sales orders found
+                      Nenhuma venda encontrada
                     </div>
                     <p className="mt-1 text-sm text-slate-500">
-                      Create your first sale or change the filters.
+                      Crie a sua primeira venda ou altere os filtros.
                     </p>
                   </div>
                 )}
