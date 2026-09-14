@@ -760,13 +760,32 @@ export default function ProductDetailPage() {
   }
 
   function formatStatus(value: string) {
-    return value
-      .split("_")
-      .map(
-        (part) =>
-          part.charAt(0).toUpperCase() + part.slice(1)
-      )
-      .join(" ");
+    const translations: Record<string, string> = {
+      idea: "Ideia",
+      researching: "Em Pesquisa",
+      sample_ordered: "Amostra Encomendada",
+      testing: "Em Teste",
+      approved: "Aprovado",
+      ordered: "Encomendado",
+      in_stock: "Em Stock",
+      selling: "À Venda",
+      discontinued: "Descontinuado",
+      archived: "Arquivado",
+      active: "Ativo",
+      inactive: "Inativo",
+      preferred: "Preferencial",
+    };
+
+    return (
+      translations[value.toLowerCase()] ||
+      value
+        .split("_")
+        .map(
+          (part) =>
+            part.charAt(0).toUpperCase() + part.slice(1)
+        )
+        .join(" ")
+    );
   }
 
   function formatPrice(
@@ -931,7 +950,7 @@ export default function ProductDetailPage() {
                   onClick={beginEditProduct}
                   className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
                 >
-                  Edit Product
+                  Editar Produto
                 </button>
 
                 <span
@@ -949,7 +968,7 @@ export default function ProductDetailPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
                   <div>
                     <h2 className="font-semibold text-slate-900">
-                      Edit Product
+                      Editar Produto
                     </h2>
                     <p className="mt-1 text-xs text-slate-500">
                       SKU {product.sku} is protected and cannot be changed.
@@ -962,7 +981,7 @@ export default function ProductDetailPage() {
                     disabled={savingProduct}
                     className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                   >
-                    Cancel
+                    Cancelar
                   </button>
                 </div>
 
@@ -977,7 +996,7 @@ export default function ProductDetailPage() {
 
                   <label className="block">
                     <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Category
+                      Categoria
                     </span>
 
                     <select
@@ -1006,7 +1025,7 @@ export default function ProductDetailPage() {
                   </label>
 
                   <EditField
-                    label="Brand"
+                    label="Marca"
                     value={editForm.brand}
                     onChange={(value) =>
                       setEditForm({ ...editForm, brand: value })
@@ -1014,7 +1033,7 @@ export default function ProductDetailPage() {
                   />
 
                   <EditField
-                    label="Barcode"
+                    label="Código de Barras"
                     value={editForm.barcode}
                     onChange={(value) =>
                       setEditForm({ ...editForm, barcode: value })
@@ -1037,15 +1056,15 @@ export default function ProductDetailPage() {
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
                     >
                       <option value="idea">Idea</option>
-                      <option value="researching">Researching</option>
-                      <option value="sample_ordered">Sample Ordered</option>
-                      <option value="testing">Testing</option>
-                      <option value="approved">Approved</option>
-                      <option value="ordered">Ordered</option>
-                      <option value="in_stock">In Stock</option>
-                      <option value="selling">Selling</option>
-                      <option value="discontinued">Discontinued</option>
-                      <option value="archived">Archived</option>
+                      <option value="researching">Em Pesquisa</option>
+                      <option value="sample_ordered">Amostra Encomendada</option>
+                      <option value="testing">Em Teste</option>
+                      <option value="approved">Aprovado</option>
+                      <option value="ordered">Encomendado</option>
+                      <option value="in_stock">Em Stock</option>
+                      <option value="selling">À Venda</option>
+                      <option value="discontinued">Descontinuado</option>
+                      <option value="archived">Arquivado</option>
                     </select>
                   </label>
 
@@ -1072,7 +1091,7 @@ export default function ProductDetailPage() {
                   </label>
 
                   <EditField
-                    label="Selling Price"
+                    label="Preço de Venda"
                     value={editForm.selling_price}
                     type="number"
                     onChange={(value) =>
@@ -1084,7 +1103,7 @@ export default function ProductDetailPage() {
                   />
 
                   <EditField
-                    label="Wholesale Price"
+                    label="Preço Grossista"
                     value={editForm.wholesale_price}
                     type="number"
                     onChange={(value) =>
@@ -1096,7 +1115,7 @@ export default function ProductDetailPage() {
                   />
 
                   <EditField
-                    label="Reorder Level"
+                    label="Nível de Reposição"
                     value={editForm.reorder_level}
                     type="number"
                     onChange={(value) =>
@@ -1108,7 +1127,7 @@ export default function ProductDetailPage() {
                   />
 
                   <EditField
-                    label="Reorder Quantity"
+                    label="Quantidade de Reposição"
                     value={editForm.reorder_quantity}
                     type="number"
                     onChange={(value) =>
@@ -1121,7 +1140,7 @@ export default function ProductDetailPage() {
 
                   <label className="block md:col-span-2 xl:col-span-3">
                     <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Description
+                      Descrição
                     </span>
 
                     <textarea
@@ -1139,7 +1158,7 @@ export default function ProductDetailPage() {
 
                   <label className="block md:col-span-2 xl:col-span-3">
                     <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Notes
+                      Notas
                     </span>
 
                     <textarea
@@ -1177,7 +1196,7 @@ export default function ProductDetailPage() {
                     disabled={savingProduct}
                     className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-wait disabled:bg-slate-500"
                   >
-                    {savingProduct ? "Saving..." : "Save Product"}
+                    {savingProduct ? "A guardar..." : "Guardar Produto"}
                   </button>
                 </div>
               </section>
@@ -1185,28 +1204,28 @@ export default function ProductDetailPage() {
 
             <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
               <StockCard
-                label="On Hand"
+                label="Em Stock"
                 value={product.quantity_on_hand}
               />
 
               <StockCard
-                label="Reserved"
+                label="Reservado"
                 value={product.quantity_reserved}
               />
 
               <StockCard
-                label="Available"
+                label="Disponível"
                 value={product.quantity_available}
                 emphasis
               />
 
               <StockCard
-                label="Reorder Level"
+                label="Nível de Reposição"
                 value={product.reorder_level}
               />
 
               <StockCard
-                label="Stock Status"
+                label="Estado do Stock"
                 value={formatStatus(product.stock_status)}
               />
             </section>
@@ -1216,7 +1235,7 @@ export default function ProductDetailPage() {
                 <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                   <div>
                     <h2 className="font-semibold text-slate-900">
-                      Product Photo
+                      Foto do Produto
                     </h2>
 
                     <p className="mt-0.5 text-xs text-slate-400">
@@ -1226,7 +1245,7 @@ export default function ProductDetailPage() {
 
                   {product.primary_image_id && (
                     <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                      Primary photo
+                      Foto principal
                     </span>
                   )}
                 </div>
@@ -1245,12 +1264,12 @@ export default function ProductDetailPage() {
                       </div>
 
                       <p className="font-semibold text-slate-700">
-                        No product photo yet
+                        Ainda não existe foto do produto
                       </p>
 
                       <p className="mt-2 text-sm text-slate-500">
-                        Add a photo to make this product easier
-                        to identify.
+                        Adicione uma foto para facilitar a identificação
+                        deste produto.
                       </p>
                     </div>
                   )}
@@ -1263,8 +1282,8 @@ export default function ProductDetailPage() {
                     }`}
                   >
                     {uploading
-                      ? "Uploading..."
-                      : "📷 Add Photo"}
+                      ? "A carregar..."
+                      : "📷 Adicionar Foto"}
 
                     <input
                       type="file"
@@ -1297,16 +1316,16 @@ export default function ProductDetailPage() {
                       <div className="mb-3 flex items-center justify-between">
                         <div>
                           <h3 className="text-sm font-semibold text-slate-900">
-                            Product Photos
+                            Fotos do Produto
                           </h3>
                           <p className="mt-0.5 text-xs text-slate-500">
-                            Select any previous photo to make it primary again.
+                            Selecione qualquer foto anterior para a tornar principal novamente.
                           </p>
                         </div>
 
                         <span className="text-xs font-medium text-slate-400">
                           {productImages.length}{" "}
-                          {productImages.length === 1 ? "photo" : "photos"}
+                          {productImages.length === 1 ? "foto" : "fotos"}
                         </span>
                       </div>
 
@@ -1354,8 +1373,8 @@ export default function ProductDetailPage() {
                                   className="w-full rounded-lg bg-slate-950 px-2 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:opacity-50"
                                 >
                                   {galleryBusy === image.id
-                                    ? "Please wait..."
-                                    : "Make Primary"}
+                                    ? "Aguarde..."
+                                    : "Definir como Principal"}
                                 </button>
                               )}
 
@@ -1368,13 +1387,13 @@ export default function ProductDetailPage() {
                                   }
                                   className="w-full rounded-lg border border-red-200 px-2 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-50"
                                 >
-                                  Delete
+                                  Eliminar
                                 </button>
                               )}
 
                               {image.is_primary && (
                                 <div className="rounded-lg bg-emerald-50 px-2 py-2 text-center text-xs font-semibold text-emerald-700">
-                                  Current Primary
+                                  Principal Atual
                                 </div>
                               )}
                             </div>
@@ -1403,8 +1422,8 @@ export default function ProductDetailPage() {
                       </p>
                     ) : (
                       <p className="text-sm text-slate-500">
-                        Add as many photos as needed. Any previous photo
-                        can be made primary again.
+                        Adicione quantas fotos forem necessárias. Qualquer foto anterior
+                        pode voltar a ser definida como principal.
                       </p>
                     )}
                   </div>
@@ -1415,7 +1434,7 @@ export default function ProductDetailPage() {
                 <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                   <div className="border-b border-slate-100 px-5 py-4">
                     <h2 className="font-semibold text-slate-900">
-                      Product Information
+                      Informações do Produto
                     </h2>
                   </div>
 
@@ -1427,40 +1446,40 @@ export default function ProductDetailPage() {
                     />
 
                     <Field
-                      label="Category"
+                      label="Categoria"
                       value={product.category || "—"}
                     />
 
                     <Field
-                      label="Brand"
+                      label="Marca"
                       value={product.brand || "—"}
                     />
 
                     <Field
-                      label="Barcode"
+                      label="Código de Barras"
                       value={product.barcode || "—"}
                       mono
                     />
 
                     <Field
-                      label="Status"
+                      label="Estado"
                       value={formatStatus(product.status)}
                     />
 
                     <Field
-                      label="Active"
+                      label="Ativo"
                       value={
-                        product.is_active ? "Yes" : "No"
+                        product.is_active ? "Sim" : "Não"
                       }
                     />
 
                     <Field
-                      label="Reorder Quantity"
+                      label="Quantidade de Reposição"
                       value={product.reorder_quantity}
                     />
 
                     <Field
-                      label="Reorder Level"
+                      label="Nível de Reposição"
                       value={product.reorder_level}
                     />
                   </div>
@@ -1469,13 +1488,13 @@ export default function ProductDetailPage() {
                 <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                   <div className="border-b border-slate-100 px-5 py-4">
                     <h2 className="font-semibold text-slate-900">
-                      Pricing
+                      Preços
                     </h2>
                   </div>
 
                   <div className="grid gap-4 p-5 sm:grid-cols-2">
                     <PriceCard
-                      label="Selling Price"
+                      label="Preço de Venda"
                       value={formatPrice(
                         product.selling_price,
                         product.selling_currency
@@ -1483,7 +1502,7 @@ export default function ProductDetailPage() {
                     />
 
                     <PriceCard
-                      label="Wholesale Price"
+                      label="Preço Grossista"
                       value={formatPrice(
                         product.wholesale_price,
                         product.selling_currency
@@ -1498,14 +1517,14 @@ export default function ProductDetailPage() {
               <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div className="border-b border-slate-100 px-5 py-4">
                   <h2 className="font-semibold text-slate-900">
-                    Description
+                    Descrição
                   </h2>
                 </div>
 
                 <div className="p-5">
                   <p className="whitespace-pre-wrap leading-7 text-slate-700">
                     {product.description ||
-                      "No description has been added yet."}
+                      "Ainda não foi adicionada uma descrição."}
                   </p>
                 </div>
               </section>
@@ -1513,14 +1532,14 @@ export default function ProductDetailPage() {
               <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div className="border-b border-slate-100 px-5 py-4">
                   <h2 className="font-semibold text-slate-900">
-                    Notes
+                    Notas
                   </h2>
                 </div>
 
                 <div className="p-5">
                   <p className="whitespace-pre-wrap leading-7 text-slate-700">
                     {product.notes ||
-                      "No notes have been added yet."}
+                      "Ainda não foram adicionadas notas."}
                   </p>
                 </div>
               </section>
@@ -1530,17 +1549,17 @@ export default function ProductDetailPage() {
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                 <div>
                   <h2 className="font-semibold text-slate-900">
-                    Supplier Offers
+                    Ofertas de Fornecedores
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Compare supplier cost, MOQ and lead time for this product.
+                    Compare custos, MOQ e prazos de entrega dos fornecedores para este produto.
                   </p>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                     {supplierOffers.length}{" "}
-                    {supplierOffers.length === 1 ? "offer" : "offers"}
+                    {supplierOffers.length === 1 ? "oferta" : "ofertas"}
                   </span>
 
                   <button
@@ -1550,7 +1569,7 @@ export default function ProductDetailPage() {
                     }
                     className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
                   >
-                    {showSupplierOfferForm ? "Close" : "+ Add Supplier Offer"}
+                    {showSupplierOfferForm ? "Fechar" : "+ Adicionar Oferta"}
                   </button>
                 </div>
               </div>
@@ -1577,7 +1596,7 @@ export default function ProductDetailPage() {
                         }}
                         className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
                       >
-                        <option value="">Select supplier</option>
+                        <option value="">Selecionar fornecedor</option>
                         {suppliers.map((supplier) => (
                           <option key={supplier.id} value={supplier.id}>
                             {supplier.supplier_code} · {supplier.name}
@@ -1587,7 +1606,7 @@ export default function ProductDetailPage() {
                     </label>
 
                     <label className="text-sm font-medium text-slate-700">
-                      Supplier SKU
+                      SKU do Fornecedor
                       <input
                         value={supplierOfferForm.supplier_sku}
                         onChange={(e) =>
@@ -1620,7 +1639,7 @@ export default function ProductDetailPage() {
                     </label>
 
                     <label className="text-sm font-medium text-slate-700">
-                      Unit Cost
+                      Custo Unitário
                       <input
                         type="number"
                         min="0"
@@ -1653,7 +1672,7 @@ export default function ProductDetailPage() {
                     </label>
 
                     <label className="text-sm font-medium text-slate-700">
-                      Lead Time (days)
+                      Prazo de Entrega (dias)
                       <input
                         type="number"
                         min="0"
@@ -1669,7 +1688,7 @@ export default function ProductDetailPage() {
                     </label>
 
                     <label className="text-sm font-medium text-slate-700 md:col-span-2">
-                      Supplier Product URL
+                      URL do Produto do Fornecedor
                       <input
                         type="url"
                         value={supplierOfferForm.supplier_product_url}
@@ -1697,7 +1716,7 @@ export default function ProductDetailPage() {
                           }))
                         }
                       />
-                      Preferred supplier
+                      Fornecedor Preferencial
                     </label>
 
                     <button
@@ -1707,8 +1726,8 @@ export default function ProductDetailPage() {
                       className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                     >
                       {savingSupplierOffer
-                        ? "Saving..."
-                        : "Save Supplier Offer"}
+                        ? "A guardar..."
+                        : "Guardar Oferta"}
                     </button>
                   </div>
 
@@ -1722,15 +1741,15 @@ export default function ProductDetailPage() {
 
               {supplierOffersLoading ? (
                 <div className="p-6 text-sm text-slate-500">
-                  Loading supplier offers...
+                  A carregar ofertas de fornecedores...
                 </div>
               ) : supplierOffers.length === 0 ? (
                 <div className="p-6">
                   <p className="text-sm font-medium text-slate-700">
-                    No supplier offers yet.
+                    Ainda não existem ofertas de fornecedores.
                   </p>
                   <p className="mt-1 text-sm text-slate-500">
-                    Supplier quotations for this product will appear here.
+                    As cotações dos fornecedores para este produto aparecerão aqui.
                   </p>
                 </div>
               ) : (
@@ -1738,12 +1757,12 @@ export default function ProductDetailPage() {
                   <table className="min-w-full divide-y divide-slate-100">
                     <thead className="bg-slate-50">
                       <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <th className="px-5 py-3">Supplier</th>
-                        <th className="px-5 py-3">Supplier SKU</th>
-                        <th className="px-5 py-3">Cost</th>
+                        <th className="px-5 py-3">Fornecedor</th>
+                        <th className="px-5 py-3">SKU do Fornecedor</th>
+                        <th className="px-5 py-3">Custo</th>
                         <th className="px-5 py-3">MOQ</th>
-                        <th className="px-5 py-3">Lead Time</th>
-                        <th className="px-5 py-3">Status</th>
+                        <th className="px-5 py-3">Prazo de Entrega</th>
+                        <th className="px-5 py-3">Estado</th>
                         <th className="px-5 py-3"></th>
                       </tr>
                     </thead>
@@ -1787,7 +1806,7 @@ export default function ProductDetailPage() {
 
                             <td className="px-5 py-4 text-sm text-slate-700">
                               {offer.lead_time_days !== null
-                                ? `${offer.lead_time_days} days`
+                                ? `${offer.lead_time_days} dias`
                                 : "—"}
                             </td>
 
@@ -1795,13 +1814,13 @@ export default function ProductDetailPage() {
                               <div className="flex flex-wrap gap-2">
                                 {offer.is_preferred && (
                                   <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                                    Preferred
+                                    Preferencial
                                   </span>
                                 )}
 
                                 {!offer.is_active && (
                                   <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">
-                                    Inactive
+                                    Inativo
                                   </span>
                                 )}
                               </div>
@@ -1816,7 +1835,7 @@ export default function ProductDetailPage() {
                                     rel="noreferrer"
                                     className="text-sm font-semibold text-blue-600 hover:text-blue-700"
                                   >
-                                    View ↗
+                                    Ver ↗
                                   </a>
                                 )}
 
@@ -1841,7 +1860,7 @@ export default function ProductDetailPage() {
                               >
                                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                                   <label className="text-sm font-medium text-slate-700">
-                                    Supplier SKU
+                                    SKU do Fornecedor
                                     <input
                                       value={editSupplierOfferForm.supplier_sku}
                                       onChange={(e) =>
@@ -1874,7 +1893,7 @@ export default function ProductDetailPage() {
                                   </label>
 
                                   <label className="text-sm font-medium text-slate-700">
-                                    Unit Cost
+                                    Custo Unitário
                                     <input
                                       type="number"
                                       min="0"
@@ -1910,7 +1929,7 @@ export default function ProductDetailPage() {
                                   </label>
 
                                   <label className="text-sm font-medium text-slate-700">
-                                    Lead Time (days)
+                                    Prazo de Entrega (dias)
                                     <input
                                       type="number"
                                       min="0"
@@ -1926,7 +1945,7 @@ export default function ProductDetailPage() {
                                   </label>
 
                                   <label className="text-sm font-medium text-slate-700 md:col-span-2">
-                                    Supplier Product URL
+                                    URL do Produto do Fornecedor
                                     <input
                                       type="url"
                                       value={
@@ -1959,7 +1978,7 @@ export default function ProductDetailPage() {
                                           }))
                                         }
                                       />
-                                      Preferred supplier
+                                      Fornecedor Preferencial
                                     </label>
 
                                     <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -1973,7 +1992,7 @@ export default function ProductDetailPage() {
                                           }))
                                         }
                                       />
-                                      Active
+                                      Ativo
                                     </label>
                                   </div>
 
@@ -1985,7 +2004,7 @@ export default function ProductDetailPage() {
                                       }
                                       className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                                     >
-                                      Cancel
+                                      Cancelar
                                     </button>
 
                                     <button
@@ -1997,8 +2016,8 @@ export default function ProductDetailPage() {
                                       className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                                     >
                                       {savingSupplierOfferEdit
-                                        ? "Saving..."
-                                        : "Save Changes"}
+                                        ? "A guardar..."
+                                        : "Guardar Alterações"}
                                     </button>
                                   </div>
                                 </div>
@@ -2015,12 +2034,12 @@ export default function ProductDetailPage() {
 
             <section className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white/50 p-6">
               <h2 className="font-semibold text-slate-800">
-                More product information
+                Mais informações do produto
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Purchase history, stock movements and activity will appear
-                here as we activate the next PEN Inventory modules.
+                O histórico de compras, movimentos de stock e atividade aparecerão
+                aqui à medida que ativarmos os próximos módulos do PEN Inventário.
               </p>
             </section>
           </div>
