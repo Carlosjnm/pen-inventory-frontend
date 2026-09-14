@@ -86,6 +86,8 @@ export default function SaleDetailPage({
   const [paymentNotes, setPaymentNotes] = useState("");
   const [paymentError, setPaymentError] = useState("");
 
+  const [receiptLogoDataUrl, setReceiptLogoDataUrl] = useState<string | null>(null);
+
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings>({
     business_name: "PEN",
     business_subtitle: "Inventory & Sales",
@@ -121,21 +123,29 @@ export default function SaleDetailPage({
         Authorization: `Bearer ${token}`,
       };
 
-      const [saleResponse, paymentsResponse, settingsResponse] =
-        await Promise.all([
-          fetch(`${API_URL}/api/sales-orders/${id}`, {
-            headers,
-            cache: "no-store",
-          }),
-          fetch(`${API_URL}/api/sales-orders/${id}/payments`, {
-            headers,
-            cache: "no-store",
-          }),
-          fetch(`${API_URL}/api/settings`, {
-            headers,
-            cache: "no-store",
-          }),
-        ]);
+      const [
+        saleResponse,
+        paymentsResponse,
+        settingsResponse,
+        logoResponse,
+      ] = await Promise.all([
+        fetch(`${API_URL}/api/sales-orders/${id}`, {
+          headers,
+          cache: "no-store",
+        }),
+        fetch(`${API_URL}/api/sales-orders/${id}/payments`, {
+          headers,
+          cache: "no-store",
+        }),
+        fetch(`${API_URL}/api/settings`, {
+          headers,
+          cache: "no-store",
+        }),
+        fetch(`${API_URL}/api/settings/business-logo`, {
+          headers,
+          cache: "no-store",
+        }),
+      ]);
 
       const saleData = await saleResponse.json().catch(() => ({}));
 
@@ -152,6 +162,34 @@ export default function SaleDetailPage({
         setPayments(paymentData.payments || []);
       } else {
         setPayments([]);
+      }
+
+      if (logoResponse.ok) {
+        const logoBlob = await logoResponse.blob();
+
+        const logoDataUrl = await new Promise<string>(
+          (resolve, reject) => {
+            const reader = new FileReader();
+
+            reader.onloadend = () => {
+              if (typeof reader.result === "string") {
+                resolve(reader.result);
+              } else {
+                reject(new Error("Unable to read business logo."));
+              }
+            };
+
+            reader.onerror = () => {
+              reject(new Error("Unable to read business logo."));
+            };
+
+            reader.readAsDataURL(logoBlob);
+          }
+        );
+
+        setReceiptLogoDataUrl(logoDataUrl);
+      } else {
+        setReceiptLogoDataUrl(null);
       }
 
       if (settingsResponse.ok) {
@@ -458,6 +496,25 @@ export default function SaleDetailPage({
               border-bottom: 2px solid #111827;
             }
 
+            .brand-block {
+              display: flex;
+              align-items: flex-start;
+              gap: 14px;
+            }
+
+            .brand-logo {
+              display: block;
+              width: 96px;
+              height: 64px;
+              object-fit: contain;
+              object-position: left top;
+              flex: 0 0 auto;
+            }
+
+            .brand-text {
+              min-width: 0;
+            }
+
             .brand {
               font-size: 28px;
               font-weight: 800;
@@ -640,16 +697,30 @@ export default function SaleDetailPage({
             </div>
 
             <div class="header">
-              <div>
-                <div class="brand">
-                  ${escapeHtml(receiptSettings.business_name)}
-                </div>
-                <div class="subtitle">
-                  ${escapeHtml(receiptSettings.business_subtitle)}
-                </div>
+              <div class="brand-block">
+                ${
+                  receiptLogoDataUrl
+                    ? `
+                      <img
+                        class="brand-logo"
+                        src="${escapeHtml(receiptLogoDataUrl)}"
+                        alt="Business logo"
+                      />
+                    `
+                    : ""
+                }
 
-                <div class="business-details">
-                  ${businessDetails}
+                <div class="brand-text">
+                  <div class="brand">
+                    ${escapeHtml(receiptSettings.business_name)}
+                  </div>
+                  <div class="subtitle">
+                    ${escapeHtml(receiptSettings.business_subtitle)}
+                  </div>
+
+                  <div class="business-details">
+                    ${businessDetails}
+                  </div>
                 </div>
               </div>
 
