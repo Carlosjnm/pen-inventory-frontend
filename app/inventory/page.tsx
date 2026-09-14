@@ -88,11 +88,11 @@ export default function InventoryPage() {
         ]);
 
         if (!balancesResponse.ok) {
-          throw new Error(`Balances API: ${balancesResponse.status}`);
+          throw new Error(`API de saldos: ${balancesResponse.status}`);
         }
 
         if (!movementsResponse.ok) {
-          throw new Error(`Movements API: ${movementsResponse.status}`);
+          throw new Error(`API de movimentos: ${movementsResponse.status}`);
         }
 
         const balancesData = await balancesResponse.json();
@@ -162,7 +162,7 @@ export default function InventoryPage() {
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || `Adjustment failed: ${response.status}`);
+        throw new Error(data.detail || `Falha ao efetuar o ajuste: ${response.status}`);
       }
 
       setAdjustOpen(false);
