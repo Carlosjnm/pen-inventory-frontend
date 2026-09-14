@@ -1305,7 +1305,7 @@ export default function ReportsPage() {
                       Pagamentos por Método
                     </h2>
                     <p className="mt-1 text-xs text-slate-500">
-                      Completed payments received during the selected period
+                      Pagamentos concluídos recebidos durante o período selecionado
                     </p>
                   </div>
 
