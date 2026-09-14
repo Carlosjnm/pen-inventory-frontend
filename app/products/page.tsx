@@ -20,6 +20,7 @@ type Product = {
   reorder_level: number;
   reorder_quantity: number;
   category: string | null;
+  primary_image_id: string | null;
 };
 
 export default function ProductsPage() {
@@ -29,6 +30,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -51,7 +53,40 @@ export default function ProductsPage() {
         }
 
         const data = await response.json();
-        setProducts(data.products || []);
+        const loadedProducts: Product[] = data.products || [];
+        setProducts(loadedProducts);
+
+        const imageEntries = await Promise.all(
+          loadedProducts
+            .filter((product) => product.primary_image_id)
+            .map(async (product) => {
+              try {
+                const imageResponse = await fetch(
+                  `${API_URL}/api/products/${product.id}/images/${product.primary_image_id}/content`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                    },
+                  }
+                );
+
+                if (!imageResponse.ok) {
+                  return [product.id, ""] as const;
+                }
+
+                const blob = await imageResponse.blob();
+                return [product.id, URL.createObjectURL(blob)] as const;
+              } catch {
+                return [product.id, ""] as const;
+              }
+            })
+        );
+
+        setImageUrls(
+          Object.fromEntries(
+            imageEntries.filter(([, url]) => Boolean(url))
+          )
+        );
       } catch (error) {
         console.error(error);
         setMessage("Não foi possível carregar os produtos.");
@@ -62,6 +97,14 @@ export default function ProductsPage() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      Object.values(imageUrls).forEach((url) => {
+        URL.revokeObjectURL(url);
+      });
+    };
+  }, [imageUrls]);
 
   const categories = useMemo(
     () =>
@@ -340,6 +383,7 @@ export default function ProductsPage() {
                     <thead className="border-b border-slate-200 bg-slate-50/80">
                       <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                         <th className="px-6 py-4">SKU</th>
+                        <th className="px-4 py-4">Foto</th>
                         <th className="px-6 py-4">Produto</th>
                         <th className="px-6 py-4">Categoria</th>
                         <th className="px-6 py-4">Estado</th>
@@ -361,6 +405,22 @@ export default function ProductsPage() {
                             <span className="rounded-lg bg-slate-100 px-2.5 py-1 font-mono text-xs font-semibold text-slate-700">
                               {product.sku}
                             </span>
+                          </td>
+
+                          <td className="px-4 py-3">
+                            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                              {imageUrls[product.id] ? (
+                                <img
+                                  src={imageUrls[product.id]}
+                                  alt={product.name}
+                                  className="h-full w-full object-contain p-1"
+                                />
+                              ) : (
+                                <span className="text-xl text-slate-300">
+                                  📷
+                                </span>
+                              )}
+                            </div>
                           </td>
 
                           <td className="px-6 py-5">
