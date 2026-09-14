@@ -464,7 +464,7 @@ export default function SaleDetailPage({
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Receipt ${escapeHtml(
+          <title>Recibo ${escapeHtml(
             sale.sale_number
           )}</title>
 
@@ -1065,7 +1065,7 @@ export default function SaleDetailPage({
                 onClick={printReceipt}
                 className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
               >
-                Print Receipt
+                Imprimir Recibo
               </button>
             )}
 
@@ -1145,7 +1145,7 @@ export default function SaleDetailPage({
                 />
 
                 <InfoRow
-                  label="Status"
+                  label="Estado"
                   value={formatStatus(sale.status)}
                 />
               </div>
@@ -1178,12 +1178,12 @@ export default function SaleDetailPage({
                   <table className="min-w-full">
                     <thead className="bg-slate-50">
                       <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <th className="px-6 py-4">Product</th>
+                        <th className="px-6 py-4">Produto</th>
                         <th className="px-6 py-4 text-right">
                           Qty
                         </th>
                         <th className="px-6 py-4 text-right">
-                          Unit Price
+                          Preço Unitário
                         </th>
                         <th className="px-6 py-4 text-right">
                           Discount
@@ -1264,7 +1264,7 @@ export default function SaleDetailPage({
 
               {payments.length === 0 ? (
                 <div className="px-6 py-10 text-center text-sm text-slate-500">
-                  No payments recorded yet.
+                  Ainda não foram registados pagamentos.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -1272,10 +1272,10 @@ export default function SaleDetailPage({
                     <thead className="bg-slate-50">
                       <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                         <th className="px-6 py-4">Pagamento</th>
-                        <th className="px-6 py-4">Method</th>
+                        <th className="px-6 py-4">Método</th>
                         <th className="px-6 py-4">Data</th>
                         <th className="px-6 py-4 text-right">
-                          Amount
+                          Valor
                         </th>
                       </tr>
                     </thead>
@@ -1493,7 +1493,7 @@ export default function SaleDetailPage({
                 className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
               >
                 {actionLoading
-                  ? "Saving..."
+                  ? "A guardar..."
                   : "Registar Pagamento"}
               </button>
             </div>
