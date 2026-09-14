@@ -430,7 +430,7 @@ export default function CustomerDetailPage({
               </h2>
 
               <div className="mt-5 text-sm leading-6 text-slate-700">
-                {address || "No address recorded."}
+                {address || "Nenhum endereço registado."}
               </div>
             </section>
 
@@ -440,7 +440,7 @@ export default function CustomerDetailPage({
               </h2>
 
               <div className="mt-5 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                {customer.notes || "No notes recorded."}
+                {customer.notes || "Nenhuma nota registada."}
               </div>
             </section>
           </div>
@@ -457,7 +457,7 @@ export default function CustomerDetailPage({
 
             {sales.length === 0 ? (
               <div className="px-6 py-16 text-center text-sm text-slate-500">
-                No sales recorded for this customer yet.
+                Ainda não existem vendas registadas para este cliente.
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -544,7 +544,7 @@ export default function CustomerDetailPage({
                 onClick={() => setEditing(false)}
                 className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-900"
               >
-                Close
+                Fechar
               </button>
             </div>
 
