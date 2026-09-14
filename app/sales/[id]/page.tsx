@@ -90,7 +90,7 @@ export default function SaleDetailPage({
 
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings>({
     business_name: "PEN",
-    business_subtitle: "Inventory & Sales",
+    business_subtitle: "Inventário e Vendas",
     business_tax_number: "",
     business_phone: "",
     business_email: "",
@@ -151,7 +151,7 @@ export default function SaleDetailPage({
 
       if (!saleResponse.ok) {
         throw new Error(
-          saleData.detail || "Unable to load sales order."
+          saleData.detail || "Não foi possível carregar a ordem de venda."
         );
       }
 
@@ -175,12 +175,12 @@ export default function SaleDetailPage({
               if (typeof reader.result === "string") {
                 resolve(reader.result);
               } else {
-                reject(new Error("Unable to read business logo."));
+                reject(new Error("Não foi possível ler o logótipo da empresa."));
               }
             };
 
             reader.onerror = () => {
-              reject(new Error("Unable to read business logo."));
+              reject(new Error("Não foi possível ler o logótipo da empresa."));
             };
 
             reader.readAsDataURL(logoBlob);
@@ -215,7 +215,7 @@ export default function SaleDetailPage({
             settingMap.business_name ?? "PEN"
           ),
           business_subtitle: String(
-            settingMap.business_subtitle ?? "Inventory & Sales"
+            settingMap.business_subtitle ?? "Inventário e Vendas"
           ),
           business_tax_number: String(
             settingMap.business_tax_number ?? ""
@@ -240,7 +240,7 @@ export default function SaleDetailPage({
       setMessage(
         error instanceof Error
           ? error.message
-          : "Unable to load sales order."
+          : "Não foi possível carregar a ordem de venda."
       );
     } finally {
       setLoading(false);
@@ -271,7 +271,7 @@ export default function SaleDetailPage({
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Unable to submit sales order."
+          data.detail || "Não foi possível submeter a ordem de venda."
         );
       }
 
@@ -281,7 +281,7 @@ export default function SaleDetailPage({
       setMessage(
         error instanceof Error
           ? error.message
-          : "Unable to submit sales order."
+          : "Não foi possível submeter a ordem de venda."
       );
     } finally {
       setActionLoading(false);
@@ -294,7 +294,7 @@ export default function SaleDetailPage({
     const amount = Number(paymentAmount);
 
     if (!Number.isFinite(amount) || amount <= 0) {
-      setPaymentError("Enter a valid payment amount.");
+      setPaymentError("Introduza um valor de pagamento válido.");
       return;
     }
 
@@ -327,7 +327,7 @@ export default function SaleDetailPage({
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Unable to record payment."
+          data.detail || "Não foi possível registar o pagamento."
         );
       }
 
@@ -342,7 +342,7 @@ export default function SaleDetailPage({
       setPaymentError(
         error instanceof Error
           ? error.message
-          : "Unable to record payment."
+          : "Não foi possível registar o pagamento."
       );
     } finally {
       setActionLoading(false);
@@ -1009,7 +1009,7 @@ export default function SaleDetailPage({
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 p-8 text-slate-600">
-        Loading sale...
+        A carregar venda...
       </div>
     );
   }
@@ -1018,7 +1018,7 @@ export default function SaleDetailPage({
     return (
       <div className="min-h-screen bg-slate-50 p-8">
         <div className="mx-auto max-w-4xl rounded-2xl border border-red-200 bg-white p-8 text-red-600 shadow-sm">
-          {message || "Sales order not found."}
+          {message || "Ordem de venda não encontrada."}
         </div>
       </div>
     );
@@ -1036,7 +1036,7 @@ export default function SaleDetailPage({
               }}
               className="mb-2 text-sm font-semibold text-slate-500 hover:text-slate-900"
             >
-              ← Back to Sales
+              ← Voltar às Vendas
             </button>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -1077,8 +1077,8 @@ export default function SaleDetailPage({
                 className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
               >
                 {actionLoading
-                  ? "Submitting..."
-                  : "Submit Sale"}
+                  ? "A submeter..."
+                  : "Submeter Venda"}
               </button>
             )}
 
@@ -1093,7 +1093,7 @@ export default function SaleDetailPage({
                 }}
                 className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
               >
-                Record Payment
+                Registar Pagamento
               </button>
             )}
           </div>
@@ -1111,27 +1111,27 @@ export default function SaleDetailPage({
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-950">
-                Sale Information
+                Informação da Venda
               </h2>
 
               <div className="mt-5 grid gap-x-8 gap-y-5 md:grid-cols-2">
                 <InfoRow
-                  label="Customer"
+                  label="Cliente"
                   value={sale.customer_name || "Walk-in customer"}
                 />
 
                 <InfoRow
-                  label="Customer Reference"
+                  label="Referência do Cliente"
                   value={sale.customer_reference || "—"}
                 />
 
                 <InfoRow
-                  label="Sales Channel"
+                  label="Canal de Venda"
                   value={formatStatus(sale.sales_channel)}
                 />
 
                 <InfoRow
-                  label="Location"
+                  label="Localização"
                   value={
                     sale.location_name ||
                     sale.location_code ||
@@ -1153,7 +1153,7 @@ export default function SaleDetailPage({
               {sale.notes && (
                 <div className="mt-6 border-t border-slate-100 pt-5">
                   <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Notes
+                    Notas
                   </div>
                   <p className="mt-2 text-sm leading-6 text-slate-700">
                     {sale.notes}
@@ -1258,7 +1258,7 @@ export default function SaleDetailPage({
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 px-6 py-5">
                 <h2 className="text-lg font-bold text-slate-950">
-                  Payments
+                  Pagamentos
                 </h2>
               </div>
 
@@ -1271,9 +1271,9 @@ export default function SaleDetailPage({
                   <table className="min-w-full">
                     <thead className="bg-slate-50">
                       <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <th className="px-6 py-4">Payment</th>
+                        <th className="px-6 py-4">Pagamento</th>
                         <th className="px-6 py-4">Method</th>
-                        <th className="px-6 py-4">Date</th>
+                        <th className="px-6 py-4">Data</th>
                         <th className="px-6 py-4 text-right">
                           Amount
                         </th>
@@ -1322,7 +1322,7 @@ export default function SaleDetailPage({
           <aside>
             <div className="sticky top-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-950">
-                Payment Summary
+                Resumo de Pagamento
               </h2>
 
               <div className="mt-6 space-y-4">
@@ -1335,7 +1335,7 @@ export default function SaleDetailPage({
                 />
 
                 <SummaryRow
-                  label="Paid"
+                  label="Pago"
                   value={formatMoney(
                     sale.amount_paid,
                     sale.currency
@@ -1344,7 +1344,7 @@ export default function SaleDetailPage({
 
                 <div className="border-t border-slate-200 pt-4">
                   <SummaryRow
-                    label="Balance Due"
+                    label="Saldo em Dívida"
                     value={formatMoney(
                       sale.balance_due,
                       sale.currency
@@ -1356,8 +1356,8 @@ export default function SaleDetailPage({
 
               {sale.status === "draft" && (
                 <div className="mt-6 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-                  Submit this sale when the order is confirmed.
-                  After submission, payments can be recorded.
+                  Submeta esta venda quando a ordem estiver confirmada.
+                  Após a submissão, os pagamentos podem ser registados.
                 </div>
               )}
 
@@ -1372,13 +1372,13 @@ export default function SaleDetailPage({
                   }}
                   className="mt-6 w-full rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-semibold text-white hover:bg-emerald-700"
                 >
-                  Record Payment
+                  Registar Pagamento
                 </button>
               )}
 
               {sale.status === "paid" && (
                 <div className="mt-6 rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
-                  This sale has been paid in full.
+                  Esta venda foi paga na totalidade.
                 </div>
               )}
             </div>
@@ -1392,7 +1392,7 @@ export default function SaleDetailPage({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-slate-950">
-                  Record Payment
+                  Registar Pagamento
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
                   Outstanding balance:{" "}
@@ -1415,12 +1415,12 @@ export default function SaleDetailPage({
             <div className="mt-6 space-y-4">
               {paymentError && (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
-                  <div className="font-bold">Cannot Complete Payment</div>
+                  <div className="font-bold">Não Foi Possível Concluir o Pagamento</div>
                   <div className="mt-1">{paymentError}</div>
                 </div>
               )}
 
-              <Field label="Payment Method">
+              <Field label="Método de Pagamento">
                 <select
                   value={paymentMethod}
                   onChange={(event) =>
@@ -1440,7 +1440,7 @@ export default function SaleDetailPage({
                 </select>
               </Field>
 
-              <Field label="Amount">
+              <Field label="Valor">
                 <input
                   type="number"
                   min="0.01"
@@ -1453,18 +1453,18 @@ export default function SaleDetailPage({
                 />
               </Field>
 
-              <Field label="Reference">
+              <Field label="Referência">
                 <input
                   value={paymentReference}
                   onChange={(event) =>
                     setPaymentReference(event.target.value)
                   }
-                  placeholder="Optional payment reference"
+                  placeholder="Referência de pagamento opcional"
                   className="input"
                 />
               </Field>
 
-              <Field label="Notes">
+              <Field label="Notas">
                 <textarea
                   rows={3}
                   value={paymentNotes}
@@ -1483,7 +1483,7 @@ export default function SaleDetailPage({
                 onClick={() => setShowPayment(false)}
                 className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
               >
-                Cancel
+                Cancelar
               </button>
 
               <button
@@ -1494,7 +1494,7 @@ export default function SaleDetailPage({
               >
                 {actionLoading
                   ? "Saving..."
-                  : "Record Payment"}
+                  : "Registar Pagamento"}
               </button>
             </div>
           </div>
