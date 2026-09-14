@@ -266,7 +266,7 @@ export default function CustomersPage() {
 
             <div className="flex items-center gap-3">
               <div className="hidden rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 sm:block">
-                {customers.length} customers
+                {customers.length} clientes
               </div>
 
               <button
@@ -520,7 +520,7 @@ export default function CustomersPage() {
                 <span className="font-semibold text-slate-800">
                   {filteredCustomers.length}
                 </span>{" "}
-                of {customers.length} customers
+                de {customers.length} clientes
               </p>
             </div>
 
