@@ -718,7 +718,7 @@ export default function ReportsPage() {
           <div className="flex h-20 items-center justify-between px-4 md:px-8">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-                Reports
+                Relatórios
               </h1>
               <p className="text-sm text-slate-500">
                 Business, sales and inventory overview
@@ -738,7 +738,7 @@ export default function ReportsPage() {
           <div className="mx-auto max-w-7xl">
             {loading ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-                Loading reports...
+                A carregar relatórios...
               </div>
             ) : message ? (
               <div className="rounded-2xl border border-red-200 bg-white p-8 text-red-600 shadow-sm">
@@ -750,20 +750,20 @@ export default function ReportsPage() {
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                     <div>
                       <div className="text-sm font-semibold text-slate-900">
-                        Reporting Period
+                        Período do Relatório
                       </div>
                       <div className="mt-1 text-xs text-slate-500">
-                        Filter sales and profitability results by period
+                        Filtrar vendas e resultados de rentabilidade por período
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-end gap-2">
                       {[
-                        ["today", "Today"],
-                        ["week", "This Week"],
-                        ["month", "This Month"],
-                        ["all", "All Time"],
-                        ["custom", "Custom"],
+                        ["today", "Hoje"],
+                        ["week", "Esta Semana"],
+                        ["month", "Este Mês"],
+                        ["all", "Todo o Período"],
+                        ["custom", "Personalizado"],
                       ].map(([value, label]) => (
                         <button
                           key={value}
@@ -783,7 +783,7 @@ export default function ReportsPage() {
                       {period === "custom" && (
                         <>
                           <label className="text-xs font-medium text-slate-500">
-                            <span className="mb-1 block">From</span>
+                            <span className="mb-1 block">De</span>
                             <input
                               type="date"
                               value={customFrom}
@@ -795,7 +795,7 @@ export default function ReportsPage() {
                           </label>
 
                           <label className="text-xs font-medium text-slate-500">
-                            <span className="mb-1 block">To</span>
+                            <span className="mb-1 block">Até</span>
                             <input
                               type="date"
                               value={customTo}
@@ -813,25 +813,25 @@ export default function ReportsPage() {
 
                 <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <SummaryCard
-                    label="Sales Revenue"
+                    label="Receita de Vendas"
                     value={formatMoney(metrics.salesRevenue)}
-                    detail={`${metrics.paidOrders} paid orders`}
+                    detail={`${metrics.paidOrders} ordens pagas`}
                   />
 
                   <SummaryCard
-                    label="Payments Received"
+                    label="Pagamentos Recebidos"
                     value={formatMoney(metrics.paymentsReceived)}
                     detail="Collected from customers"
                   />
 
                   <SummaryCard
-                    label="Outstanding"
+                    label="Em Dívida"
                     value={formatMoney(metrics.outstanding)}
                     detail="Submitted sales still unpaid"
                   />
 
                   <SummaryCard
-                    label="Inventory Value"
+                    label="Valor do Inventário"
                     value={formatMoney(metrics.inventoryValue)}
                     detail={`${metrics.unitsOnHand.toLocaleString()} units on hand`}
                   />
@@ -840,26 +840,26 @@ export default function ReportsPage() {
                 <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="mb-5">
                     <h2 className="text-base font-semibold text-slate-950">
-                      Profit Overview
+                      Resumo de Lucros
                     </h2>
                     <p className="mt-1 text-xs text-slate-500">
-                      Revenue, cost and gross profit for paid sales in the selected period
+                      Receita, custo e lucro bruto das vendas pagas no período selecionado
                     </p>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <SummaryCard
-                      label="Revenue"
+                      label="Receita"
                       value={formatMoney(
                         Number(profitSummary?.sales_revenue || 0)
                       )}
                       detail={`${Number(
                         profitSummary?.paid_order_count || 0
-                      ).toLocaleString()} paid orders`}
+                      ).toLocaleString()} ordens pagas`}
                     />
 
                     <SummaryCard
-                      label="Cost of Goods Sold"
+                      label="Custo das Mercadorias Vendidas"
                       value={formatMoney(
                         Number(profitSummary?.cost_of_goods_sold || 0)
                       )}
@@ -867,11 +867,11 @@ export default function ReportsPage() {
                     />
 
                     <SummaryCard
-                      label="Gross Profit"
+                      label="Lucro Bruto"
                       value={formatMoney(
                         Number(profitSummary?.gross_profit || 0)
                       )}
-                      detail="Revenue less cost of goods sold"
+                      detail="Receita menos o custo das mercadorias vendidas"
                     />
 
                     <SummaryCard
@@ -886,20 +886,20 @@ export default function ReportsPage() {
 
                 <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <SmallCard
-                    label="Sales Orders"
+                    label="Ordens de Venda"
                     value={filteredSales.length}
                   />
                   <SmallCard
-                    label="Purchase Orders"
+                    label="Ordens de Compra"
                     value={filteredPurchases.length}
                   />
                   <SmallCard
-                    label="Out of Stock"
+                    label="Sem Stock"
                     value={metrics.outOfStock}
                     warning={metrics.outOfStock > 0}
                   />
                   <SmallCard
-                    label="Not Stocked Yet"
+                    label="Ainda Sem Stock"
                     value={metrics.notStockedYet}
                   />
                 </section>
@@ -907,10 +907,10 @@ export default function ReportsPage() {
                 <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="mb-5">
                     <h2 className="text-base font-semibold text-slate-950">
-                      Sales Trends
+                      Tendências de Vendas
                     </h2>
                     <p className="mt-1 text-xs text-slate-500">
-                      Paid sales revenue for the selected reporting period
+                      Receita de vendas pagas no período selecionado
                     </p>
                   </div>
 
@@ -945,7 +945,7 @@ export default function ReportsPage() {
                           <Tooltip
                             formatter={(value) => [
                               formatMoney(Number(value)),
-                              "Revenue",
+                              "Receita",
                             ]}
                           />
                           <Line
@@ -968,8 +968,8 @@ export default function ReportsPage() {
 
                 <section className="mb-6 grid gap-6 xl:grid-cols-2">
                   <ReportTable
-                    title="Recent Sales"
-                    actionLabel="View Sales"
+                    title="Vendas Recentes"
+                    actionLabel="Ver Vendas"
                     actionHref="/sales"
                   >
                     <table className="min-w-full text-left">
@@ -977,7 +977,7 @@ export default function ReportsPage() {
                         <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                           <th className="px-5 py-3">Sale</th>
                           <th className="px-5 py-3">Customer</th>
-                          <th className="px-5 py-3">Status</th>
+                          <th className="px-5 py-3">Estado</th>
                           <th className="px-5 py-3 text-right">
                             Total
                           </th>
@@ -1030,8 +1030,8 @@ export default function ReportsPage() {
                   </ReportTable>
 
                   <ReportTable
-                    title="Recent Purchases"
-                    actionLabel="View Purchases"
+                    title="Compras Recentes"
+                    actionLabel="Ver Compras"
                     actionHref="/purchases"
                   >
                     <table className="min-w-full text-left">
@@ -1039,7 +1039,7 @@ export default function ReportsPage() {
                         <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                           <th className="px-5 py-3">PO</th>
                           <th className="px-5 py-3">Supplier</th>
-                          <th className="px-5 py-3">Status</th>
+                          <th className="px-5 py-3">Estado</th>
                           <th className="px-5 py-3 text-right">
                             Total
                           </th>
@@ -1096,8 +1096,8 @@ export default function ReportsPage() {
 
                 <div className="mb-6">
                   <ReportTable
-                    title="Top Products"
-                    actionLabel="View Sales"
+                    title="Produtos em Destaque"
+                    actionLabel="Ver Vendas"
                     actionHref="/sales"
                   >
                     <table className="min-w-full text-left">
@@ -1106,10 +1106,10 @@ export default function ReportsPage() {
                           <th className="px-5 py-3">SKU</th>
                           <th className="px-5 py-3">Product</th>
                           <th className="px-5 py-3 text-right">Units Sold</th>
-                          <th className="px-5 py-3 text-right">Revenue</th>
-                          <th className="px-5 py-3 text-right">Gross Profit</th>
+                          <th className="px-5 py-3 text-right">Receita</th>
+                          <th className="px-5 py-3 text-right">Lucro Bruto</th>
                           <th className="px-5 py-3 text-right">Margin</th>
-                          <th className="px-5 py-3 text-right">Sales</th>
+                          <th className="px-5 py-3 text-right">Vendas</th>
                         </tr>
                       </thead>
 
@@ -1156,21 +1156,21 @@ export default function ReportsPage() {
 
                 <div className="mb-6">
                   <ReportTable
-                    title="Top Customers"
-                    actionLabel="View Customers"
+                    title="Melhores Clientes"
+                    actionLabel="Ver Clientes"
                     actionHref="/customers"
                   >
                     <table className="min-w-full text-left">
                       <thead className="border-b border-slate-200 bg-slate-50">
                         <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                           <th className="px-5 py-3">Customer</th>
-                          <th className="px-5 py-3 text-right">Orders</th>
-                          <th className="px-5 py-3 text-right">Revenue</th>
+                          <th className="px-5 py-3 text-right">Ordens</th>
+                          <th className="px-5 py-3 text-right">Receita</th>
                           <th className="px-5 py-3 text-right">
                             Avg Order Value
                           </th>
                           <th className="px-5 py-3 text-right">
-                            Outstanding
+                            Em Dívida
                           </th>
                         </tr>
                       </thead>
@@ -1217,10 +1217,10 @@ export default function ReportsPage() {
                 <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="mb-5">
                     <h2 className="text-base font-semibold text-slate-950">
-                      Sales by Channel
+                      Vendas por Canal
                     </h2>
                     <p className="mt-1 text-xs text-slate-500">
-                      Paid sales revenue by sales channel for the selected period
+                      Receita de vendas pagas por canal no período selecionado
                     </p>
                   </div>
 
@@ -1254,7 +1254,7 @@ export default function ReportsPage() {
                           />
                           <Tooltip
                             formatter={(value, name) => [
-                              name === "Revenue"
+                              name === "Receita"
                                 ? formatMoney(Number(value))
                                 : Number(value).toLocaleString(),
                               name,
@@ -1262,7 +1262,7 @@ export default function ReportsPage() {
                           />
                           <Bar
                             dataKey="revenue"
-                            name="Revenue"
+                            name="Receita"
                             fill="#0f172a"
                             radius={[6, 6, 0, 0]}
                             maxBarSize={90}
@@ -1302,7 +1302,7 @@ export default function ReportsPage() {
                 <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="mb-4">
                     <h2 className="text-lg font-semibold text-slate-950">
-                      Payments by Method
+                      Pagamentos por Método
                     </h2>
                     <p className="mt-1 text-xs text-slate-500">
                       Completed payments received during the selected period
@@ -1349,8 +1349,8 @@ export default function ReportsPage() {
                 </section>
 
                 <ReportTable
-                  title="Stock Alerts"
-                  actionLabel="View Inventory"
+                  title="Alertas de Stock"
+                  actionLabel="Ver Inventário"
                   actionHref="/inventory"
                 >
                   <table className="min-w-full text-left">
@@ -1358,7 +1358,7 @@ export default function ReportsPage() {
                       <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                         <th className="px-5 py-3">SKU</th>
                         <th className="px-5 py-3">Product</th>
-                        <th className="px-5 py-3">Location</th>
+                        <th className="px-5 py-3">Localização</th>
                         <th className="px-5 py-3 text-right">
                           On Hand
                         </th>
