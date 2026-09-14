@@ -388,21 +388,35 @@ export default function SaleDetailPage({
         `;
 
     const businessDetails = [
-      receiptSettings.business_address,
-      receiptSettings.business_phone
-        ? `Tel: ${receiptSettings.business_phone}`
-        : "",
-      receiptSettings.business_email
-        ? `Email: ${receiptSettings.business_email}`
-        : "",
-      receiptSettings.business_tax_number
-        ? `NIF / Tax No: ${receiptSettings.business_tax_number}`
-        : "",
+      {
+        label: "Address",
+        value: receiptSettings.business_address,
+      },
+      {
+        label: "Tel",
+        value: receiptSettings.business_phone,
+      },
+      {
+        label: "Email",
+        value: receiptSettings.business_email,
+      },
+      {
+        label: "NIF / Tax No",
+        value: receiptSettings.business_tax_number,
+      },
     ]
-      .filter(Boolean)
+      .filter((detail) => detail.value.trim())
       .map(
-        (line) =>
-          `<div>${escapeHtml(line)}</div>`
+        (detail) => `
+          <div class="business-detail-row">
+            <span class="business-detail-label">
+              ${escapeHtml(detail.label)}:
+            </span>
+            <span>
+              ${escapeHtml(detail.value).replace(/\n/g, "<br />")}
+            </span>
+          </div>
+        `
       )
       .join("");
 
@@ -431,23 +445,23 @@ export default function SaleDetailPage({
 
             .receipt {
               width: 100%;
-              max-width: 800px;
+              max-width: 760px;
               margin: 0 auto;
-              padding: 32px;
+              padding: 24px 28px;
             }
 
             .header {
               display: flex;
               justify-content: space-between;
-              gap: 32px;
-              padding-bottom: 22px;
+              gap: 24px;
+              padding-bottom: 16px;
               border-bottom: 2px solid #111827;
             }
 
             .brand {
-              font-size: 30px;
+              font-size: 28px;
               font-weight: 800;
-              letter-spacing: -1px;
+              letter-spacing: -0.8px;
             }
 
             .subtitle {
@@ -458,9 +472,23 @@ export default function SaleDetailPage({
             }
 
             .business-details {
-              margin-top: 12px;
-              line-height: 1.6;
+              margin-top: 10px;
               color: #475569;
+              font-size: 11px;
+              line-height: 1.45;
+            }
+
+            .business-detail-row {
+              display: flex;
+              align-items: flex-start;
+              gap: 6px;
+              margin-top: 2px;
+            }
+
+            .business-detail-label {
+              flex: 0 0 auto;
+              color: #334155;
+              font-weight: 700;
             }
 
             .receipt-title {
@@ -504,7 +532,7 @@ export default function SaleDetailPage({
             table {
               width: 100%;
               border-collapse: collapse;
-              margin-top: 18px;
+              margin-top: 14px;
             }
 
             th {
@@ -530,7 +558,7 @@ export default function SaleDetailPage({
 
             .totals {
               width: 330px;
-              margin: 24px 0 0 auto;
+              margin: 18px 0 0 auto;
             }
 
             .total-row {
@@ -554,18 +582,18 @@ export default function SaleDetailPage({
             }
 
             .section-title {
-              margin-top: 30px;
+              margin-top: 22px;
               font-size: 14px;
               font-weight: 800;
             }
 
             .footer {
-              margin-top: 36px;
-              padding-top: 20px;
+              margin-top: 24px;
+              padding-top: 14px;
               border-top: 1px solid #cbd5e1;
               text-align: center;
               color: #64748b;
-              line-height: 1.6;
+              line-height: 1.5;
             }
 
             .no-print {
@@ -594,7 +622,7 @@ export default function SaleDetailPage({
               }
 
               @page {
-                margin: 15mm;
+                margin: 12mm;
               }
             }
           </style>
