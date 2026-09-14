@@ -40,6 +40,8 @@ export default function SettingsPage() {
   const [businessAddress, setBusinessAddress] = useState("");
   const [receiptFooter, setReceiptFooter] = useState("Obrigado pela sua compra.");
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [businessLogoUrl, setBusinessLogoUrl] = useState<string | null>(null);
+  const [logoBusy, setLogoBusy] = useState<"upload" | "delete" | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -109,6 +111,25 @@ export default function SettingsPage() {
               "Obrigado pela sua compra."
           )
         );
+
+        const logoResponse = await fetch(
+          `${API_URL}/api/settings/business-logo`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            cache: "no-store",
+          }
+        );
+
+        if (logoResponse.ok) {
+          const logoBlob = await logoResponse.blob();
+          setBusinessLogoUrl(URL.createObjectURL(logoBlob));
+        } else if (logoResponse.status === 404) {
+          setBusinessLogoUrl(null);
+        } else {
+          console.error("Unable to load business logo.");
+        }
       } catch (error) {
         console.error(error);
         setMessage(
@@ -306,6 +327,154 @@ export default function SettingsPage() {
     }
   }
 
+  async function uploadBusinessLogo(file: File) {
+    const user = auth.currentUser;
+
+    if (!user) {
+      setMessage("Authentication required.");
+      return;
+    }
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setMessage("Please select a JPEG, PNG or WEBP image.");
+      return;
+    }
+
+    if (file.size === 0) {
+      setMessage("The selected logo file is empty.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage("Business logo must be 5 MB or smaller.");
+      return;
+    }
+
+    try {
+      setLogoBusy("upload");
+      setMessage("");
+
+      const token = await user.getIdToken();
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(
+        `${API_URL}/api/settings/business-logo`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Unable to upload business logo."
+        );
+      }
+
+      const logoResponse = await fetch(
+        `${API_URL}/api/settings/business-logo`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        }
+      );
+
+      if (!logoResponse.ok) {
+        throw new Error("Logo uploaded but preview could not be loaded.");
+      }
+
+      const logoBlob = await logoResponse.blob();
+      const newLogoUrl = URL.createObjectURL(logoBlob);
+
+      setBusinessLogoUrl((current) => {
+        if (current) {
+          URL.revokeObjectURL(current);
+        }
+
+        return newLogoUrl;
+      });
+
+      setMessage("Business logo uploaded successfully.");
+    } catch (error) {
+      console.error(error);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to upload business logo."
+      );
+    } finally {
+      setLogoBusy(null);
+    }
+  }
+
+  async function deleteBusinessLogo() {
+    const user = auth.currentUser;
+
+    if (!user) {
+      setMessage("Authentication required.");
+      return;
+    }
+
+    try {
+      setLogoBusy("delete");
+      setMessage("");
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        `${API_URL}/api/settings/business-logo`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Unable to remove business logo."
+        );
+      }
+
+      setBusinessLogoUrl((current) => {
+        if (current) {
+          URL.revokeObjectURL(current);
+        }
+
+        return null;
+      });
+
+      setMessage("Business logo removed successfully.");
+    } catch (error) {
+      console.error(error);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to remove business logo."
+      );
+    } finally {
+      setLogoBusy(null);
+    }
+  }
+
   async function handleLogout() {
     await signOut(auth);
     window.location.href = "/";
@@ -444,6 +613,86 @@ export default function SettingsPage() {
           </section>
         )}
 
+        <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Business Logo
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Logo used on receipts and business documents.
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-center">
+            <div className="flex h-32 w-48 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-4">
+              {businessLogoUrl ? (
+                <img
+                  src={businessLogoUrl}
+                  alt="Business logo"
+                  className="max-h-full max-w-full object-contain"
+                />
+              ) : (
+                <div className="text-center text-sm text-slate-400">
+                  No logo uploaded
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className="flex flex-wrap gap-3">
+                <label
+                  className={`inline-flex cursor-pointer items-center rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white ${
+                    logoBusy ? "pointer-events-none opacity-50" : ""
+                  }`}
+                >
+                  {logoBusy === "upload"
+                    ? "Uploading..."
+                    : businessLogoUrl
+                      ? "Replace Logo"
+                      : "Upload Logo"}
+
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={logoBusy !== null}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+
+                      if (file) {
+                        void uploadBusinessLogo(file);
+                      }
+
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+
+                {businessLogoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => void deleteBusinessLogo()}
+                    disabled={logoBusy !== null}
+                    className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {logoBusy === "delete"
+                      ? "Removing..."
+                      : "Remove Logo"}
+                  </button>
+                )}
+              </div>
+
+              <p className="mt-3 text-xs text-slate-500">
+                JPEG, PNG or WEBP. Maximum file size: 5 MB.
+              </p>
+
+              <p className="mt-1 text-xs text-slate-400">
+                For best receipt quality, use a logo with a transparent or white background.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-5">
             <h2 className="text-lg font-semibold text-slate-950">
@@ -455,7 +704,15 @@ export default function SettingsPage() {
           </div>
 
           <div className="divide-y divide-slate-100">
-            {settings.map((setting) => (
+            {settings
+              .filter(
+                (setting) =>
+                  ![
+                    "business_logo_bucket",
+                    "business_logo_object_key",
+                  ].includes(setting.setting_key)
+              )
+              .map((setting) => (
               <div
                 key={setting.setting_key}
                 className="grid gap-3 px-6 py-5 md:grid-cols-[1.4fr_1fr_auto]"
