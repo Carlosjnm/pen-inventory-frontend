@@ -402,7 +402,9 @@ export default function SaleDetailPage({
             (payment) => `
               <tr>
                 <td>${escapeHtml(
-                  formatStatus(payment.payment_method)
+                  payment.payment_method.toLowerCase() === "cash"
+                    ? "Dinheiro"
+                    : formatStatus(payment.payment_method)
                 )}</td>
                 <td>${escapeHtml(
                   payment.payment_reference || "—"
@@ -504,8 +506,8 @@ export default function SaleDetailPage({
 
             .brand-logo {
               display: block;
-              width: 96px;
-              height: 64px;
+              width: 120px;
+              height: 72px;
               object-fit: contain;
               object-position: left top;
               flex: 0 0 auto;
@@ -874,7 +876,7 @@ export default function SaleDetailPage({
               </div>
 
               <div class="total-row balance">
-                <span>Balance Due</span>
+                <span>Saldo a Pagar</span>
                 <span>
                   ${escapeHtml(
                     formatMoney(
