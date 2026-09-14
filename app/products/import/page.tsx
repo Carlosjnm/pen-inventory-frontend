@@ -176,7 +176,7 @@ export default function ImportProductsPage() {
                 }}
                 className="text-sm font-semibold text-slate-500 hover:text-red-600"
               >
-                Remove
+                Remover
               </button>
             </div>
           )}
