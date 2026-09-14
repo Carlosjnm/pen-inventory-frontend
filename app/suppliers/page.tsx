@@ -170,7 +170,7 @@ export default function SuppliersPage() {
     if (!firebaseUser) return;
 
     if (!form.name.trim()) {
-      setFormMessage("Supplier name is required.");
+      setFormMessage("O nome do fornecedor é obrigatório.");
       return;
     }
 
@@ -257,10 +257,10 @@ export default function SuppliersPage() {
           <div className="flex h-20 items-center justify-between px-4 md:px-8">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-                Suppliers
+                Fornecedores
               </h1>
               <p className="text-sm text-slate-500">
-                Manage suppliers and sourcing contacts
+                Gerir fornecedores e contactos de fornecimento
               </p>
             </div>
 
@@ -276,7 +276,7 @@ export default function SuppliersPage() {
                 }}
                 className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
               >
-                {showCreate ? "Close" : "+ Add Supplier"}
+                {showCreate ? "Fechar" : "+ Adicionar Fornecedor"}
               </button>
 
               <button
@@ -295,31 +295,31 @@ export default function SuppliersPage() {
               <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
                 <div className="mb-5">
                   <h2 className="text-lg font-bold text-slate-950">
-                    Add Supplier
+                    Adicionar Fornecedor
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Supplier code will be generated automatically.
+                    O código do fornecedor será gerado automaticamente.
                   </p>
                 </div>
 
                 <form onSubmit={handleCreateSupplier}>
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <FormField
-                      label="Supplier Name *"
+                      label="Nome do Fornecedor *"
                       value={form.name}
                       onChange={(value) =>
                         setForm({ ...form, name: value })
                       }
-                      placeholder="Supplier or company name"
+                      placeholder="Nome do fornecedor ou empresa"
                     />
 
                     <FormField
-                      label="Contact Person"
+                      label="Pessoa de Contacto"
                       value={form.contact_person}
                       onChange={(value) =>
                         setForm({ ...form, contact_person: value })
                       }
-                      placeholder="Contact name"
+                      placeholder="Nome do contacto"
                     />
 
                     <FormField
@@ -333,7 +333,7 @@ export default function SuppliersPage() {
                     />
 
                     <FormField
-                      label="Phone"
+                      label="Telefone"
                       value={form.phone}
                       onChange={(value) =>
                         setForm({ ...form, phone: value })
@@ -369,17 +369,17 @@ export default function SuppliersPage() {
                     />
 
                     <FormField
-                      label="Country"
+                      label="País"
                       value={form.country}
                       onChange={(value) =>
                         setForm({ ...form, country: value })
                       }
-                      placeholder="Country"
+                      placeholder="País"
                     />
 
                     <label className="block">
                       <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                        Default Currency
+                        Moeda Predefinida
                       </span>
                       <select
                         value={form.default_currency}
@@ -409,19 +409,19 @@ export default function SuppliersPage() {
 
                     <div className="md:col-span-2">
                       <FormField
-                        label="Address"
+                        label="Endereço"
                         value={form.address}
                         onChange={(value) =>
                           setForm({ ...form, address: value })
                         }
-                        placeholder="Supplier address"
+                        placeholder="Endereço do fornecedor"
                       />
                     </div>
 
                     <div className="md:col-span-2 xl:col-span-3">
                       <label className="block">
                         <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                          Notes
+                          Notas
                         </span>
                         <textarea
                           value={form.notes}
@@ -432,7 +432,7 @@ export default function SuppliersPage() {
                             })
                           }
                           rows={3}
-                          placeholder="Additional supplier information..."
+                          placeholder="Informações adicionais sobre o fornecedor..."
                           className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
                         />
                       </label>
@@ -455,7 +455,7 @@ export default function SuppliersPage() {
                       }}
                       className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                     >
-                      Cancel
+                      Cancelar
                     </button>
 
                     <button
@@ -463,7 +463,7 @@ export default function SuppliersPage() {
                       disabled={saving}
                       className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {saving ? "Saving..." : "Create Supplier"}
+                      {saving ? "A guardar..." : "Criar Fornecedor"}
                     </button>
                   </div>
                 </form>
@@ -472,24 +472,24 @@ export default function SuppliersPage() {
 
             <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <SummaryCard
-                label="Total Suppliers"
+                label="Total de Fornecedores"
                 value={suppliers.length}
-                detail="Active suppliers"
+                detail="Fornecedores ativos"
               />
               <SummaryCard
-                label="Countries"
+                label="Países"
                 value={supplierCountries}
-                detail="Supplier markets"
+                detail="Mercados dos fornecedores"
               />
               <SummaryCard
-                label="With Contact"
+                label="Com Contacto"
                 value={suppliersWithContact}
-                detail="Contact details recorded"
+                detail="Dados de contacto registados"
               />
               <SummaryCard
-                label="Currencies"
+                label="Moedas"
                 value={currencies.length}
-                detail="Supplier currencies"
+                detail="Moedas dos fornecedores"
               />
             </section>
 
@@ -504,7 +504,7 @@ export default function SuppliersPage() {
                     type="text"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search supplier, code, contact..."
+                    placeholder="Pesquisar fornecedor, código, contacto..."
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
                   />
                 </div>
@@ -514,7 +514,7 @@ export default function SuppliersPage() {
                   onChange={(event) => setCountry(event.target.value)}
                   className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white"
                 >
-                  <option value="">All countries</option>
+                  <option value="">Todos os países</option>
                   {countries.map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -527,7 +527,7 @@ export default function SuppliersPage() {
                   onChange={(event) => setCurrency(event.target.value)}
                   className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white"
                 >
-                  <option value="">All currencies</option>
+                  <option value="">Todas as moedas</option>
                   {currencies.map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -539,14 +539,14 @@ export default function SuppliersPage() {
                   onClick={clearFilters}
                   className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
-                  Clear
+                  Limpar
                 </button>
               </div>
             </section>
 
             <div className="mb-3 flex items-center justify-between px-1">
               <p className="text-sm text-slate-500">
-                Showing{" "}
+                A mostrar{" "}
                 <span className="font-semibold text-slate-800">
                   {filteredSuppliers.length}
                 </span>{" "}
@@ -556,7 +556,7 @@ export default function SuppliersPage() {
 
             {loading ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-                Loading suppliers...
+                A carregar fornecedores...
               </div>
             ) : message ? (
               <div className="rounded-2xl border border-red-200 bg-white p-8 text-red-600 shadow-sm">
@@ -568,11 +568,11 @@ export default function SuppliersPage() {
                   <table className="min-w-full text-left">
                     <thead className="border-b border-slate-200 bg-slate-50/80">
                       <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <th className="px-6 py-4">Code</th>
-                        <th className="px-6 py-4">Supplier</th>
-                        <th className="px-6 py-4">Contact</th>
-                        <th className="px-6 py-4">Location</th>
-                        <th className="px-6 py-4">Currency</th>
+                        <th className="px-6 py-4">Código</th>
+                        <th className="px-6 py-4">Fornecedor</th>
+                        <th className="px-6 py-4">Contacto</th>
+                        <th className="px-6 py-4">Localização</th>
+                        <th className="px-6 py-4">Moeda</th>
                         <th className="w-12 px-4 py-4"></th>
                       </tr>
                     </thead>
@@ -643,10 +643,10 @@ export default function SuppliersPage() {
                 {filteredSuppliers.length === 0 && (
                   <div className="px-6 py-16 text-center">
                     <div className="text-lg font-semibold text-slate-700">
-                      No suppliers found
+                      Nenhum fornecedor encontrado
                     </div>
                     <p className="mt-1 text-sm text-slate-500">
-                      Add your first supplier or change your filters.
+                      Adicione o seu primeiro fornecedor ou altere os filtros.
                     </p>
                   </div>
                 )}
