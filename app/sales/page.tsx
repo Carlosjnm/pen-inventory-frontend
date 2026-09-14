@@ -53,7 +53,7 @@ export default function SalesPage() {
 
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
-          throw new Error(data.detail || "Unable to load sales orders.");
+          throw new Error(data.detail || "Não foi possível carregar as ordens de venda.");
         }
 
         const data = await response.json();
@@ -61,7 +61,7 @@ export default function SalesPage() {
       } catch (error) {
         console.error(error);
         setMessage(
-          error instanceof Error ? error.message : "Unable to load sales orders."
+          error instanceof Error ? error.message : "Não foi possível carregar as ordens de venda."
         );
       } finally {
         setLoading(false);
