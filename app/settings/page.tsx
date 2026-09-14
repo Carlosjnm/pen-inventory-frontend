@@ -149,7 +149,7 @@ export default function SettingsPage() {
     const value = Number(reorderLevel);
 
     if (!Number.isInteger(value) || value < 0) {
-      setMessage("Default reorder level must be a whole number of 0 or more.");
+      setMessage("O nível predefinido de reposição deve ser um número inteiro igual ou superior a 0.");
       return;
     }
 
@@ -195,7 +195,7 @@ export default function SettingsPage() {
       );
 
       setReorderLevel(String(data.setting.setting_value));
-      setMessage("Default reorder level saved successfully.");
+      setMessage("Nível predefinido de reposição guardado com sucesso.");
     } catch (error) {
       console.error(error);
       setMessage(
@@ -253,7 +253,7 @@ export default function SettingsPage() {
       );
 
       setDefaultPaymentMethod(String(data.setting.setting_value));
-      setMessage("Default payment method saved successfully.");
+      setMessage("Método de pagamento predefinido guardado com sucesso.");
     } catch (error) {
       console.error(error);
       setMessage(
@@ -352,7 +352,7 @@ export default function SettingsPage() {
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setMessage("Business logo must be 5 MB or smaller.");
+      setMessage("O logótipo da empresa deve ter 5 MB ou menos.");
       return;
     }
 
@@ -395,7 +395,7 @@ export default function SettingsPage() {
       );
 
       if (!logoResponse.ok) {
-        throw new Error("Logo uploaded but preview could not be loaded.");
+        throw new Error("O logótipo foi carregado, mas não foi possível carregar a pré-visualização.");
       }
 
       const logoBlob = await logoResponse.blob();
@@ -409,7 +409,7 @@ export default function SettingsPage() {
         return newLogoUrl;
       });
 
-      setMessage("Business logo uploaded successfully.");
+      setMessage("Logótipo da empresa carregado com sucesso.");
     } catch (error) {
       console.error(error);
       setMessage(
@@ -462,7 +462,7 @@ export default function SettingsPage() {
         return null;
       });
 
-      setMessage("Business logo removed successfully.");
+      setMessage("Logótipo da empresa removido com sucesso.");
     } catch (error) {
       console.error(error);
       setMessage(
@@ -499,7 +499,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 p-8 text-slate-700">
-        Loading settings...
+        A carregar definições...
       </main>
     );
   }
@@ -542,7 +542,7 @@ export default function SettingsPage() {
           <div className="flex h-20 items-center justify-between px-4 md:px-8">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-                Settings
+                Definições
               </h1>
               <p className="text-sm text-slate-500">
                 Organization and system configuration
@@ -553,7 +553,7 @@ export default function SettingsPage() {
               onClick={handleLogout}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden"
             >
-              Logout
+              Terminar Sessão
             </button>
           </div>
         </header>
@@ -576,7 +576,7 @@ export default function SettingsPage() {
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Name
+                  Nome
                 </div>
                 <div className="mt-1 font-medium text-slate-950">
                   {organization.name}
@@ -594,7 +594,7 @@ export default function SettingsPage() {
 
               <div>
                 <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Base Currency
+                  Moeda Base
                 </div>
                 <div className="mt-1 font-medium text-slate-950">
                   {organization.base_currency}
@@ -603,7 +603,7 @@ export default function SettingsPage() {
 
               <div>
                 <div className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Default Language
+                  Idioma Predefinido
                 </div>
                 <div className="mt-1 font-medium text-slate-950">
                   {organization.default_language.toUpperCase()}
@@ -616,10 +616,10 @@ export default function SettingsPage() {
         <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div>
             <h2 className="text-lg font-semibold text-slate-950">
-              Business Logo
+              Logótipo da Empresa
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Logo used on receipts and business documents.
+              Logótipo utilizado em recibos e documentos da empresa.
             </p>
           </div>
 
@@ -628,7 +628,7 @@ export default function SettingsPage() {
               {businessLogoUrl ? (
                 <img
                   src={businessLogoUrl}
-                  alt="Business logo"
+                  alt="Logótipo da empresa"
                   className="max-h-full max-w-full object-contain"
                 />
               ) : (
@@ -646,10 +646,10 @@ export default function SettingsPage() {
                   }`}
                 >
                   {logoBusy === "upload"
-                    ? "Uploading..."
+                    ? "A carregar..."
                     : businessLogoUrl
-                      ? "Replace Logo"
-                      : "Upload Logo"}
+                      ? "Substituir Logótipo"
+                      : "Carregar Logótipo"}
 
                   <input
                     type="file"
@@ -677,7 +677,7 @@ export default function SettingsPage() {
                   >
                     {logoBusy === "delete"
                       ? "Removing..."
-                      : "Remove Logo"}
+                      : "Remover Logótipo"}
                   </button>
                 )}
               </div>
@@ -696,7 +696,7 @@ export default function SettingsPage() {
         <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-5">
             <h2 className="text-lg font-semibold text-slate-950">
-              System Settings
+              Definições do Sistema
             </h2>
             <p className="mt-1 text-xs text-slate-500">
               Current configuration values for this organization
@@ -757,8 +757,8 @@ export default function SettingsPage() {
                         className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                       >
                         {savingKey === "default_reorder_level"
-                          ? "Saving..."
-                          : "Save"}
+                          ? "A guardar..."
+                          : "Guardar"}
                       </button>
                     </div>
                   ) : setting.setting_key === "default_payment_method" ? (
@@ -786,8 +786,8 @@ export default function SettingsPage() {
                         className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                       >
                         {savingKey === "default_payment_method"
-                          ? "Saving..."
-                          : "Save"}
+                          ? "A guardar..."
+                          : "Guardar"}
                       </button>
                     </div>
                   ) : setting.setting_key === "business_name" ? (
@@ -798,7 +798,7 @@ export default function SettingsPage() {
                         saveReceiptSetting(
                           "business_name",
                           businessName,
-                          "Business name saved successfully."
+                          "Nome da empresa guardado com sucesso."
                         )
                       }
                       saving={savingKey === "business_name"}
@@ -811,7 +811,7 @@ export default function SettingsPage() {
                         saveReceiptSetting(
                           "business_subtitle",
                           businessSubtitle,
-                          "Business subtitle saved successfully."
+                          "Subtítulo da empresa guardado com sucesso."
                         )
                       }
                       saving={savingKey === "business_subtitle"}
@@ -824,7 +824,7 @@ export default function SettingsPage() {
                         saveReceiptSetting(
                           "business_tax_number",
                           businessTaxNumber,
-                          "Business tax number saved successfully."
+                          "Número fiscal da empresa guardado com sucesso."
                         )
                       }
                       saving={savingKey === "business_tax_number"}
@@ -837,7 +837,7 @@ export default function SettingsPage() {
                         saveReceiptSetting(
                           "business_phone",
                           businessPhone,
-                          "Business phone saved successfully."
+                          "Telefone da empresa guardado com sucesso."
                         )
                       }
                       saving={savingKey === "business_phone"}
@@ -850,7 +850,7 @@ export default function SettingsPage() {
                         saveReceiptSetting(
                           "business_email",
                           businessEmail,
-                          "Business email saved successfully."
+                          "Email da empresa guardado com sucesso."
                         )
                       }
                       saving={savingKey === "business_email"}
@@ -863,7 +863,7 @@ export default function SettingsPage() {
                         saveReceiptSetting(
                           "business_address",
                           businessAddress,
-                          "Business address saved successfully."
+                          "Endereço da empresa guardado com sucesso."
                         )
                       }
                       saving={savingKey === "business_address"}
@@ -877,7 +877,7 @@ export default function SettingsPage() {
                         saveReceiptSetting(
                           "receipt_footer",
                           receiptFooter,
-                          "Receipt footer saved successfully."
+                          "Rodapé do recibo guardado com sucesso."
                         )
                       }
                       saving={savingKey === "receipt_footer"}
@@ -896,7 +896,7 @@ export default function SettingsPage() {
                         : "bg-emerald-50 text-emerald-700"
                     }`}
                   >
-                    {setting.is_system ? "System" : "Editable"}
+                    {setting.is_system ? "Sistema" : "Editável"}
                   </span>
                 </div>
               </div>
@@ -904,7 +904,7 @@ export default function SettingsPage() {
 
             {!settings.length && (
               <div className="px-6 py-10 text-center text-sm text-slate-400">
-                No settings found.
+                Nenhuma definição encontrada.
               </div>
             )}
           </div>
@@ -983,7 +983,7 @@ function SettingTextEditor({
         disabled={saving}
         className="shrink-0 rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
       >
-        {saving ? "Saving..." : "Save"}
+        {saving ? "A guardar..." : "Guardar"}
       </button>
     </div>
   );
