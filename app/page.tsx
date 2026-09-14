@@ -34,7 +34,7 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error("Backend authentication failed.");
+        throw new Error("A autenticação no sistema falhou.");
       }
 
       const data = await response.json();
@@ -46,7 +46,7 @@ export default function Home() {
       window.location.href = "/products";
     } catch (error) {
       console.error(error);
-      setMessage("Login failed. Please check your email and password.");
+      setMessage("Falha no início de sessão. Verifique o seu email e a palavra-passe.");
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ export default function Home() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">PEN Inventory</h1>
           <p className="mt-2 text-slate-500">
-            Sign in to manage your inventory.
+            Inicie sessão para gerir o seu inventário.
           </p>
         </div>
 
@@ -79,7 +79,7 @@ export default function Home() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
-              Password
+              Palavra-passe
             </label>
             <input
               type="password"

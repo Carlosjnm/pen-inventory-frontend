@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "PEN Inventory",
-  description: "PEN Inventory Management System",
+  description: "Sistema de Gestão de Inventário PEN",
 };
 
 export default function RootLayout({
