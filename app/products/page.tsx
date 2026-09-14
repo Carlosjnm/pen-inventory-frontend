@@ -47,14 +47,14 @@ export default function ProductsPage() {
         });
 
         if (!response.ok) {
-          throw new Error("Unable to load products.");
+          throw new Error("Não foi possível carregar os produtos.");
         }
 
         const data = await response.json();
         setProducts(data.products || []);
       } catch (error) {
         console.error(error);
-        setMessage("Unable to load products.");
+        setMessage("Não foi possível carregar os produtos.");
       } finally {
         setLoading(false);
       }
@@ -122,10 +122,27 @@ export default function ProductsPage() {
   }
 
   function formatStatus(value: string) {
-    return value
-      .split("_")
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(" ");
+    const translations: Record<string, string> = {
+      researching: "Em Pesquisa",
+      testing: "Em Teste",
+      sample_ordered: "Amostra Encomendada",
+      ordered: "Encomendado",
+      selling: "À Venda",
+      in_stock: "Em Stock",
+      out_of_stock: "Sem Stock",
+      discontinued: "Descontinuado",
+      archived: "Arquivado",
+      active: "Ativo",
+      inactive: "Inativo",
+    };
+
+    return (
+      translations[value.toLowerCase()] ||
+      value
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ")
+    );
   }
 
   function formatPrice(product: Product) {
@@ -194,10 +211,10 @@ export default function ProductsPage() {
           <div className="flex h-20 items-center justify-between px-4 md:px-8">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-                Products
+                Produtos
               </h1>
               <p className="text-sm text-slate-500">
-                Manage your complete product catalogue
+                Gerir o catálogo completo de produtos
               </p>
             </div>
 
@@ -206,11 +223,11 @@ export default function ProductsPage() {
                 href="/products/import"
                 className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
               >
-                Import Products
+                Importar Produtos
               </a>
 
               <div className="hidden rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 sm:block">
-                {products.length} products
+                {products.length} produtos
               </div>
 
               <button
@@ -227,24 +244,24 @@ export default function ProductsPage() {
           <div className="mx-auto max-w-7xl">
             <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <SummaryCard
-                label="Total Products"
+                label="Total de Produtos"
                 value={products.length}
-                detail="Complete catalogue"
+                detail="Catálogo completo"
               />
               <SummaryCard
-                label="Categories"
+                label="Categorias"
                 value={categories.length}
-                detail="Product groups"
+                detail="Grupos de produtos"
               />
               <SummaryCard
-                label="Researching"
+                label="Em Pesquisa"
                 value={activeResearch}
-                detail="Products in evaluation"
+                detail="Produtos em avaliação"
               />
               <SummaryCard
-                label="Priced"
+                label="Com Preço"
                 value={pricedProducts}
-                detail="Selling price assigned"
+                detail="Preço de venda definido"
               />
             </section>
 
@@ -258,7 +275,7 @@ export default function ProductsPage() {
                     type="text"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search SKU, product, barcode..."
+                    placeholder="Pesquisar SKU, produto, código de barras..."
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
                   />
                 </div>
@@ -268,7 +285,7 @@ export default function ProductsPage() {
                   onChange={(event) => setCategory(event.target.value)}
                   className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white"
                 >
-                  <option value="">All categories</option>
+                  <option value="">Todas as categorias</option>
                   {categories.map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -281,7 +298,7 @@ export default function ProductsPage() {
                   onChange={(event) => setStatus(event.target.value)}
                   className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white"
                 >
-                  <option value="">All statuses</option>
+                  <option value="">Todos os estados</option>
                   {statuses.map((item) => (
                     <option key={item} value={item}>
                       {formatStatus(item)}
@@ -293,24 +310,24 @@ export default function ProductsPage() {
                   onClick={clearFilters}
                   className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
-                  Clear
+                  Limpar
                 </button>
               </div>
             </section>
 
             <div className="mb-3 flex items-center justify-between px-1">
               <p className="text-sm text-slate-500">
-                Showing{" "}
+                A mostrar{" "}
                 <span className="font-semibold text-slate-800">
                   {filteredProducts.length}
                 </span>{" "}
-                of {products.length} products
+                de {products.length} produtos
               </p>
             </div>
 
             {loading ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-                Loading products...
+                A carregar produtos...
               </div>
             ) : message ? (
               <div className="rounded-2xl border border-red-200 bg-white p-8 text-red-600 shadow-sm">
@@ -323,10 +340,10 @@ export default function ProductsPage() {
                     <thead className="border-b border-slate-200 bg-slate-50/80">
                       <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                         <th className="px-6 py-4">SKU</th>
-                        <th className="px-6 py-4">Product</th>
-                        <th className="px-6 py-4">Category</th>
-                        <th className="px-6 py-4">Status</th>
-                        <th className="px-6 py-4 text-right">Price</th>
+                        <th className="px-6 py-4">Produto</th>
+                        <th className="px-6 py-4">Categoria</th>
+                        <th className="px-6 py-4">Estado</th>
+                        <th className="px-6 py-4 text-right">Preço</th>
                         <th className="w-12 px-4 py-4"></th>
                       </tr>
                     </thead>
@@ -394,10 +411,10 @@ export default function ProductsPage() {
                 {filteredProducts.length === 0 && (
                   <div className="px-6 py-16 text-center">
                     <div className="text-lg font-semibold text-slate-700">
-                      No products found
+                      Nenhum produto encontrado
                     </div>
                     <p className="mt-1 text-sm text-slate-500">
-                      Try changing your search or filters.
+                      Tente alterar a pesquisa ou os filtros.
                     </p>
                   </div>
                 )}
