@@ -289,12 +289,12 @@ export default function ProductDetailPage() {
 
   async function saveSupplierOffer() {
     if (!supplierOfferForm.supplier_id) {
-      setSupplierOfferMessage("Select a supplier.");
+      setSupplierOfferMessage("Selecione um fornecedor.");
       return;
     }
 
     if (!supplierOfferForm.unit_cost) {
-      setSupplierOfferMessage("Unit cost is required.");
+      setSupplierOfferMessage("O custo unitário é obrigatório.");
       return;
     }
 
@@ -360,7 +360,7 @@ export default function ProductDetailPage() {
         is_preferred: false,
       });
 
-      setSupplierOfferMessage("Supplier offer added successfully.");
+      setSupplierOfferMessage("Oferta do fornecedor adicionada com sucesso.");
       setShowSupplierOfferForm(false);
     } catch (error) {
       setSupplierOfferMessage(
@@ -398,7 +398,7 @@ export default function ProductDetailPage() {
 
   async function saveSupplierOfferEdit(offerId: string) {
     if (!editSupplierOfferForm.unit_cost) {
-      setSupplierOfferMessage("Unit cost is required.");
+      setSupplierOfferMessage("O custo unitário é obrigatório.");
       return;
     }
 
@@ -454,7 +454,7 @@ export default function ProductDetailPage() {
       );
 
       setEditingSupplierOfferId(null);
-      setSupplierOfferMessage("Supplier offer updated successfully.");
+      setSupplierOfferMessage("Oferta do fornecedor atualizada com sucesso.");
     } catch (error) {
       setSupplierOfferMessage(
         error instanceof Error
@@ -679,13 +679,13 @@ export default function ProductDetailPage() {
     }
 
     if (!editForm.name.trim()) {
-      setEditMessage("Product name is required.");
+      setEditMessage("O nome do produto é obrigatório.");
       return;
     }
 
     try {
       setSavingProduct(true);
-      setEditMessage("Saving product...");
+      setEditMessage("A guardar produto...");
 
       const token = await user.getIdToken();
 
@@ -736,7 +736,7 @@ export default function ProductDetailPage() {
         );
       }
 
-      setEditMessage("✓ Product saved successfully.");
+      setEditMessage("✓ Produto guardado com sucesso.");
 
       setTimeout(() => {
         window.location.reload();
@@ -768,6 +768,7 @@ export default function ProductDetailPage() {
       approved: "Aprovado",
       ordered: "Encomendado",
       in_stock: "Em Stock",
+      out_of_stock: "Sem Stock",
       selling: "À Venda",
       discontinued: "Descontinuado",
       archived: "Arquivado",
@@ -841,7 +842,7 @@ export default function ProductDetailPage() {
             }}
             className="mt-5 rounded-xl bg-slate-950 px-4 py-2 font-semibold text-white"
           >
-            Back to Products
+            Voltar aos Produtos
           </button>
         </div>
       </main>
@@ -857,7 +858,7 @@ export default function ProductDetailPage() {
               PEN
             </div>
             <div className="text-xs text-slate-400">
-              Inventory
+              Inventário
             </div>
           </div>
         </div>
@@ -935,7 +936,7 @@ export default function ProductDetailPage() {
                 }}
                 className="text-sm font-semibold text-slate-500 transition hover:text-slate-900"
               >
-                Products
+                Produtos
               </button>
 
               <span className="text-slate-300">/</span>
@@ -1055,7 +1056,7 @@ export default function ProductDetailPage() {
                       }
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
                     >
-                      <option value="idea">Idea</option>
+                      <option value="idea">Ideia</option>
                       <option value="researching">Em Pesquisa</option>
                       <option value="sample_ordered">Amostra Encomendada</option>
                       <option value="testing">Em Teste</option>
@@ -1070,7 +1071,7 @@ export default function ProductDetailPage() {
 
                   <label className="block">
                     <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Currency
+                      Moeda
                     </span>
 
                     <select
@@ -1239,7 +1240,7 @@ export default function ProductDetailPage() {
                     </h2>
 
                     <p className="mt-0.5 text-xs text-slate-400">
-                      JPEG, PNG or WEBP · Max 10 MB
+                      JPEG, PNG ou WEBP · Máx. 10 MB
                     </p>
                   </div>
 
@@ -1357,7 +1358,7 @@ export default function ProductDetailPage() {
 
                               {image.is_primary && (
                                 <span className="absolute left-2 top-2 rounded-full bg-slate-950 px-2 py-1 text-[10px] font-bold text-white shadow">
-                                  PRIMARY
+                                  PRINCIPAL
                                 </span>
                               )}
                             </div>
@@ -1578,7 +1579,7 @@ export default function ProductDetailPage() {
                 <div className="border-b border-slate-100 bg-slate-50 p-5">
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <label className="text-sm font-medium text-slate-700">
-                      Supplier
+                      Fornecedor
                       <select
                         value={supplierOfferForm.supplier_id}
                         onChange={(e) => {
@@ -1620,7 +1621,7 @@ export default function ProductDetailPage() {
                     </label>
 
                     <label className="text-sm font-medium text-slate-700">
-                      Currency
+                      Moeda
                       <select
                         value={supplierOfferForm.currency}
                         onChange={(e) =>
@@ -1846,7 +1847,7 @@ export default function ProductDetailPage() {
                                   }
                                   className="text-sm font-semibold text-slate-700 hover:text-slate-950"
                                 >
-                                  Edit
+                                  Editar
                                 </button>
                               </div>
                             </td>
@@ -1874,7 +1875,7 @@ export default function ProductDetailPage() {
                                   </label>
 
                                   <label className="text-sm font-medium text-slate-700">
-                                    Currency
+                                    Moeda
                                     <select
                                       value={editSupplierOfferForm.currency}
                                       onChange={(e) =>
