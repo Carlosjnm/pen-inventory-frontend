@@ -24,12 +24,36 @@ type Setting = {
   is_system: boolean;
 };
 
+
+type Location = {
+  id: string;
+  location_code: string;
+  name: string;
+  location_type: string;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  notes: string | null;
+  is_active: boolean;
+};
+
+type LocationForm = {
+  location_code: string;
+  name: string;
+  location_type: string;
+  address: string;
+  city: string;
+  country: string;
+  notes: string;
+};
+
 export default function SettingsPage() {
   const [organization, setOrganization] =
     useState<Organization | null>(null);
   const [settings, setSettings] = useState<Setting[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error">("error");
   const [reorderLevel, setReorderLevel] = useState("5");
   const [defaultPaymentMethod, setDefaultPaymentMethod] = useState("cash");
   const [businessName, setBusinessName] = useState("PEN");
@@ -42,6 +66,20 @@ export default function SettingsPage() {
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [businessLogoUrl, setBusinessLogoUrl] = useState<string | null>(null);
   const [logoBusy, setLogoBusy] = useState<"upload" | "delete" | null>(null);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  const [locationSaving, setLocationSaving] = useState(false);
+  const [locationBusyId, setLocationBusyId] = useState<string | null>(null);
+  const [locationForm, setLocationForm] = useState<LocationForm>({
+    location_code: "",
+    name: "",
+    location_type: "warehouse",
+    address: "",
+    city: "",
+    country: "",
+    notes: "",
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -71,6 +109,23 @@ export default function SettingsPage() {
 
         setOrganization(data.organization || null);
         setSettings(data.settings || []);
+
+        const locationsResponse = await fetch(
+          `${API_URL}/api/locations/manage`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            cache: "no-store",
+          }
+        );
+
+        if (locationsResponse.ok) {
+          const locationsData = await locationsResponse.json();
+          setLocations(locationsData.locations || []);
+        } else if (locationsResponse.status !== 403) {
+          console.error("Não foi possível carregar as localizações.");
+        }
 
         const reorderSetting = (data.settings || []).find(
           (setting: Setting) =>
@@ -475,6 +530,224 @@ export default function SettingsPage() {
     }
   }
 
+  function openNewLocation() {
+    setEditingLocation(null);
+    setLocationForm({
+      location_code: "",
+      name: "",
+      location_type: "warehouse",
+      address: "",
+      city: "",
+      country: "",
+      notes: "",
+    });
+    setMessage("");
+    setLocationModalOpen(true);
+  }
+
+  function openEditLocation(location: Location) {
+    setEditingLocation(location);
+    setLocationForm({
+      location_code: location.location_code,
+      name: location.name,
+      location_type: location.location_type,
+      address: location.address || "",
+      city: location.city || "",
+      country: location.country || "",
+      notes: location.notes || "",
+    });
+    setMessage("");
+    setLocationModalOpen(true);
+  }
+
+  async function saveLocation() {
+    const user = auth.currentUser;
+
+    if (!user) {
+      setMessage("Autenticação necessária.");
+      return;
+    }
+
+    if (!locationForm.location_code.trim()) {
+      setMessage("O código da localização é obrigatório.");
+      return;
+    }
+
+    if (!locationForm.name.trim()) {
+      setMessage("O nome da localização é obrigatório.");
+      return;
+    }
+
+    try {
+      setLocationSaving(true);
+      setMessage("");
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        editingLocation
+          ? `${API_URL}/api/locations/${editingLocation.id}`
+          : `${API_URL}/api/locations`,
+        {
+          method: editingLocation ? "PATCH" : "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            location_code: locationForm.location_code.trim(),
+            name: locationForm.name.trim(),
+            location_type: locationForm.location_type,
+            address: locationForm.address.trim(),
+            city: locationForm.city.trim(),
+            country: locationForm.country.trim(),
+            notes: locationForm.notes.trim(),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const detail = data.detail;
+
+        if (detail === "Location code already exists") {
+          throw new Error("Já existe uma localização com este código.");
+        }
+
+        if (detail === "Unsupported location type") {
+          throw new Error("O tipo de localização selecionado não é válido.");
+        }
+
+        throw new Error(detail || "Não foi possível guardar a localização.");
+      }
+
+      const savedLocation: Location = data.location;
+
+      setLocations((current) => {
+        const exists = current.some(
+          (location) => location.id === savedLocation.id
+        );
+
+        const updated = exists
+          ? current.map((location) =>
+              location.id === savedLocation.id
+                ? savedLocation
+                : location
+            )
+          : [...current, savedLocation];
+
+        return [...updated].sort((a, b) => {
+          if (a.is_active !== b.is_active) {
+            return a.is_active ? -1 : 1;
+          }
+
+          return a.location_code.localeCompare(b.location_code);
+        });
+      });
+
+      setLocationModalOpen(false);
+      setEditingLocation(null);
+      setMessage(
+        editingLocation
+          ? "Localização atualizada com sucesso."
+          : "Localização criada com sucesso."
+      );
+    } catch (error) {
+      console.error(error);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível guardar a localização."
+      );
+    } finally {
+      setLocationSaving(false);
+    }
+  }
+
+  async function toggleLocationStatus(location: Location) {
+    const user = auth.currentUser;
+
+    if (!user) {
+      setMessage("Autenticação necessária.");
+      return;
+    }
+
+    const newStatus = !location.is_active;
+
+    try {
+      setLocationBusyId(location.id);
+      setMessage("");
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        `${API_URL}/api/locations/${location.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            is_active: newStatus,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            "Não foi possível alterar o estado da localização."
+        );
+      }
+
+      setLocations((current) =>
+        current
+          .map((item) =>
+            item.id === location.id ? data.location : item
+          )
+          .sort((a, b) => {
+            if (a.is_active !== b.is_active) {
+              return a.is_active ? -1 : 1;
+            }
+
+            return a.location_code.localeCompare(b.location_code);
+          })
+      );
+
+      setMessage(
+        newStatus
+          ? "Localização ativada com sucesso."
+          : "Localização desativada com sucesso."
+      );
+    } catch (error) {
+      console.error(error);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível alterar o estado da localização."
+      );
+    } finally {
+      setLocationBusyId(null);
+    }
+  }
+
+  function locationTypeLabel(type: string) {
+    const labels: Record<string, string> = {
+      warehouse: "Armazém",
+      shop: "Loja",
+      office: "Escritório",
+      locker: "Cacifo",
+      transit: "Trânsito",
+      other: "Outro",
+    };
+
+    return labels[type] || type;
+  }
+
   async function handleLogout() {
     await signOut(auth);
     window.location.href = "/";
@@ -562,7 +835,13 @@ export default function SettingsPage() {
           <div className="mx-auto max-w-6xl">
 
         {message && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div
+            className={`mb-6 rounded-xl border p-4 text-sm ${
+              messageType === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-red-200 bg-red-50 text-red-700"
+            }`}
+          >
             {message}
           </div>
         )}
@@ -612,6 +891,139 @@ export default function SettingsPage() {
             </div>
           </section>
         )}
+
+        <section className="mb-8 rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">
+                Localizações
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Gerir armazéns, lojas, filiais e outros locais de stock.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={openNewLocation}
+              className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
+            >
+              + Nova Localização
+            </button>
+          </div>
+
+          {locations.length ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Código
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Localização
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Tipo
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Cidade / País
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Estado
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {locations.map((location) => (
+                    <tr key={location.id}>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-slate-950">
+                        {location.location_code}
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-slate-950">
+                          {location.name}
+                        </div>
+                        {location.address && (
+                          <div className="mt-1 text-xs text-slate-500">
+                            {location.address}
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
+                        {locationTypeLabel(location.location_type)}
+                      </td>
+
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {[location.city, location.country]
+                          .filter(Boolean)
+                          .join(", ") || "—"}
+                      </td>
+
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            location.is_active
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {location.is_active ? "Ativa" : "Inativa"}
+                        </span>
+                      </td>
+
+                      <td className="whitespace-nowrap px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEditLocation(location)}
+                            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Editar
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void toggleLocationStatus(location)
+                            }
+                            disabled={locationBusyId === location.id}
+                            className={`rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-50 ${
+                              location.is_active
+                                ? "border-red-200 text-red-700 hover:bg-red-50"
+                                : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                            }`}
+                          >
+                            {locationBusyId === location.id
+                              ? "A guardar..."
+                              : location.is_active
+                                ? "Desativar"
+                                : "Ativar"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="px-6 py-10 text-center">
+              <div className="text-sm font-medium text-slate-700">
+                Nenhuma localização encontrada.
+              </div>
+              <div className="mt-1 text-sm text-slate-400">
+                Crie o primeiro armazém, loja ou filial.
+              </div>
+            </div>
+          )}
+        </section>
 
         <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div>
@@ -909,6 +1321,188 @@ export default function SettingsPage() {
             )}
           </div>
             </section>
+
+            {locationModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+                <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+                  <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-950">
+                        {editingLocation
+                          ? "Editar Localização"
+                          : "Nova Localização"}
+                      </h2>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {editingLocation
+                          ? "Atualize os dados desta localização."
+                          : "Adicione um novo local para gerir e transferir stock."}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setLocationModalOpen(false)}
+                      disabled={locationSaving}
+                      className="rounded-lg px-3 py-2 text-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="grid gap-5 p-6 sm:grid-cols-2">
+                    <label className="block">
+                      <span className="text-sm font-medium text-slate-700">
+                        Código *
+                      </span>
+                      <input
+                        value={locationForm.location_code}
+                        onChange={(event) =>
+                          setLocationForm((current) => ({
+                            ...current,
+                            location_code: event.target.value.toUpperCase(),
+                          }))
+                        }
+                        placeholder="EX.: LOJA01"
+                        className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-slate-950 outline-none focus:border-slate-500"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="text-sm font-medium text-slate-700">
+                        Nome *
+                      </span>
+                      <input
+                        value={locationForm.name}
+                        onChange={(event) =>
+                          setLocationForm((current) => ({
+                            ...current,
+                            name: event.target.value,
+                          }))
+                        }
+                        placeholder="Ex.: Loja Talatona"
+                        className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-slate-950 outline-none focus:border-slate-500"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="text-sm font-medium text-slate-700">
+                        Tipo
+                      </span>
+                      <select
+                        value={locationForm.location_type}
+                        onChange={(event) =>
+                          setLocationForm((current) => ({
+                            ...current,
+                            location_type: event.target.value,
+                          }))
+                        }
+                        className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-slate-950 outline-none focus:border-slate-500"
+                      >
+                        <option value="warehouse">Armazém</option>
+                        <option value="shop">Loja</option>
+                        <option value="office">Escritório</option>
+                        <option value="locker">Cacifo</option>
+                        <option value="transit">Trânsito</option>
+                        <option value="other">Outro</option>
+                      </select>
+                    </label>
+
+                    <label className="block">
+                      <span className="text-sm font-medium text-slate-700">
+                        Cidade
+                      </span>
+                      <input
+                        value={locationForm.city}
+                        onChange={(event) =>
+                          setLocationForm((current) => ({
+                            ...current,
+                            city: event.target.value,
+                          }))
+                        }
+                        placeholder="Ex.: Luanda"
+                        className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-slate-950 outline-none focus:border-slate-500"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="text-sm font-medium text-slate-700">
+                        País
+                      </span>
+                      <input
+                        value={locationForm.country}
+                        onChange={(event) =>
+                          setLocationForm((current) => ({
+                            ...current,
+                            country: event.target.value,
+                          }))
+                        }
+                        placeholder="Ex.: Angola"
+                        className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-slate-950 outline-none focus:border-slate-500"
+                      />
+                    </label>
+
+                    <label className="block sm:col-span-2">
+                      <span className="text-sm font-medium text-slate-700">
+                        Endereço
+                      </span>
+                      <input
+                        value={locationForm.address}
+                        onChange={(event) =>
+                          setLocationForm((current) => ({
+                            ...current,
+                            address: event.target.value,
+                          }))
+                        }
+                        placeholder="Endereço da localização"
+                        className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-slate-950 outline-none focus:border-slate-500"
+                      />
+                    </label>
+
+                    <label className="block sm:col-span-2">
+                      <span className="text-sm font-medium text-slate-700">
+                        Notas
+                      </span>
+                      <textarea
+                        value={locationForm.notes}
+                        onChange={(event) =>
+                          setLocationForm((current) => ({
+                            ...current,
+                            notes: event.target.value,
+                          }))
+                        }
+                        rows={3}
+                        placeholder="Informação adicional sobre esta localização"
+                        className="mt-2 w-full resize-none rounded-xl border border-slate-300 px-3 py-2.5 text-slate-950 outline-none focus:border-slate-500"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-5">
+                    <button
+                      type="button"
+                      onClick={() => setLocationModalOpen(false)}
+                      disabled={locationSaving}
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => void saveLocation()}
+                      disabled={locationSaving}
+                      className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                    >
+                      {locationSaving
+                        ? "A guardar..."
+                        : editingLocation
+                          ? "Guardar Alterações"
+                          : "Criar Localização"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>
