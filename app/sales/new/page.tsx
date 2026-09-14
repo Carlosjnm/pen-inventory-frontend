@@ -143,7 +143,7 @@ export default function NewSalePage() {
         !productResponse.ok ||
         !balanceResponse.ok
       ) {
-        throw new Error("Unable to load sale setup data.");
+        throw new Error("Não foi possível carregar os dados necessários para a venda.");
       }
 
       const [
@@ -186,7 +186,7 @@ export default function NewSalePage() {
       }
     } catch (error) {
       console.error(error);
-      setMessage("Unable to load sale setup data.");
+      setMessage("Não foi possível carregar os dados necessários para a venda.");
     } finally {
       setLoading(false);
     }
@@ -400,7 +400,7 @@ export default function NewSalePage() {
 
       if (!saleResponse.ok) {
         throw new Error(
-          saleData.detail || "Unable to create sales order."
+          saleData.detail || "Não foi possível criar a ordem de venda."
         );
       }
 
@@ -429,7 +429,7 @@ export default function NewSalePage() {
         if (!itemResponse.ok) {
           throw new Error(
             itemData.detail ||
-              `Unable to add ${item.product_name}.`
+              `Não foi possível adicionar ${item.product_name}.`
           );
         }
       }
@@ -440,7 +440,7 @@ export default function NewSalePage() {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Unable to create sale."
+          : "Não foi possível criar a venda."
       );
     } finally {
       setSaving(false);
