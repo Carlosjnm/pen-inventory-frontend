@@ -61,6 +61,15 @@ export default function InventoryPage() {
   const [adjustNotes, setAdjustNotes] = useState("");
   const [adjustSaving, setAdjustSaving] = useState(false);
 
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferItem, setTransferItem] = useState<Balance | null>(null);
+  const [transferDestination, setTransferDestination] = useState("");
+  const [transferQty, setTransferQty] = useState("1");
+  const [transferReference, setTransferReference] = useState("");
+  const [transferReason, setTransferReason] = useState("");
+  const [transferNotes, setTransferNotes] = useState("");
+  const [transferSaving, setTransferSaving] = useState(false);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -173,6 +182,127 @@ export default function InventoryPage() {
       setAdjustSaving(false);
     }
   }
+
+  function openTransfer(item: Balance) {
+    const destinations = balances.filter(
+      (balance) =>
+        balance.product_id === item.product_id &&
+        balance.location_id !== item.location_id
+    );
+
+    setTransferItem(item);
+    setTransferDestination(destinations[0]?.location_id || "");
+    setTransferQty("1");
+    setTransferReference("");
+    setTransferReason("");
+    setTransferNotes("");
+    setError("");
+    setTransferOpen(true);
+  }
+
+  async function submitTransfer() {
+    if (!transferItem || !auth.currentUser) return;
+
+    const quantity = Number(transferQty);
+
+    if (!transferDestination) {
+      setError("Selecione a localização de destino.");
+      return;
+    }
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setError("Introduza uma quantidade válida.");
+      return;
+    }
+
+    if (quantity > Number(transferItem.quantity_available || 0)) {
+      setError(
+        `Stock disponível insuficiente. Disponível: ${formatQty(
+          transferItem.quantity_available
+        )}.`
+      );
+      return;
+    }
+
+    setTransferSaving(true);
+    setError("");
+
+    try {
+      const token = await auth.currentUser.getIdToken();
+
+      const response = await fetch(`${API_URL}/api/inventory/transfers`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          product_id: transferItem.product_id,
+          from_location_id: transferItem.location_id,
+          to_location_id: transferDestination,
+          quantity,
+          reference_number: transferReference.trim() || null,
+          reason: transferReason.trim() || null,
+          notes: transferNotes.trim() || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+
+        const detailTranslations: Record<string, string> = {
+          "Origin and destination locations must be different":
+            "A localização de origem e destino devem ser diferentes.",
+          "Product not found": "Produto não encontrado.",
+          "Origin location not found":
+            "Localização de origem não encontrada.",
+          "Destination location not found":
+            "Localização de destino não encontrada.",
+        };
+
+        const detail =
+          typeof data.detail === "string"
+            ? data.detail
+            : `Falha ao transferir stock: ${response.status}`;
+
+        if (detail.startsWith("Insufficient available stock.")) {
+          throw new Error(
+            detail.replace(
+              "Insufficient available stock. Available quantity:",
+              "Stock disponível insuficiente. Quantidade disponível:"
+            )
+          );
+        }
+
+        throw new Error(detailTranslations[detail] || detail);
+      }
+
+      setTransferOpen(false);
+      window.location.reload();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Falha ao transferir stock."
+      );
+    } finally {
+      setTransferSaving(false);
+    }
+  }
+
+  const transferDestinations = useMemo(() => {
+    if (!transferItem) return [];
+
+    return balances
+      .filter(
+        (balance) =>
+          balance.product_id === transferItem.product_id &&
+          balance.location_id !== transferItem.location_id
+      )
+      .sort((a, b) =>
+        a.location_name.localeCompare(b.location_name, "pt")
+      );
+  }, [balances, transferItem]);
 
   const filteredBalances = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -360,12 +490,24 @@ export default function InventoryPage() {
                           )}
                         </Td>
                         <Td>
-                          <button
-                            onClick={() => openAdjustment(item)}
-                            className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
-                          >
-                            Ajustar
-                          </button>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => openAdjustment(item)}
+                              className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+                            >
+                              Ajustar
+                            </button>
+
+                            <button
+                              onClick={() => openTransfer(item)}
+                              disabled={
+                                Number(item.quantity_available || 0) <= 0
+                              }
+                              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              Transferir
+                            </button>
+                          </div>
                         </Td>
                       </tr>
                     ))}
@@ -419,6 +561,176 @@ export default function InventoryPage() {
               </div>
             </div>
           )}
+          {transferOpen && transferItem && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+              <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+                <div className="mb-5 flex items-start justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      Transferir Stock
+                    </h2>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      {transferItem.sku} · {transferItem.product_name}
+                    </p>
+
+                    <p className="text-sm text-slate-500">
+                      Origem: {transferItem.location_name}
+                    </p>
+
+                    <p className="text-sm text-slate-500">
+                      Disponível:{" "}
+                      {formatQty(transferItem.quantity_available)}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setTransferOpen(false)}
+                    className="text-xl text-slate-400 hover:text-slate-700"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                      Localização de Destino *
+                    </label>
+
+                    <select
+                      value={transferDestination}
+                      onChange={(e) =>
+                        setTransferDestination(e.target.value)
+                      }
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
+                    >
+                      <option value="">Selecionar destino</option>
+
+                      {transferDestinations.map((destination) => (
+                        <option
+                          key={destination.location_id}
+                          value={destination.location_id}
+                        >
+                          {destination.location_name}
+                          {destination.location_code
+                            ? ` (${destination.location_code})`
+                            : ""}
+                        </option>
+                      ))}
+                    </select>
+
+                    {transferDestinations.length === 0 && (
+                      <p className="mt-2 text-xs text-amber-700">
+                        Não existe outra localização ativa disponível
+                        para este produto.
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                      Quantidade *
+                    </label>
+
+                    <input
+                      type="number"
+                      min="0.001"
+                      step="0.001"
+                      max={Number(
+                        transferItem.quantity_available || 0
+                      )}
+                      value={transferQty}
+                      onChange={(e) => setTransferQty(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
+                    />
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Máximo disponível:{" "}
+                      {formatQty(transferItem.quantity_available)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                      Referência
+                    </label>
+
+                    <input
+                      value={transferReference}
+                      onChange={(e) =>
+                        setTransferReference(e.target.value)
+                      }
+                      placeholder="Automática se ficar em branco"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                      Motivo
+                    </label>
+
+                    <input
+                      value={transferReason}
+                      onChange={(e) =>
+                        setTransferReason(e.target.value)
+                      }
+                      placeholder="Ex.: Reposição de stock da loja"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                      Notas
+                    </label>
+
+                    <textarea
+                      value={transferNotes}
+                      onChange={(e) =>
+                        setTransferNotes(e.target.value)
+                      }
+                      rows={3}
+                      placeholder="Informação adicional sobre a transferência"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick={() => setTransferOpen(false)}
+                    disabled={transferSaving}
+                    className="rounded-lg border px-4 py-2"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    onClick={submitTransfer}
+                    disabled={
+                      transferSaving ||
+                      !transferDestination ||
+                      transferDestinations.length === 0
+                    }
+                    className="rounded-lg bg-slate-900 px-4 py-2 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {transferSaving
+                      ? "A transferir..."
+                      : "Confirmar Transferência"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {adjustOpen && adjustItem && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
               <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
