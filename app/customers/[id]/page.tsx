@@ -130,13 +130,13 @@ export default function CustomerDetailPage({
 
       if (!customerResponse.ok) {
         throw new Error(
-          customerData.detail || "Unable to load customer."
+          customerData.detail || "Não foi possível carregar o cliente."
         );
       }
 
       if (!salesResponse.ok) {
         throw new Error(
-          salesData.detail || "Unable to load customer sales."
+          salesData.detail || "Não foi possível carregar as vendas do cliente."
         );
       }
 
@@ -147,7 +147,7 @@ export default function CustomerDetailPage({
       setMessage(
         error instanceof Error
           ? error.message
-          : "Unable to load customer."
+          : "Não foi possível carregar o cliente."
       );
     } finally {
       setLoading(false);
@@ -180,7 +180,7 @@ export default function CustomerDetailPage({
     if (!firebaseUser) return;
 
     if (!form.name.trim()) {
-      setEditError("Customer name is required.");
+      setEditError("O nome do cliente é obrigatório.");
       return;
     }
 
@@ -219,7 +219,7 @@ export default function CustomerDetailPage({
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Unable to update customer."
+          data.detail || "Não foi possível atualizar o cliente."
         );
       }
 
@@ -230,7 +230,7 @@ export default function CustomerDetailPage({
       setEditError(
         error instanceof Error
           ? error.message
-          : "Unable to update customer."
+          : "Não foi possível atualizar o cliente."
       );
     } finally {
       setSaving(false);
@@ -290,7 +290,7 @@ export default function CustomerDetailPage({
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 p-8 text-slate-600">
-        Loading customer...
+        A carregar cliente...
       </div>
     );
   }
@@ -305,11 +305,11 @@ export default function CustomerDetailPage({
           }}
           className="mb-5 text-sm font-semibold text-slate-500 hover:text-slate-900"
         >
-          ← Back to Customers
+          ← Voltar aos Clientes
         </button>
 
         <div className="rounded-2xl border border-red-200 bg-white p-8 text-red-600 shadow-sm">
-          {message || "Customer not found."}
+          {message || "Cliente não encontrado."}
         </div>
       </div>
     );
@@ -337,7 +337,7 @@ export default function CustomerDetailPage({
             }}
             className="mb-2 text-sm font-semibold text-slate-500 hover:text-slate-900"
           >
-            ← Back to Customers
+            ← Voltar aos Clientes
           </button>
 
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -351,7 +351,7 @@ export default function CustomerDetailPage({
               </h1>
 
               <p className="mt-1 text-sm text-slate-500">
-                Customer profile and sales history
+                Perfil do cliente e histórico de vendas
               </p>
             </div>
 
@@ -371,7 +371,7 @@ export default function CustomerDetailPage({
                 onClick={openEditCustomer}
                 className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
               >
-                Edit Customer
+                Editar Cliente
               </button>
 
               <span
@@ -381,7 +381,7 @@ export default function CustomerDetailPage({
                     : "bg-slate-100 text-slate-500"
                 }`}
               >
-                {customer.is_active ? "Active" : "Inactive"}
+                {customer.is_active ? "Ativo" : "Inativo"}
               </span>
             </div>
           </div>
@@ -391,17 +391,17 @@ export default function CustomerDetailPage({
       <main className="mx-auto max-w-7xl p-4 md:p-8">
         <div className="grid gap-4 md:grid-cols-3">
           <SummaryCard
-            label="Total Sales"
+            label="Total de Vendas"
             value={formatMoney(totalSales)}
-            detail={`${sales.length} sales orders`}
+            detail={`${sales.length} ordens de venda`}
           />
           <SummaryCard
-            label="Paid"
+            label="Pago"
             value={formatMoney(totalPaid)}
-            detail="Payments received"
+            detail="Pagamentos recebidos"
           />
           <SummaryCard
-            label="Outstanding"
+            label="Em Dívida"
             value={formatMoney(totalOutstanding)}
             detail="Balance due"
           />
@@ -411,11 +411,11 @@ export default function CustomerDetailPage({
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-950">
-                Contact Details
+                Dados de Contacto
               </h2>
 
               <div className="mt-5 space-y-4">
-                <InfoRow label="Phone" value={customer.phone || "—"} />
+                <InfoRow label="Telefone" value={customer.phone || "—"} />
                 <InfoRow
                   label="WhatsApp"
                   value={customer.whatsapp || "—"}
@@ -426,7 +426,7 @@ export default function CustomerDetailPage({
 
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-950">
-                Address
+                Endereço
               </h2>
 
               <div className="mt-5 text-sm leading-6 text-slate-700">
@@ -436,7 +436,7 @@ export default function CustomerDetailPage({
 
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-950">
-                Notes
+                Notas
               </h2>
 
               <div className="mt-5 whitespace-pre-wrap text-sm leading-6 text-slate-700">
@@ -448,10 +448,10 @@ export default function CustomerDetailPage({
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-6 py-5">
               <h2 className="text-lg font-bold text-slate-950">
-                Sales History
+                Histórico de Vendas
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Orders linked to this customer
+                Ordens associadas a este cliente
               </p>
             </div>
 
@@ -464,10 +464,10 @@ export default function CustomerDetailPage({
                 <table className="min-w-full text-left">
                   <thead className="border-b border-slate-200 bg-slate-50">
                     <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      <th className="px-6 py-4">Sale</th>
-                      <th className="px-6 py-4">Date</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4">Location</th>
+                      <th className="px-6 py-4">Venda</th>
+                      <th className="px-6 py-4">Data</th>
+                      <th className="px-6 py-4">Estado</th>
+                      <th className="px-6 py-4">Localização</th>
                       <th className="px-6 py-4 text-right">
                         Total
                       </th>
@@ -532,7 +532,7 @@ export default function CustomerDetailPage({
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
               <div>
                 <h2 className="text-xl font-bold text-slate-950">
-                  Edit Customer
+                  Editar Cliente
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
                   {customer.customer_number} — {customer.name}
@@ -550,7 +550,7 @@ export default function CustomerDetailPage({
 
             <div className="grid gap-5 p-6 md:grid-cols-2">
               <EditField
-                label="Customer Name"
+                label="Nome do Cliente"
                 value={form.name}
                 required
                 onChange={(value) =>
@@ -559,7 +559,7 @@ export default function CustomerDetailPage({
               />
 
               <EditField
-                label="Phone"
+                label="Telefone"
                 value={form.phone}
                 onChange={(value) =>
                   setForm((current) => ({ ...current, phone: value }))
@@ -584,7 +584,7 @@ export default function CustomerDetailPage({
               />
 
               <EditField
-                label="Address Line 1"
+                label="Endereço - Linha 1"
                 value={form.address_line1}
                 onChange={(value) =>
                   setForm((current) => ({
@@ -595,7 +595,7 @@ export default function CustomerDetailPage({
               />
 
               <EditField
-                label="Address Line 2"
+                label="Endereço - Linha 2"
                 value={form.address_line2}
                 onChange={(value) =>
                   setForm((current) => ({
@@ -606,7 +606,7 @@ export default function CustomerDetailPage({
               />
 
               <EditField
-                label="City"
+                label="Cidade"
                 value={form.city}
                 onChange={(value) =>
                   setForm((current) => ({ ...current, city: value }))
@@ -633,7 +633,7 @@ export default function CustomerDetailPage({
               />
 
               <EditField
-                label="Country"
+                label="País"
                 value={form.country}
                 onChange={(value) =>
                   setForm((current) => ({ ...current, country: value }))
@@ -642,7 +642,7 @@ export default function CustomerDetailPage({
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-slate-700">
-                  Notes
+                  Notas
                 </label>
                 <textarea
                   value={form.notes}
@@ -672,10 +672,10 @@ export default function CustomerDetailPage({
                   />
                   <div>
                     <div className="text-sm font-semibold text-slate-900">
-                      Active customer
+                      Cliente ativo
                     </div>
                     <div className="text-xs text-slate-500">
-                      Inactive customers remain in sales history.
+                      Os clientes inativos permanecem no histórico de vendas.
                     </div>
                   </div>
                 </label>
@@ -695,7 +695,7 @@ export default function CustomerDetailPage({
                 disabled={saving}
                 className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
-                Cancel
+                Cancelar
               </button>
 
               <button
@@ -704,7 +704,7 @@ export default function CustomerDetailPage({
                 disabled={saving}
                 className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
               >
-                {saving ? "Saving..." : "Save Changes"}
+                {saving ? "A guardar..." : "Guardar Alterações"}
               </button>
             </div>
           </div>

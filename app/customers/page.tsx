@@ -98,14 +98,14 @@ export default function CustomersPage() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.detail || "Unable to load customers.");
+        throw new Error(data.detail || "Não foi possível carregar os clientes.");
       }
 
       setCustomers(data.customers || []);
     } catch (error) {
       console.error(error);
       setMessage(
-        error instanceof Error ? error.message : "Unable to load customers."
+        error instanceof Error ? error.message : "Não foi possível carregar os clientes."
       );
     } finally {
       setLoading(false);
@@ -170,7 +170,7 @@ export default function CustomersPage() {
     if (!firebaseUser) return;
 
     if (!form.name.trim()) {
-      setFormMessage("Customer name is required.");
+      setFormMessage("O nome do cliente é obrigatório.");
       return;
     }
 
@@ -192,7 +192,7 @@ export default function CustomersPage() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.detail || "Unable to create customer.");
+        throw new Error(data.detail || "Não foi possível criar o cliente.");
       }
 
       setForm(emptyForm);
@@ -201,7 +201,7 @@ export default function CustomersPage() {
     } catch (error) {
       console.error(error);
       setFormMessage(
-        error instanceof Error ? error.message : "Unable to create customer."
+        error instanceof Error ? error.message : "Não foi possível criar o cliente."
       );
     } finally {
       setSaving(false);
@@ -257,10 +257,10 @@ export default function CustomersPage() {
           <div className="flex h-20 items-center justify-between px-4 md:px-8">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-                Customers
+                Clientes
               </h1>
               <p className="text-sm text-slate-500">
-                Manage customer records and contact information
+                Gerir registos de clientes e informações de contacto
               </p>
             </div>
 
@@ -276,7 +276,7 @@ export default function CustomersPage() {
                 }}
                 className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
               >
-                {showCreate ? "Close" : "+ Add Customer"}
+                {showCreate ? "Fechar" : "+ Adicionar Cliente"}
               </button>
 
               <button
@@ -295,24 +295,24 @@ export default function CustomersPage() {
               <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
                 <div className="mb-5">
                   <h2 className="text-lg font-bold text-slate-950">
-                    Add Customer
+                    Adicionar Cliente
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Customer number will be generated automatically.
+                    O número do cliente será gerado automaticamente.
                   </p>
                 </div>
 
                 <form onSubmit={handleCreateCustomer}>
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <FormField
-                      label="Customer Name *"
+                      label="Nome do Cliente *"
                       value={form.name}
                       onChange={(value) => setForm({ ...form, name: value })}
-                      placeholder="Customer or company name"
+                      placeholder="Nome do cliente ou empresa"
                     />
 
                     <FormField
-                      label="Phone"
+                      label="Telefone"
                       value={form.phone}
                       onChange={(value) => setForm({ ...form, phone: value })}
                       placeholder="+244..."
@@ -336,10 +336,10 @@ export default function CustomersPage() {
                     />
 
                     <FormField
-                      label="City"
+                      label="Cidade"
                       value={form.city}
                       onChange={(value) => setForm({ ...form, city: value })}
-                      placeholder="City"
+                      placeholder="Cidade"
                     />
 
                     <FormField
@@ -352,12 +352,12 @@ export default function CustomersPage() {
                     />
 
                     <FormField
-                      label="Country"
+                      label="País"
                       value={form.country}
                       onChange={(value) =>
                         setForm({ ...form, country: value })
                       }
-                      placeholder="Country"
+                      placeholder="País"
                     />
 
                     <FormField
@@ -371,7 +371,7 @@ export default function CustomersPage() {
 
                     <div className="md:col-span-2">
                       <FormField
-                        label="Address Line 1"
+                        label="Endereço - Linha 1"
                         value={form.address_line1}
                         onChange={(value) =>
                           setForm({ ...form, address_line1: value })
@@ -382,7 +382,7 @@ export default function CustomersPage() {
 
                     <div className="md:col-span-2">
                       <FormField
-                        label="Address Line 2"
+                        label="Endereço - Linha 2"
                         value={form.address_line2}
                         onChange={(value) =>
                           setForm({ ...form, address_line2: value })
@@ -394,7 +394,7 @@ export default function CustomersPage() {
                     <div className="md:col-span-2 xl:col-span-3">
                       <label className="block">
                         <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                          Notes
+                          Notas
                         </span>
                         <textarea
                           value={form.notes}
@@ -402,7 +402,7 @@ export default function CustomersPage() {
                             setForm({ ...form, notes: event.target.value })
                           }
                           rows={3}
-                          placeholder="Additional customer information..."
+                          placeholder="Informações adicionais sobre o cliente..."
                           className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
                         />
                       </label>
@@ -425,7 +425,7 @@ export default function CustomersPage() {
                       }}
                       className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                     >
-                      Cancel
+                      Cancelar
                     </button>
 
                     <button
@@ -433,7 +433,7 @@ export default function CustomersPage() {
                       disabled={saving}
                       className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {saving ? "Saving..." : "Create Customer"}
+                      {saving ? "A guardar..." : "Criar Cliente"}
                     </button>
                   </div>
                 </form>
@@ -442,24 +442,24 @@ export default function CustomersPage() {
 
             <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <SummaryCard
-                label="Total Customers"
+                label="Total de Clientes"
                 value={customers.length}
-                detail="Active customers"
+                detail="Clientes ativos"
               />
               <SummaryCard
-                label="With WhatsApp"
+                label="Com WhatsApp"
                 value={customersWithWhatsApp}
-                detail="WhatsApp contact recorded"
+                detail="Contacto de WhatsApp registado"
               />
               <SummaryCard
-                label="With Email"
+                label="Com Email"
                 value={customersWithEmail}
-                detail="Email address recorded"
+                detail="Endereço de email registado"
               />
               <SummaryCard
-                label="Cities"
+                label="Cidades"
                 value={cities.length}
-                detail="Customer locations"
+                detail="Localizações dos clientes"
               />
             </section>
 
@@ -474,7 +474,7 @@ export default function CustomersPage() {
                     type="text"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search customer, number, phone, email..."
+                    placeholder="Pesquisar cliente, número, telefone, email..."
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
                   />
                 </div>
@@ -484,7 +484,7 @@ export default function CustomersPage() {
                   onChange={(event) => setCountry(event.target.value)}
                   className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white"
                 >
-                  <option value="">All countries</option>
+                  <option value="">Todos os países</option>
                   {countries.map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -497,7 +497,7 @@ export default function CustomersPage() {
                   onChange={(event) => setCity(event.target.value)}
                   className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white"
                 >
-                  <option value="">All cities</option>
+                  <option value="">Todas as cidades</option>
                   {cities.map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -509,14 +509,14 @@ export default function CustomersPage() {
                   onClick={clearFilters}
                   className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
-                  Clear
+                  Limpar
                 </button>
               </div>
             </section>
 
             <div className="mb-3 flex items-center justify-between px-1">
               <p className="text-sm text-slate-500">
-                Showing{" "}
+                A mostrar{" "}
                 <span className="font-semibold text-slate-800">
                   {filteredCustomers.length}
                 </span>{" "}
@@ -526,7 +526,7 @@ export default function CustomersPage() {
 
             {loading ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-                Loading customers...
+                A carregar clientes...
               </div>
             ) : message ? (
               <div className="rounded-2xl border border-red-200 bg-white p-8 text-red-600 shadow-sm">
@@ -538,10 +538,10 @@ export default function CustomersPage() {
                   <table className="min-w-full text-left">
                     <thead className="border-b border-slate-200 bg-slate-50/80">
                       <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <th className="px-6 py-4">Number</th>
-                        <th className="px-6 py-4">Customer</th>
-                        <th className="px-6 py-4">Contact</th>
-                        <th className="px-6 py-4">Location</th>
+                        <th className="px-6 py-4">Número</th>
+                        <th className="px-6 py-4">Cliente</th>
+                        <th className="px-6 py-4">Contacto</th>
+                        <th className="px-6 py-4">Localização</th>
                         <th className="w-12 px-4 py-4"></th>
                       </tr>
                     </thead>
@@ -601,10 +601,10 @@ export default function CustomersPage() {
                 {filteredCustomers.length === 0 && (
                   <div className="px-6 py-16 text-center">
                     <div className="text-lg font-semibold text-slate-700">
-                      No customers found
+                      Nenhum cliente encontrado
                     </div>
                     <p className="mt-1 text-sm text-slate-500">
-                      Add your first customer or change your filters.
+                      Adicione o seu primeiro cliente ou altere os filtros.
                     </p>
                   </div>
                 )}
