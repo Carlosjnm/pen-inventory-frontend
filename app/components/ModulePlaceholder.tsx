@@ -10,16 +10,16 @@ type Props = {
 };
 
 const nav = [
-  ["Dashboard", "⌂", "/dashboard"],
-  ["Products", "▦", "/products"],
-  ["Inventory", "▣", "/inventory"],
-  ["Purchases", "↓", "/purchases"],
-  ["Sales", "↑", "/sales"],
-  ["Suppliers", "♢", "/suppliers"],
-  ["Customers", "♙", "/customers"],
-  ["Reports", "▤", "/reports"],
-  ["Users", "♧", "/users"],
-  ["Settings", "⚙", "/settings"],
+  { key: "Dashboard", label: "Painel", icon: "⌂", href: "/dashboard" },
+  { key: "Products", label: "Produtos", icon: "▦", href: "/products" },
+  { key: "Inventory", label: "Inventário", icon: "▣", href: "/inventory" },
+  { key: "Purchases", label: "Compras", icon: "↓", href: "/purchases" },
+  { key: "Sales", label: "Vendas", icon: "↑", href: "/sales" },
+  { key: "Suppliers", label: "Fornecedores", icon: "♢", href: "/suppliers" },
+  { key: "Customers", label: "Clientes", icon: "♙", href: "/customers" },
+  { key: "Reports", label: "Relatórios", icon: "▤", href: "/reports" },
+  { key: "Users", label: "Utilizadores", icon: "♧", href: "/users" },
+  { key: "Settings", label: "Definições", icon: "⚙", href: "/settings" },
 ];
 
 export default function ModulePlaceholder({
@@ -38,17 +38,17 @@ export default function ModulePlaceholder({
         <div className="flex h-20 items-center border-b border-white/10 px-6">
           <div>
             <div className="text-xl font-bold">PEN</div>
-            <div className="text-xs text-slate-400">Inventory</div>
+            <div className="text-xs text-slate-400">Inventário</div>
           </div>
         </div>
 
         <nav className="space-y-1 px-3 py-5 text-sm">
-          {nav.map(([label, icon, href]) => (
+          {nav.map(({ key, label, icon, href }) => (
             <a
               key={href}
               href={href}
               className={`flex items-center gap-3 rounded-xl px-4 py-3 ${
-                active === label
+                active === key
                   ? "bg-white/10 font-semibold text-white"
                   : "text-slate-300 hover:bg-white/10 hover:text-white"
               }`}
@@ -64,7 +64,7 @@ export default function ModulePlaceholder({
             onClick={logout}
             className="w-full rounded-xl px-4 py-3 text-left text-sm text-slate-300 hover:bg-white/10 hover:text-white"
           >
-            Sign out
+            Terminar Sessão
           </button>
         </div>
       </aside>
@@ -83,10 +83,10 @@ export default function ModulePlaceholder({
           <div className="mx-auto max-w-7xl">
             <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
               <h2 className="text-xl font-bold text-slate-950">
-                {title} module
+                Módulo: {title}
               </h2>
               <p className="mt-2 text-sm text-slate-500">
-                This module is ready for implementation.
+                Este módulo está pronto para implementação.
               </p>
             </div>
           </div>
