@@ -102,7 +102,7 @@ export default function InventoryPage() {
         setMovements(movementsData.movements || []);
       } catch (err) {
         console.error(err);
-        setError("Unable to load inventory data.");
+        setError("Não foi possível carregar os dados do inventário.");
       } finally {
         setLoading(false);
       }
@@ -125,14 +125,14 @@ export default function InventoryPage() {
   async function submitAdjustment() {
     if (!adjustItem || !auth.currentUser) return;
     if (Number(adjustQty) <= 0 || !adjustReason.trim()) {
-      setError("Quantity and reason are required.");
+      setError("A quantidade e o motivo são obrigatórios.");
       return;
     }
     if (
       adjustType === "adjustment_in" &&
       (adjustCost.trim() === "" || Number(adjustCost) < 0)
     ) {
-      setError("Enter a valid unit cost.");
+      setError("Introduza um custo unitário válido.");
       return;
     }
 
@@ -168,7 +168,7 @@ export default function InventoryPage() {
       setAdjustOpen(false);
       window.location.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Adjustment failed.");
+      setError(err instanceof Error ? err.message : "Falha ao efetuar o ajuste.");
     } finally {
       setAdjustSaving(false);
     }
@@ -214,7 +214,7 @@ export default function InventoryPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 p-8">
-        <div className="text-slate-600">Loading inventory...</div>
+        <div className="text-slate-600">A carregar inventário...</div>
       </div>
     );
   }
@@ -223,26 +223,26 @@ export default function InventoryPage() {
     <div className="min-h-screen bg-slate-50">
       <div className="flex">
         <aside className="min-h-screen w-64 bg-slate-900 p-5 text-white">
-          <div className="mb-8 text-xl font-bold">PEN Inventory</div>
+          <div className="mb-8 text-xl font-bold">PEN Inventário</div>
 
           <nav className="space-y-2">
             {[
-              ["Dashboard", "/dashboard"],
-              ["Products", "/products"],
-              ["Inventory", "/inventory"],
-              ["Purchases", "/purchases"],
-              ["Sales", "/sales"],
-              ["Suppliers", "/suppliers"],
-              ["Customers", "/customers"],
-              ["Reports", "/reports"],
-              ["Users", "/users"],
-              ["Settings", "/settings"],
+              ["Painel", "/dashboard"],
+              ["Produtos", "/products"],
+              ["Inventário", "/inventory"],
+              ["Compras", "/purchases"],
+              ["Vendas", "/sales"],
+              ["Fornecedores", "/suppliers"],
+              ["Clientes", "/customers"],
+              ["Relatórios", "/reports"],
+              ["Utilizadores", "/users"],
+              ["Definições", "/settings"],
             ].map(([label, href]) => (
               <button
                 key={label}
                 onClick={() => router.push(href)}
                 className={`w-full rounded-lg px-4 py-2 text-left ${
-                  label === "Inventory"
+                  href === "/inventory"
                     ? "bg-slate-700"
                     : "hover:bg-slate-800"
                 }`}
@@ -257,10 +257,10 @@ export default function InventoryPage() {
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-slate-900">
-                Inventory
+                Inventário
               </h1>
               <p className="mt-1 text-slate-500">
-                Stock balances and inventory movement history
+                Saldos de stock e histórico de movimentos de inventário
               </p>
             </div>
           </div>
@@ -273,15 +273,15 @@ export default function InventoryPage() {
 
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
             <SummaryCard
-              label="Products / Locations"
+              label="Produtos / Localizações"
               value={String(balances.length)}
             />
             <SummaryCard
-              label="Units On Hand"
+              label="Unidades em Stock"
               value={formatQty(totalUnits)}
             />
             <SummaryCard
-              label="Stock Value"
+              label="Valor do Stock"
               value={formatMoney(totalStockValue, "AOA")}
             />
           </div>
@@ -295,7 +295,7 @@ export default function InventoryPage() {
                   : "border bg-white text-slate-700"
               }`}
             >
-              Stock Balances
+              Saldos de Stock
             </button>
 
             <button
@@ -306,13 +306,13 @@ export default function InventoryPage() {
                   : "border bg-white text-slate-700"
               }`}
             >
-              Movement History
+              Histórico de Movimentos
             </button>
 
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search SKU, product or reference..."
+              placeholder="Pesquisar SKU, produto ou referência..."
               className="ml-auto w-80 rounded-lg border bg-white px-4 py-2 text-sm"
             />
           </div>
@@ -324,14 +324,14 @@ export default function InventoryPage() {
                   <thead className="bg-slate-100 text-left text-slate-600">
                     <tr>
                       <Th>SKU</Th>
-                      <Th>Product</Th>
-                      <Th>Location</Th>
-                      <Th>On Hand</Th>
-                      <Th>Reserved</Th>
-                      <Th>Available</Th>
-                      <Th>Avg Cost</Th>
-                      <Th>Stock Value</Th>
-                      <Th>Action</Th>
+                      <Th>Produto</Th>
+                      <Th>Localização</Th>
+                      <Th>Em Stock</Th>
+                      <Th>Reservado</Th>
+                      <Th>Disponível</Th>
+                      <Th>Custo Médio</Th>
+                      <Th>Valor do Stock</Th>
+                      <Th>Ação</Th>
                     </tr>
                   </thead>
 
@@ -364,7 +364,7 @@ export default function InventoryPage() {
                             onClick={() => openAdjustment(item)}
                             className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
                           >
-                            Adjust
+                            Ajustar
                           </button>
                         </Td>
                       </tr>
@@ -381,15 +381,15 @@ export default function InventoryPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-100 text-left text-slate-600">
                     <tr>
-                      <Th>Date</Th>
+                      <Th>Data</Th>
                       <Th>SKU</Th>
-                      <Th>Product</Th>
-                      <Th>Location</Th>
-                      <Th>Movement</Th>
-                      <Th>Quantity</Th>
-                      <Th>Unit Cost</Th>
-                      <Th>Reference</Th>
-                      <Th>Reason</Th>
+                      <Th>Produto</Th>
+                      <Th>Localização</Th>
+                      <Th>Movimento</Th>
+                      <Th>Quantidade</Th>
+                      <Th>Custo Unitário</Th>
+                      <Th>Referência</Th>
+                      <Th>Motivo</Th>
                     </tr>
                   </thead>
 
@@ -425,13 +425,13 @@ export default function InventoryPage() {
                 <div className="mb-5 flex items-start justify-between">
                   <div>
                     <h2 className="text-xl font-bold text-slate-900">
-                      Adjust Stock
+                      Ajustar Stock
                     </h2>
                     <p className="mt-1 text-sm text-slate-500">
                       {adjustItem.sku} · {adjustItem.product_name}
                     </p>
                     <p className="text-sm text-slate-500">
-                      {adjustItem.location_name} · On hand: {formatQty(adjustItem.quantity_on_hand)}
+                      {adjustItem.location_name} · Em stock: {formatQty(adjustItem.quantity_on_hand)}
                     </p>
                   </div>
 
@@ -445,7 +445,7 @@ export default function InventoryPage() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">Adjustment</label>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Ajuste</label>
                     <select
                       value={adjustType}
                       onChange={(e) =>
@@ -455,13 +455,13 @@ export default function InventoryPage() {
                       }
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
                     >
-                      <option value="adjustment_out">Decrease stock</option>
-                      <option value="adjustment_in">Increase stock</option>
+                      <option value="adjustment_out">Diminuir stock</option>
+                      <option value="adjustment_in">Aumentar stock</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">Quantity</label>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Quantidade</label>
                     <input
                       type="number"
                       min="0.001"
@@ -475,7 +475,7 @@ export default function InventoryPage() {
                   {adjustType === "adjustment_in" && (
                     <div>
                       <label className="mb-1 block text-sm font-medium text-slate-700">
-                        Unit Cost (AOA)
+                        Custo Unitário (AOA)
                       </label>
                       <input
                         type="number"
@@ -490,7 +490,7 @@ export default function InventoryPage() {
 
                   <div>
                     <label className="mb-1 block text-sm font-medium text-slate-700">
-                      Reference
+                      Referência
                     </label>
                     <input
                       value={adjustReference}
@@ -502,18 +502,18 @@ export default function InventoryPage() {
 
                   <div>
                     <label className="mb-1 block text-sm font-medium text-slate-700">
-                      Reason *
+                      Motivo *
                     </label>
                     <input
                       value={adjustReason}
                       onChange={(e) => setAdjustReason(e.target.value)}
-                      placeholder="Reason for stock adjustment"
+                      placeholder="Motivo do ajuste de stock"
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">Notes</label>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Notas</label>
                     <textarea
                       value={adjustNotes}
                       onChange={(e) => setAdjustNotes(e.target.value)}
@@ -528,7 +528,7 @@ export default function InventoryPage() {
                     onClick={() => setAdjustOpen(false)}
                     className="rounded-lg border px-4 py-2"
                   >
-                    Cancel
+                    Cancelar
                   </button>
 
                   <button
@@ -536,7 +536,7 @@ export default function InventoryPage() {
                     disabled={adjustSaving}
                     className="rounded-lg bg-slate-900 px-4 py-2 font-medium text-white disabled:opacity-50"
                   >
-                    {adjustSaving ? "Saving..." : "Confirm Adjustment"}
+                    {adjustSaving ? "A guardar..." : "Confirmar Ajuste"}
                   </button>
                 </div>
               </div>
@@ -596,7 +596,23 @@ function formatDate(value: string) {
 }
 
 function formatMovement(value: string) {
-  return value
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const translations: Record<string, string> = {
+    adjustment_in: "Ajuste de Entrada",
+    adjustment_out: "Ajuste de Saída",
+    purchase_receipt: "Entrada de Compra",
+    purchase_return: "Devolução de Compra",
+    sale: "Venda",
+    sale_return: "Devolução de Venda",
+    transfer_in: "Transferência de Entrada",
+    transfer_out: "Transferência de Saída",
+    stock_transfer_in: "Transferência de Entrada",
+    stock_transfer_out: "Transferência de Saída",
+  };
+
+  return (
+    translations[value.toLowerCase()] ||
+    value
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase())
+  );
 }
