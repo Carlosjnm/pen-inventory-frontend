@@ -382,14 +382,14 @@ export default function SaleDetailPage({
       : `
           <tr>
             <td colspan="3" class="muted">
-              No payment recorded
+              Nenhum pagamento registado
             </td>
           </tr>
         `;
 
     const businessDetails = [
       {
-        label: "Address",
+        label: "Morada",
         value: receiptSettings.business_address,
       },
       {
@@ -401,7 +401,7 @@ export default function SaleDetailPage({
         value: receiptSettings.business_email,
       },
       {
-        label: "NIF / Tax No",
+        label: "NIF",
         value: receiptSettings.business_tax_number,
       },
     ]
@@ -635,7 +635,7 @@ export default function SaleDetailPage({
                 class="print-button"
                 onclick="window.print()"
               >
-                Print Receipt
+                Imprimir Recibo
               </button>
             </div>
 
@@ -654,7 +654,7 @@ export default function SaleDetailPage({
               </div>
 
               <div class="receipt-title">
-                <h1>RECEIPT</h1>
+                <h1>RECIBO</h1>
 
                 <div class="receipt-number">
                   ${escapeHtml(sale.sale_number)}
@@ -670,17 +670,17 @@ export default function SaleDetailPage({
 
             <div class="info-grid">
               <div>
-                <div class="label">Customer</div>
+                <div class="label">Cliente</div>
                 <div class="value">
                   ${escapeHtml(
                     sale.customer_name ||
-                      "Walk-in customer"
+                      "Cliente balcão"
                   )}
                 </div>
               </div>
 
               <div>
-                <div class="label">Sales Channel</div>
+                <div class="label">Canal de Venda</div>
                 <div class="value">
                   ${escapeHtml(
                     formatStatus(sale.sales_channel)
@@ -689,7 +689,7 @@ export default function SaleDetailPage({
               </div>
 
               <div>
-                <div class="label">Location</div>
+                <div class="label">Localização</div>
                 <div class="value">
                   ${escapeHtml(
                     sale.location_name ||
@@ -700,7 +700,7 @@ export default function SaleDetailPage({
               </div>
 
               <div>
-                <div class="label">Status</div>
+                <div class="label">Estado</div>
                 <div class="value">
                   ${escapeHtml(
                     formatStatus(sale.status)
@@ -713,7 +713,7 @@ export default function SaleDetailPage({
                   ? `
                     <div>
                       <div class="label">
-                        Customer Reference
+                        Referência do Cliente
                       </div>
                       <div class="value">
                         ${escapeHtml(
@@ -729,9 +729,9 @@ export default function SaleDetailPage({
             <table>
               <thead>
                 <tr>
-                  <th>Product</th>
-                  <th class="number">Qty</th>
-                  <th class="number">Unit Price</th>
+                  <th>Produto</th>
+                  <th class="number">Qtd.</th>
+                  <th class="number">Preço Unitário</th>
                   <th class="number">Total</th>
                 </tr>
               </thead>
@@ -764,7 +764,7 @@ export default function SaleDetailPage({
                 Number(sale.shipping_amount || 0) > 0
                   ? `
                     <div class="total-row">
-                      <span>Shipping</span>
+                      <span>Entrega</span>
                       <span>
                         ${escapeHtml(
                           formatMoney(
@@ -791,7 +791,7 @@ export default function SaleDetailPage({
               </div>
 
               <div class="total-row">
-                <span>Paid</span>
+                <span>Pago</span>
                 <span>
                   ${escapeHtml(
                     formatMoney(
@@ -816,15 +816,15 @@ export default function SaleDetailPage({
             </div>
 
             <div class="section-title">
-              Payments
+              Pagamentos
             </div>
 
             <table>
               <thead>
                 <tr>
-                  <th>Method</th>
-                  <th>Reference</th>
-                  <th class="number">Amount</th>
+                  <th>Método</th>
+                  <th>Referência</th>
+                  <th class="number">Valor</th>
                 </tr>
               </thead>
 
@@ -837,7 +837,7 @@ export default function SaleDetailPage({
               sale.notes
                 ? `
                   <div class="section-title">
-                    Notes
+                    Notas
                   </div>
 
                   <p>
