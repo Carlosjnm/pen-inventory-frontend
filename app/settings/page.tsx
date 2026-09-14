@@ -510,21 +510,21 @@ export default function SettingsPage() {
         <div className="flex h-20 items-center border-b border-white/10 px-6">
           <div>
             <div className="text-xl font-bold tracking-tight">PEN</div>
-            <div className="text-xs text-slate-400">Inventory</div>
+            <div className="text-xs text-slate-400">Inventário</div>
           </div>
         </div>
 
         <nav className="space-y-1 px-3 py-5 text-sm">
-          <NavItem label="Dashboard" icon="⌂" href="/dashboard" />
-          <NavItem label="Products" icon="▦" href="/products" />
-          <NavItem label="Inventory" icon="▣" href="/inventory" />
-          <NavItem label="Purchases" icon="↓" href="/purchases" />
-          <NavItem label="Sales" icon="↑" href="/sales" />
-          <NavItem label="Suppliers" icon="♢" href="/suppliers" />
-          <NavItem label="Customers" icon="♙" href="/customers" />
-          <NavItem label="Reports" icon="▤" href="/reports" />
-          <NavItem label="Users" icon="♧" href="/users" />
-          <NavItem label="Settings" icon="⚙" active href="/settings" />
+          <NavItem label="Painel" icon="⌂" href="/dashboard" />
+          <NavItem label="Produtos" icon="▦" href="/products" />
+          <NavItem label="Inventário" icon="▣" href="/inventory" />
+          <NavItem label="Compras" icon="↓" href="/purchases" />
+          <NavItem label="Vendas" icon="↑" href="/sales" />
+          <NavItem label="Fornecedores" icon="♢" href="/suppliers" />
+          <NavItem label="Clientes" icon="♙" href="/customers" />
+          <NavItem label="Relatórios" icon="▤" href="/reports" />
+          <NavItem label="Utilizadores" icon="♧" href="/users" />
+          <NavItem label="Definições" icon="⚙" active href="/settings" />
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 border-t border-white/10 p-4">
@@ -532,7 +532,7 @@ export default function SettingsPage() {
             onClick={handleLogout}
             className="w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
           >
-            Sign out
+            Terminar Sessão
           </button>
         </div>
       </aside>
