@@ -39,7 +39,7 @@ export default function SettingsPage() {
   const [businessEmail, setBusinessEmail] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
   const [receiptFooter, setReceiptFooter] = useState("Obrigado pela sua compra.");
-  const [saving, setSaving] = useState(false);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -140,7 +140,7 @@ export default function SettingsPage() {
     }
 
     try {
-      setSaving(true);
+      setSavingKey("default_reorder_level");
       setMessage("");
 
       const token = await user.getIdToken();
@@ -183,7 +183,7 @@ export default function SettingsPage() {
           : "Unable to save setting."
       );
     } finally {
-      setSaving(false);
+      setSavingKey(null);
     }
   }
 
@@ -196,7 +196,7 @@ export default function SettingsPage() {
     }
 
     try {
-      setSaving(true);
+      setSavingKey("default_payment_method");
       setMessage("");
 
       const token = await user.getIdToken();
@@ -241,7 +241,7 @@ export default function SettingsPage() {
           : "Unable to save default payment method."
       );
     } finally {
-      setSaving(false);
+      setSavingKey(null);
     }
   }
 
@@ -258,7 +258,7 @@ export default function SettingsPage() {
     }
 
     try {
-      setSaving(true);
+      setSavingKey(settingKey);
       setMessage("");
 
       const token = await user.getIdToken();
@@ -302,7 +302,7 @@ export default function SettingsPage() {
           : "Unable to save receipt setting."
       );
     } finally {
-      setSaving(false);
+      setSavingKey(null);
     }
   }
 
@@ -496,10 +496,12 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={saveReorderLevel}
-                        disabled={saving}
+                        disabled={savingKey === "default_reorder_level"}
                         className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                       >
-                        {saving ? "Saving..." : "Save"}
+                        {savingKey === "default_reorder_level"
+                          ? "Saving..."
+                          : "Save"}
                       </button>
                     </div>
                   ) : setting.setting_key === "default_payment_method" ? (
@@ -523,10 +525,12 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={saveDefaultPaymentMethod}
-                        disabled={saving}
+                        disabled={savingKey === "default_payment_method"}
                         className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                       >
-                        {saving ? "Saving..." : "Save"}
+                        {savingKey === "default_payment_method"
+                          ? "Saving..."
+                          : "Save"}
                       </button>
                     </div>
                   ) : setting.setting_key === "business_name" ? (
@@ -540,7 +544,7 @@ export default function SettingsPage() {
                           "Business name saved successfully."
                         )
                       }
-                      saving={saving}
+                      saving={savingKey === "business_name"}
                     />
                   ) : setting.setting_key === "business_subtitle" ? (
                     <SettingTextEditor
@@ -553,7 +557,7 @@ export default function SettingsPage() {
                           "Business subtitle saved successfully."
                         )
                       }
-                      saving={saving}
+                      saving={savingKey === "business_subtitle"}
                     />
                   ) : setting.setting_key === "business_tax_number" ? (
                     <SettingTextEditor
@@ -566,7 +570,7 @@ export default function SettingsPage() {
                           "Business tax number saved successfully."
                         )
                       }
-                      saving={saving}
+                      saving={savingKey === "business_tax_number"}
                     />
                   ) : setting.setting_key === "business_phone" ? (
                     <SettingTextEditor
@@ -579,7 +583,7 @@ export default function SettingsPage() {
                           "Business phone saved successfully."
                         )
                       }
-                      saving={saving}
+                      saving={savingKey === "business_phone"}
                     />
                   ) : setting.setting_key === "business_email" ? (
                     <SettingTextEditor
@@ -592,7 +596,7 @@ export default function SettingsPage() {
                           "Business email saved successfully."
                         )
                       }
-                      saving={saving}
+                      saving={savingKey === "business_email"}
                     />
                   ) : setting.setting_key === "business_address" ? (
                     <SettingTextEditor
@@ -605,7 +609,7 @@ export default function SettingsPage() {
                           "Business address saved successfully."
                         )
                       }
-                      saving={saving}
+                      saving={savingKey === "business_address"}
                       multiline
                     />
                   ) : setting.setting_key === "receipt_footer" ? (
@@ -619,7 +623,7 @@ export default function SettingsPage() {
                           "Receipt footer saved successfully."
                         )
                       }
-                      saving={saving}
+                      saving={savingKey === "receipt_footer"}
                       multiline
                     />
                   ) : (
