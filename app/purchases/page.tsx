@@ -146,10 +146,10 @@ export default function PurchasesPage() {
         (po.supplier_reference || "").toLowerCase().includes(query);
 
       const matchesStatus = !statusFilter || po.status === statusFilter;
-      const matchesCurrency =
+      const matchesMoeda =
         !currencyFilter || po.currency === currencyFilter;
 
-      return matchesSearch && matchesStatus && matchesCurrency;
+      return matchesSearch && matchesStatus && matchesMoeda;
     });
   }, [purchaseOrders, search, statusFilter, currencyFilter]);
 
@@ -189,7 +189,7 @@ export default function PurchasesPage() {
     if (!firebaseUser) return;
 
     if (!form.supplier_id || !form.destination_location_id) {
-      setFormMessage("Supplier and destination location are required.");
+      setFormMessage("O fornecedor e a localização de destino são obrigatórios.");
       return;
     }
 
@@ -288,10 +288,10 @@ export default function PurchasesPage() {
           <div className="flex h-20 items-center justify-between px-4 md:px-8">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-                Purchases
+                Compras
               </h1>
               <p className="text-sm text-slate-500">
-                Manage purchase orders and receiving
+                Gerir ordens de compra e receções
               </p>
             </div>
 
@@ -307,7 +307,7 @@ export default function PurchasesPage() {
                 }}
                 className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
               >
-                {showCreate ? "Close" : "+ New PO"}
+                {showCreate ? "Fechar" : "+ Nova OC"}
               </button>
 
               <button
@@ -327,10 +327,10 @@ export default function PurchasesPage() {
               <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
                 <div className="mb-5">
                   <h2 className="text-lg font-bold text-slate-950">
-                    Create Purchase Order
+                    Criar Ordem de Compra
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    The PO number will be generated automatically.
+                    O número da OC será gerado automaticamente.
                   </p>
                 </div>
 
@@ -338,7 +338,7 @@ export default function PurchasesPage() {
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <label className="block">
                       <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                        Supplier *
+                        Fornecedor *
                       </span>
                       <select
                         value={form.supplier_id}
@@ -358,7 +358,7 @@ export default function PurchasesPage() {
 
                     <label className="block">
                       <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                        Destination *
+                        Destino *
                       </span>
                       <select
                         value={form.destination_location_id}
@@ -381,7 +381,7 @@ export default function PurchasesPage() {
 
                     <label className="block">
                       <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                        Currency
+                        Moeda
                       </span>
                       <select
                         value={form.currency}
@@ -399,7 +399,7 @@ export default function PurchasesPage() {
 
                     <label className="block">
                       <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                        Order Date
+                        Data da Ordem
                       </span>
                       <input
                         type="date"
@@ -413,7 +413,7 @@ export default function PurchasesPage() {
 
                     <label className="block">
                       <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                        Expected Date
+                        Data Prevista
                       </span>
                       <input
                         type="date"
@@ -427,7 +427,7 @@ export default function PurchasesPage() {
 
                     <label className="block">
                       <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                        Supplier Reference
+                        Referência do Fornecedor
                       </span>
                       <input
                         type="text"
@@ -454,7 +454,7 @@ export default function PurchasesPage() {
                           onChange={(event) =>
                             setForm({ ...form, notes: event.target.value })
                           }
-                          placeholder="Purchase notes..."
+                          placeholder="Notas da compra..."
                           className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
                         />
                       </label>
@@ -477,7 +477,7 @@ export default function PurchasesPage() {
                       }}
                       className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                     >
-                      Cancel
+                      Cancelar
                     </button>
 
                     <button
@@ -485,7 +485,7 @@ export default function PurchasesPage() {
                       disabled={saving}
                       className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {saving ? "Creating..." : "Create Purchase Order"}
+                      {saving ? "A criar..." : "Criar Ordem de Compra"}
                     </button>
                   </div>
                 </form>
@@ -494,24 +494,24 @@ export default function PurchasesPage() {
 
             <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <SummaryCard
-                label="Total POs"
+                label="Total de OCs"
                 value={purchaseOrders.length}
-                detail="All purchase orders"
+                detail="Todas as ordens de compra"
               />
               <SummaryCard
-                label="In Progress"
+                label="Em Curso"
                 value={pendingCount}
-                detail="Awaiting completion"
+                detail="A aguardar conclusão"
               />
               <SummaryCard
-                label="Received / Closed"
+                label="Recebidas / Fechadas"
                 value={receivedCount}
-                detail="Completed purchasing"
+                detail="Compras concluídas"
               />
               <SummaryCard
-                label="Suppliers"
+                label="Fornecedores"
                 value={suppliers.length}
-                detail="Available suppliers"
+                detail="Fornecedores disponíveis"
               />
             </section>
 
@@ -525,7 +525,7 @@ export default function PurchasesPage() {
                     type="text"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search PO, supplier, reference..."
+                    placeholder="Pesquisar OC, fornecedor, referência..."
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
                   />
                 </div>
@@ -548,7 +548,7 @@ export default function PurchasesPage() {
                   onChange={(event) => setCurrencyFilter(event.target.value)}
                   className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white"
                 >
-                  <option value="">All currencies</option>
+                  <option value="">Todas as moedas</option>
                   {currencies.map((currency) => (
                     <option key={currency} value={currency}>
                       {currency}
@@ -568,7 +568,7 @@ export default function PurchasesPage() {
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               {loading ? (
                 <div className="p-8 text-sm text-slate-500">
-                  Loading purchase orders...
+                  A carregar ordens de compra...
                 </div>
               ) : message ? (
                 <div className="p-8 text-sm font-medium text-red-700">
@@ -583,12 +583,12 @@ export default function PurchasesPage() {
                   <table className="min-w-full divide-y divide-slate-200">
                     <thead className="bg-slate-50">
                       <tr>
-                        <TableHead>PO Number</TableHead>
-                        <TableHead>Supplier</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Destination</TableHead>
-                        <TableHead>Currency</TableHead>
-                        <TableHead>Items</TableHead>
+                        <TableHead>N.º da OC</TableHead>
+                        <TableHead>Fornecedor</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Destino</TableHead>
+                        <TableHead>Moeda</TableHead>
+                        <TableHead>Itens</TableHead>
                         <TableHead align="right">Total</TableHead>
                       </tr>
                     </thead>
@@ -763,10 +763,24 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function formatStatus(status: string) {
-  return status
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  const translations: Record<string, string> = {
+    draft: "Rascunho",
+    submitted: "Submetida",
+    approved: "Aprovada",
+    ordered: "Encomendada",
+    partially_received: "Parcialmente Recebida",
+    received: "Recebida",
+    closed: "Fechada",
+    cancelled: "Cancelada",
+  };
+
+  return (
+    translations[status.toLowerCase()] ||
+    status
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ")
+  );
 }
 
 function formatMoney(value: number | string | null, currency: string) {
