@@ -115,7 +115,7 @@ export default function PurchasesPage() {
         ]);
 
       if (!poResponse.ok || !supplierResponse.ok || !locationResponse.ok) {
-        throw new Error("Unable to load purchasing data.");
+        throw new Error("Não foi possível carregar os dados de compras.");
       }
 
       const [poData, supplierData, locationData] = await Promise.all([
@@ -129,7 +129,7 @@ export default function PurchasesPage() {
       setLocations(locationData.locations || []);
     } catch (error) {
       console.error(error);
-      setMessage("Unable to load purchasing data.");
+      setMessage("Não foi possível carregar os dados de compras.");
     } finally {
       setLoading(false);
     }
@@ -221,7 +221,7 @@ export default function PurchasesPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Unable to create purchase order.");
+        throw new Error(data.detail || "Não foi possível criar a ordem de compra.");
       }
 
       setForm(emptyForm);
@@ -232,7 +232,7 @@ export default function PurchasesPage() {
       setFormMessage(
         error instanceof Error
           ? error.message
-          : "Unable to create purchase order."
+          : "Não foi possível criar a ordem de compra."
       );
     } finally {
       setSaving(false);
@@ -347,7 +347,7 @@ export default function PurchasesPage() {
                         }
                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
                       >
-                        <option value="">Select supplier</option>
+                        <option value="">Selecionar fornecedor</option>
                         {suppliers.map((supplier) => (
                           <option key={supplier.id} value={supplier.id}>
                             {supplier.supplier_code} — {supplier.name}
@@ -370,7 +370,7 @@ export default function PurchasesPage() {
                         }
                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
                       >
-                        <option value="">Select location</option>
+                        <option value="">Selecionar localização</option>
                         {locations.map((location) => (
                           <option key={location.id} value={location.id}>
                             {location.location_code} — {location.name}
@@ -446,7 +446,7 @@ export default function PurchasesPage() {
                     <div className="md:col-span-2 xl:col-span-3">
                       <label className="block">
                         <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                          Notes
+                          Notas
                         </span>
                         <textarea
                           rows={3}
@@ -576,7 +576,7 @@ export default function PurchasesPage() {
                 </div>
               ) : filteredPurchaseOrders.length === 0 ? (
                 <div className="p-8 text-sm text-slate-500">
-                  No purchase orders found.
+                  Nenhuma ordem de compra encontrada.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
