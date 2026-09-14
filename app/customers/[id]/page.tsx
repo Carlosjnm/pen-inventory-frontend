@@ -363,7 +363,7 @@ export default function CustomerDetailPage({
                 }}
                 className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
-                New Sale
+                Nova Venda
               </button>
 
               <button
@@ -403,7 +403,7 @@ export default function CustomerDetailPage({
           <SummaryCard
             label="Em Dívida"
             value={formatMoney(totalOutstanding)}
-            detail="Balance due"
+            detail="Saldo em dívida"
           />
         </div>
 
@@ -472,7 +472,7 @@ export default function CustomerDetailPage({
                         Total
                       </th>
                       <th className="px-6 py-4 text-right">
-                        Balance
+                        Saldo
                       </th>
                     </tr>
                   </thead>
