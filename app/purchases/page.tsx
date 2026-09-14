@@ -38,26 +38,6 @@ type Location = {
   name: string;
 };
 
-type POForm = {
-  supplier_id: string;
-  destination_location_id: string;
-  currency: string;
-  order_date: string;
-  expected_date: string;
-  supplier_reference: string;
-  notes: string;
-};
-
-const emptyForm: POForm = {
-  supplier_id: "",
-  destination_location_id: "",
-  currency: "AOA",
-  order_date: "",
-  expected_date: "",
-  supplier_reference: "",
-  notes: "",
-};
-
 export default function PurchasesPage() {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
@@ -68,10 +48,6 @@ export default function PurchasesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [currencyFilter, setCurrencyFilter] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [formMessage, setFormMessage] = useState("");
-  const [form, setForm] = useState<POForm>(emptyForm);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -173,72 +149,6 @@ export default function PurchasesPage() {
     ["received", "closed"].includes(po.status)
   ).length;
 
-  function handleSupplierChange(supplierId: string) {
-    const supplier = suppliers.find((item) => item.id === supplierId);
-
-    setForm({
-      ...form,
-      supplier_id: supplierId,
-      currency: supplier?.default_currency || "AOA",
-    });
-  }
-
-  async function handleCreatePurchaseOrder(event: React.FormEvent) {
-    event.preventDefault();
-
-    if (!firebaseUser) return;
-
-    if (!form.supplier_id || !form.destination_location_id) {
-      setFormMessage("O fornecedor e a localização de destino são obrigatórios.");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setFormMessage("");
-
-      const token = await firebaseUser.getIdToken();
-
-      const payload = {
-        supplier_id: form.supplier_id,
-        destination_location_id: form.destination_location_id,
-        currency: form.currency,
-        order_date: form.order_date || null,
-        expected_date: form.expected_date || null,
-        supplier_reference: form.supplier_reference || null,
-        notes: form.notes || null,
-      };
-
-      const response = await fetch(`${API_URL}/api/purchase-orders`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Não foi possível criar a ordem de compra.");
-      }
-
-      setForm(emptyForm);
-      setShowCreate(false);
-      await loadPageData(firebaseUser);
-    } catch (error) {
-      console.error(error);
-      setFormMessage(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível criar a ordem de compra."
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function handleLogout() {
     await signOut(auth);
     window.location.href = "/";
@@ -302,12 +212,11 @@ export default function PurchasesPage() {
 
               <button
                 onClick={() => {
-                  setShowCreate((value) => !value);
-                  setFormMessage("");
+                  window.location.href = "/purchases/new";
                 }}
                 className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
               >
-                {showCreate ? "Fechar" : "+ Nova OC"}
+                + Nova OC
               </button>
 
               <button
@@ -322,175 +231,6 @@ export default function PurchasesPage() {
 
         <main className="p-4 md:p-8">
           <div className="mx-auto max-w-7xl">
-
-            {showCreate && (
-              <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-                <div className="mb-5">
-                  <h2 className="text-lg font-bold text-slate-950">
-                    Criar Ordem de Compra
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    O número da OC será gerado automaticamente.
-                  </p>
-                </div>
-
-                <form onSubmit={handleCreatePurchaseOrder}>
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <label className="block">
-                      <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                        Fornecedor *
-                      </span>
-                      <select
-                        value={form.supplier_id}
-                        onChange={(event) =>
-                          handleSupplierChange(event.target.value)
-                        }
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
-                      >
-                        <option value="">Selecionar fornecedor</option>
-                        {suppliers.map((supplier) => (
-                          <option key={supplier.id} value={supplier.id}>
-                            {supplier.supplier_code} — {supplier.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                        Destino *
-                      </span>
-                      <select
-                        value={form.destination_location_id}
-                        onChange={(event) =>
-                          setForm({
-                            ...form,
-                            destination_location_id: event.target.value,
-                          })
-                        }
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
-                      >
-                        <option value="">Selecionar localização</option>
-                        {locations.map((location) => (
-                          <option key={location.id} value={location.id}>
-                            {location.location_code} — {location.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                        Moeda
-                      </span>
-                      <select
-                        value={form.currency}
-                        onChange={(event) =>
-                          setForm({ ...form, currency: event.target.value })
-                        }
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
-                      >
-                        <option value="AOA">AOA — Kwanza</option>
-                        <option value="USD">USD — US Dollar</option>
-                        <option value="ZAR">ZAR — South African Rand</option>
-                        <option value="CNY">CNY — Chinese Yuan</option>
-                      </select>
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                        Data da Ordem
-                      </span>
-                      <input
-                        type="date"
-                        value={form.order_date}
-                        onChange={(event) =>
-                          setForm({ ...form, order_date: event.target.value })
-                        }
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                        Data Prevista
-                      </span>
-                      <input
-                        type="date"
-                        value={form.expected_date}
-                        onChange={(event) =>
-                          setForm({ ...form, expected_date: event.target.value })
-                        }
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                        Referência do Fornecedor
-                      </span>
-                      <input
-                        type="text"
-                        value={form.supplier_reference}
-                        onChange={(event) =>
-                          setForm({
-                            ...form,
-                            supplier_reference: event.target.value,
-                          })
-                        }
-                        placeholder="Quote, invoice or reference"
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
-                      />
-                    </label>
-
-                    <div className="md:col-span-2 xl:col-span-3">
-                      <label className="block">
-                        <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                          Notas
-                        </span>
-                        <textarea
-                          rows={3}
-                          value={form.notes}
-                          onChange={(event) =>
-                            setForm({ ...form, notes: event.target.value })
-                          }
-                          placeholder="Notas da compra..."
-                          className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  {formMessage && (
-                    <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                      {formMessage}
-                    </div>
-                  )}
-
-                  <div className="mt-5 flex justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCreate(false);
-                        setForm(emptyForm);
-                        setFormMessage("");
-                      }}
-                      className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                    >
-                      Cancelar
-                    </button>
-
-                    <button
-                      type="submit"
-                      disabled={saving}
-                      className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {saving ? "A criar..." : "Criar Ordem de Compra"}
-                    </button>
-                  </div>
-                </form>
-              </section>
-            )}
 
             <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <SummaryCard
