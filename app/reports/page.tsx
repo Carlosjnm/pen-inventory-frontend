@@ -156,15 +156,15 @@ export default function ReportsPage() {
           ]);
 
         if (!salesResponse.ok) {
-          throw new Error("Unable to load sales report data.");
+          throw new Error("Não foi possível carregar os dados do relatório de vendas.");
         }
 
         if (!purchasesResponse.ok) {
-          throw new Error("Unable to load purchase report data.");
+          throw new Error("Não foi possível carregar os dados do relatório de compras.");
         }
 
         if (!balancesResponse.ok) {
-          throw new Error("Unable to load inventory report data.");
+          throw new Error("Não foi possível carregar os dados do relatório de inventário.");
         }
 
         const salesData = await salesResponse.json();
@@ -179,7 +179,7 @@ export default function ReportsPage() {
         setMessage(
           error instanceof Error
             ? error.message
-            : "Unable to load reports."
+            : "Não foi possível carregar os relatórios."
         );
       } finally {
         setLoading(false);
@@ -295,15 +295,15 @@ export default function ReportsPage() {
         ]);
 
         if (!topProductsResponse.ok) {
-          throw new Error("Unable to load top products report data.");
+          throw new Error("Não foi possível carregar os dados dos produtos mais vendidos.");
         }
 
         if (!profitResponse.ok) {
-          throw new Error("Unable to load profit summary report data.");
+          throw new Error("Não foi possível carregar o resumo de lucros.");
         }
 
         if (!paymentResponse.ok) {
-          throw new Error("Unable to load payment summary report data.");
+          throw new Error("Não foi possível carregar o resumo de pagamentos.");
         }
 
         const topProductsData = await topProductsResponse.json();
@@ -685,7 +685,7 @@ export default function ReportsPage() {
               PEN
             </div>
             <div className="text-xs text-slate-400">
-              Inventory
+              Inventário
             </div>
           </div>
         </div>
@@ -721,7 +721,7 @@ export default function ReportsPage() {
                 Relatórios
               </h1>
               <p className="text-sm text-slate-500">
-                Business, sales and inventory overview
+                Visão geral do negócio, vendas e inventário
               </p>
             </div>
 
@@ -821,13 +821,13 @@ export default function ReportsPage() {
                   <SummaryCard
                     label="Pagamentos Recebidos"
                     value={formatMoney(metrics.paymentsReceived)}
-                    detail="Collected from customers"
+                    detail="Recebido dos clientes"
                   />
 
                   <SummaryCard
                     label="Em Dívida"
                     value={formatMoney(metrics.outstanding)}
-                    detail="Submitted sales still unpaid"
+                    detail="Vendas submetidas ainda não pagas"
                   />
 
                   <SummaryCard
@@ -863,7 +863,7 @@ export default function ReportsPage() {
                       value={formatMoney(
                         Number(profitSummary?.cost_of_goods_sold || 0)
                       )}
-                      detail="Historical cost of sold items"
+                      detail="Custo histórico dos artigos vendidos"
                     />
 
                     <SummaryCard
@@ -879,7 +879,7 @@ export default function ReportsPage() {
                       value={`${Number(
                         profitSummary?.gross_margin_percent || 0
                       ).toFixed(1)}%`}
-                      detail="Gross profit as a percentage of revenue"
+                      detail="Lucro bruto como percentagem da receita"
                     />
                   </div>
                 </section>
@@ -961,7 +961,7 @@ export default function ReportsPage() {
                     </div>
                   ) : (
                     <div className="flex h-48 items-center justify-center text-sm text-slate-400">
-                      No paid sales for this period.
+                      Não existem vendas pagas neste período.
                     </div>
                   )}
                 </section>
@@ -975,8 +975,8 @@ export default function ReportsPage() {
                     <table className="min-w-full text-left">
                       <thead className="border-b border-slate-200 bg-slate-50">
                         <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          <th className="px-5 py-3">Sale</th>
-                          <th className="px-5 py-3">Customer</th>
+                          <th className="px-5 py-3">Venda</th>
+                          <th className="px-5 py-3">Cliente</th>
                           <th className="px-5 py-3">Estado</th>
                           <th className="px-5 py-3 text-right">
                             Total
@@ -1002,7 +1002,7 @@ export default function ReportsPage() {
                             </td>
                             <td className="px-5 py-4 text-sm text-slate-700">
                               {sale.customer_name ||
-                                "Walk-in customer"}
+                                "Cliente sem registo"}
                             </td>
                             <td className="px-5 py-4">
                               <span
@@ -1025,7 +1025,7 @@ export default function ReportsPage() {
                     </table>
 
                     {recentSales.length === 0 && (
-                      <EmptyState text="No sales orders yet." />
+                      <EmptyState text="Ainda não existem ordens de venda." />
                     )}
                   </ReportTable>
 
@@ -1038,7 +1038,7 @@ export default function ReportsPage() {
                       <thead className="border-b border-slate-200 bg-slate-50">
                         <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                           <th className="px-5 py-3">PO</th>
-                          <th className="px-5 py-3">Supplier</th>
+                          <th className="px-5 py-3">Fornecedor</th>
                           <th className="px-5 py-3">Estado</th>
                           <th className="px-5 py-3 text-right">
                             Total
@@ -1089,7 +1089,7 @@ export default function ReportsPage() {
                     </table>
 
                     {recentPurchases.length === 0 && (
-                      <EmptyState text="No purchase orders yet." />
+                      <EmptyState text="Ainda não existem ordens de compra." />
                     )}
                   </ReportTable>
                 </section>
@@ -1104,8 +1104,8 @@ export default function ReportsPage() {
                       <thead className="border-b border-slate-200 bg-slate-50">
                         <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                           <th className="px-5 py-3">SKU</th>
-                          <th className="px-5 py-3">Product</th>
-                          <th className="px-5 py-3 text-right">Units Sold</th>
+                          <th className="px-5 py-3">Produto</th>
+                          <th className="px-5 py-3 text-right">Unidades Vendidas</th>
                           <th className="px-5 py-3 text-right">Receita</th>
                           <th className="px-5 py-3 text-right">Lucro Bruto</th>
                           <th className="px-5 py-3 text-right">Margin</th>
@@ -1163,7 +1163,7 @@ export default function ReportsPage() {
                     <table className="min-w-full text-left">
                       <thead className="border-b border-slate-200 bg-slate-50">
                         <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          <th className="px-5 py-3">Customer</th>
+                          <th className="px-5 py-3">Cliente</th>
                           <th className="px-5 py-3 text-right">Ordens</th>
                           <th className="px-5 py-3 text-right">Receita</th>
                           <th className="px-5 py-3 text-right">
@@ -1272,7 +1272,7 @@ export default function ReportsPage() {
                     </div>
                   ) : (
                     <div className="flex h-48 items-center justify-center text-sm text-slate-400">
-                      No paid sales for this period.
+                      Não existem vendas pagas neste período.
                     </div>
                   )}
 
@@ -1357,7 +1357,7 @@ export default function ReportsPage() {
                     <thead className="border-b border-slate-200 bg-slate-50">
                       <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                         <th className="px-5 py-3">SKU</th>
-                        <th className="px-5 py-3">Product</th>
+                        <th className="px-5 py-3">Produto</th>
                         <th className="px-5 py-3">Localização</th>
                         <th className="px-5 py-3 text-right">
                           On Hand
