@@ -26,7 +26,7 @@ export default function ImportProductsPage() {
       const user = auth.currentUser;
 
       if (!user) {
-        throw new Error("Please sign in again.");
+        throw new Error("Por favor, inicie sessão novamente.");
       }
 
       const token = await user.getIdToken();
@@ -51,14 +51,14 @@ export default function ImportProductsPage() {
         const detail =
           typeof data.detail === "string"
             ? data.detail
-            : data.detail?.message || "Product import failed.";
+            : data.detail?.message || "A importação de produtos falhou.";
 
         throw new Error(detail);
       }
 
       setImportResult(data);
     } catch (err: any) {
-      setError(err.message || "Product import failed.");
+      setError(err.message || "A importação de produtos falhou.");
     } finally {
       setImporting(false);
     }
@@ -75,7 +75,7 @@ export default function ImportProductsPage() {
       const user = auth.currentUser;
 
       if (!user) {
-        throw new Error("Please sign in again.");
+        throw new Error("Por favor, inicie sessão novamente.");
       }
 
       const token = await user.getIdToken();
@@ -97,12 +97,12 @@ export default function ImportProductsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Import preview failed.");
+        throw new Error(data.detail || "A pré-visualização da importação falhou.");
       }
 
       setResult(data);
     } catch (err: any) {
-      setError(err.message || "Import preview failed.");
+      setError(err.message || "A pré-visualização da importação falhou.");
     } finally {
       setLoading(false);
     }
@@ -115,19 +115,19 @@ export default function ImportProductsPage() {
           href="/products"
           className="text-sm font-semibold text-slate-600 hover:text-slate-950"
         >
-          ← Back to Products
+          ← Voltar aos Produtos
         </a>
 
         <h1 className="mt-6 text-3xl font-bold text-slate-950">
-          Import Products
+          Importar Produtos
         </h1>
 
         <p className="mt-2 text-slate-500">
-          Upload an Excel or CSV product catalogue.
+          Carregue um catálogo de produtos em Excel ou CSV.
             </p>
 
             <a href="/PEN_Inventory_Product_Import_Template_v2.xlsx" download className="mt-4 inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50">
-              ↓ Download PEN Template
+              ↓ Descarregar Modelo PEN
             </a>
 
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -137,7 +137,7 @@ export default function ImportProductsPage() {
             </div>
 
             <span className="text-base font-bold text-slate-900">
-              Upload Excel or CSV
+              Carregar Excel ou CSV
             </span>
 
             <span className="mt-1 text-sm text-slate-500">
@@ -145,7 +145,7 @@ export default function ImportProductsPage() {
             </span>
 
             <span className="mt-3 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500 shadow-sm">
-              .XLSX or .CSV · Maximum 10 MB
+              .XLSX ou .CSV · Máximo 10 MB
             </span>
 
             <input
@@ -186,7 +186,7 @@ export default function ImportProductsPage() {
             disabled={!file || loading}
             className="mt-5 rounded-xl bg-slate-950 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            {loading ? "Analysing..." : "Analyse File"}
+            {loading ? "A analisar..." : "Analisar Ficheiro"}
           </button>
 
           {error && (
@@ -199,7 +199,7 @@ export default function ImportProductsPage() {
             <div className="mt-8 space-y-6">
               <div>
                 <h2 className="text-xl font-bold text-slate-950">
-                  Import Summary
+                  Resumo da Importação
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
                   Review the analysis before importing anything.
@@ -212,12 +212,12 @@ export default function ImportProductsPage() {
                   value={result.preview_count || 0}
                 />
                 <SummaryCard
-                  label="New Products"
+                  label="Novos Produtos"
                   value={result.summary?.new || 0}
                   tone="green"
                 />
                 <SummaryCard
-                  label="Existing Products"
+                  label="Produtos Existentes"
                   value={result.summary?.existing || 0}
                   tone="amber"
                 />
@@ -227,7 +227,7 @@ export default function ImportProductsPage() {
                   tone="yellow"
                 />
                 <SummaryCard
-                  label="Errors"
+                  label="Erros"
                   value={result.summary?.error || 0}
                   tone="red"
                 />
@@ -236,7 +236,7 @@ export default function ImportProductsPage() {
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                 <div className="border-b border-slate-200 px-5 py-4">
                   <h3 className="font-bold text-slate-950">
-                    Product Preview
+                    Pré-visualização dos Produtos
                   </h3>
                   <p className="mt-1 text-sm text-slate-500">
                     Review every product before importing.
@@ -247,13 +247,13 @@ export default function ImportProductsPage() {
                   <table className="w-full text-left text-sm">
                     <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                       <tr>
-                        <th className="px-5 py-3">Row</th>
+                        <th className="px-5 py-3">Linha</th>
                         <th className="px-5 py-3">SKU</th>
-                        <th className="px-5 py-3">Product</th>
-                        <th className="px-5 py-3">Category</th>
-                        <th className="px-5 py-3">Cost</th>
+                        <th className="px-5 py-3">Produto</th>
+                        <th className="px-5 py-3">Categoria</th>
+                        <th className="px-5 py-3">Custo</th>
                         <th className="px-5 py-3">Stock</th>
-                        <th className="px-5 py-3">Status</th>
+                        <th className="px-5 py-3">Estado</th>
                       </tr>
                     </thead>
 
@@ -321,7 +321,7 @@ export default function ImportProductsPage() {
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  File
+                  Ficheiro
                 </div>
                 <div className="mt-1 font-semibold text-slate-900">
                   {result.filename}
@@ -330,7 +330,7 @@ export default function ImportProductsPage() {
 
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
                 <h3 className="font-bold text-slate-950">
-                  Ready to Import
+                  Pronto para Importar
                 </h3>
 
                 {result.summary?.error > 0 ? (
@@ -363,7 +363,7 @@ export default function ImportProductsPage() {
                       }
                       className="mt-5 rounded-xl bg-emerald-700 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
-                      {importing ? "Importing..." : "Import Products"}
+                      {importing ? "A importar..." : "Importar Produtos"}
                     </button>
                   </>
                 )}
@@ -372,7 +372,7 @@ export default function ImportProductsPage() {
               {importResult && (
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
                   <h3 className="text-lg font-bold text-emerald-950">
-                    Import Complete
+                    Importação Concluída
                   </h3>
 
                   <p className="mt-2 text-sm text-emerald-900">
@@ -385,7 +385,7 @@ export default function ImportProductsPage() {
                     href="/products"
                     className="mt-4 inline-flex rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-bold text-white hover:bg-slate-800"
                   >
-                    View Products
+                    Ver Produtos
                   </a>
                 </div>
               )}
