@@ -162,10 +162,32 @@ export default function SalesPage() {
   }
 
   function formatStatus(value: string) {
-    return value
-      .split("_")
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(" ");
+    const translations: Record<string, string> = {
+      draft: "Rascunho",
+      submitted: "Submetida",
+      pending_payment: "Pagamento Pendente",
+      paid: "Pago",
+      cancelled: "Cancelada",
+      walk_in: "Venda ao Balcão",
+      whatsapp: "WhatsApp",
+      instagram: "Instagram",
+      facebook: "Facebook",
+      website: "Website",
+      marketplace: "Marketplace",
+      other: "Outro",
+      cash: "Dinheiro",
+      card: "Cartão",
+      bank_transfer: "Transferência Bancária",
+      mobile_money: "Pagamento Móvel",
+    };
+
+    return (
+      translations[value.toLowerCase()] ||
+      value
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ")
+    );
   }
 
   function formatMoney(value: number | string | null, currency = "AOA") {
