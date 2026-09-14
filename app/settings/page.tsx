@@ -64,7 +64,7 @@ export default function SettingsPage() {
         });
 
         if (!response.ok) {
-          throw new Error("Unable to load settings.");
+          throw new Error("Não foi possível carregar as definições.");
         }
 
         const data = await response.json();
@@ -128,14 +128,14 @@ export default function SettingsPage() {
         } else if (logoResponse.status === 404) {
           setBusinessLogoUrl(null);
         } else {
-          console.error("Unable to load business logo.");
+          console.error("Não foi possível carregar o logótipo da empresa.");
         }
       } catch (error) {
         console.error(error);
         setMessage(
           error instanceof Error
             ? error.message
-            : "Unable to load settings."
+            : "Não foi possível carregar as definições."
         );
       } finally {
         setLoading(false);
@@ -183,7 +183,7 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Unable to save setting.");
+        throw new Error(data.detail || "Não foi possível guardar a definição.");
       }
 
       setSettings((current) =>
@@ -201,7 +201,7 @@ export default function SettingsPage() {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Unable to save setting."
+          : "Não foi possível guardar a definição."
       );
     } finally {
       setSavingKey(null);
@@ -240,7 +240,7 @@ export default function SettingsPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Unable to save default payment method."
+          data.detail || "Não foi possível guardar o método de pagamento predefinido."
         );
       }
 
@@ -259,7 +259,7 @@ export default function SettingsPage() {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Unable to save default payment method."
+          : "Não foi possível guardar o método de pagamento predefinido."
       );
     } finally {
       setSavingKey(null);
@@ -302,7 +302,7 @@ export default function SettingsPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Unable to save receipt setting."
+          data.detail || "Não foi possível guardar a definição do recibo."
         );
       }
 
@@ -320,7 +320,7 @@ export default function SettingsPage() {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Unable to save receipt setting."
+          : "Não foi possível guardar a definição do recibo."
       );
     } finally {
       setSavingKey(null);
@@ -380,7 +380,7 @@ export default function SettingsPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Unable to upload business logo."
+          data.detail || "Não foi possível carregar o logótipo da empresa."
         );
       }
 
@@ -415,7 +415,7 @@ export default function SettingsPage() {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Unable to upload business logo."
+          : "Não foi possível carregar o logótipo da empresa."
       );
     } finally {
       setLogoBusy(null);
@@ -450,7 +450,7 @@ export default function SettingsPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Unable to remove business logo."
+          data.detail || "Não foi possível remover o logótipo da empresa."
         );
       }
 
@@ -468,7 +468,7 @@ export default function SettingsPage() {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Unable to remove business logo."
+          : "Não foi possível remover o logótipo da empresa."
       );
     } finally {
       setLogoBusy(null);
@@ -570,7 +570,7 @@ export default function SettingsPage() {
         {organization && (
           <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">
-              Organization
+              Organização
             </h2>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -633,7 +633,7 @@ export default function SettingsPage() {
                 />
               ) : (
                 <div className="text-center text-sm text-slate-400">
-                  No logo uploaded
+                  Nenhum logótipo carregado
                 </div>
               )}
             </div>
