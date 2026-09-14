@@ -96,14 +96,14 @@ export default function SuppliersPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Unable to load suppliers.");
+        throw new Error("Não foi possível carregar os fornecedores.");
       }
 
       const data = await response.json();
       setSuppliers(data.suppliers || []);
     } catch (error) {
       console.error(error);
-      setMessage("Unable to load suppliers.");
+      setMessage("Não foi possível carregar os fornecedores.");
     } finally {
       setLoading(false);
     }
@@ -192,7 +192,7 @@ export default function SuppliersPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Unable to create supplier.");
+        throw new Error(data.detail || "Não foi possível criar o fornecedor.");
       }
 
       setForm(emptyForm);
@@ -201,7 +201,7 @@ export default function SuppliersPage() {
     } catch (error) {
       console.error(error);
       setFormMessage(
-        error instanceof Error ? error.message : "Unable to create supplier."
+        error instanceof Error ? error.message : "Não foi possível criar o fornecedor."
       );
     } finally {
       setSaving(false);
@@ -360,12 +360,12 @@ export default function SuppliersPage() {
                     />
 
                     <FormField
-                      label="City"
+                      label="Cidade"
                       value={form.city}
                       onChange={(value) =>
                         setForm({ ...form, city: value })
                       }
-                      placeholder="City"
+                      placeholder="Cidade"
                     />
 
                     <FormField
@@ -399,7 +399,7 @@ export default function SuppliersPage() {
                     </label>
 
                     <FormField
-                      label="Payment Terms"
+                      label="Condições de Pagamento"
                       value={form.payment_terms}
                       onChange={(value) =>
                         setForm({ ...form, payment_terms: value })
