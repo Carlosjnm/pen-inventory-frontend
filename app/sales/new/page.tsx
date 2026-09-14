@@ -54,13 +54,13 @@ type DraftItem = {
 };
 
 const CHANNELS = [
-  { value: "walk_in", label: "Walk-in" },
+  { value: "walk_in", label: "Venda ao Balcão" },
   { value: "whatsapp", label: "WhatsApp" },
   { value: "instagram", label: "Instagram" },
   { value: "facebook", label: "Facebook" },
   { value: "website", label: "Website" },
   { value: "marketplace", label: "Marketplace" },
-  { value: "other", label: "Other" },
+  { value: "other", label: "Outro" },
 ];
 
 export default function NewSalePage() {
@@ -294,29 +294,29 @@ export default function NewSalePage() {
     const tax = Number(taxAmount || 0);
 
     if (!product) {
-      setMessage("Select a product.");
+      setMessage("Selecione um produto.");
       return;
     }
 
     if (!Number.isFinite(qty) || qty <= 0) {
-      setMessage("Quantity must be greater than zero.");
+      setMessage("A quantidade deve ser superior a zero.");
       return;
     }
 
     if (qty > remainingAvailableStock) {
       setMessage(
-        `Insufficient stock. Available: ${remainingAvailableStock}, requested: ${qty}.`
+        `Stock insuficiente. Disponível: ${remainingAvailableStock}, solicitado: ${qty}.`
       );
       return;
     }
 
     if (!Number.isFinite(price) || price < 0) {
-      setMessage("Enter a valid unit price.");
+      setMessage("Introduza um preço unitário válido.");
       return;
     }
 
     if (discount < 0 || tax < 0) {
-      setMessage("Discount and tax cannot be negative.");
+      setMessage("O desconto e o imposto não podem ser negativos.");
       return;
     }
 
@@ -352,19 +352,19 @@ export default function NewSalePage() {
     setMessage("");
 
     if (!locationId) {
-      setMessage("Select a sales location.");
+      setMessage("Selecione uma localização de venda.");
       return;
     }
 
     if (items.length === 0) {
-      setMessage("Add at least one product.");
+      setMessage("Adicione pelo menos um produto.");
       return;
     }
 
     const shipping = Number(shippingAmount || 0);
 
     if (!Number.isFinite(shipping) || shipping < 0) {
-      setMessage("Shipping amount cannot be negative.");
+      setMessage("O valor da entrega não pode ser negativo.");
       return;
     }
 
@@ -457,7 +457,7 @@ export default function NewSalePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 p-8 text-slate-600">
-        Loading new sale...
+        A carregar nova venda...
       </div>
     );
   }
@@ -474,15 +474,15 @@ export default function NewSalePage() {
               }}
               className="mb-2 text-sm font-semibold text-slate-500 hover:text-slate-900"
             >
-              ← Back to Sales
+              ← Voltar às Vendas
             </button>
 
             <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-              New Sale
+              Nova Venda
             </h1>
 
             <p className="mt-1 text-sm text-slate-500">
-              Create a new sales order
+              Criar uma nova venda
             </p>
           </div>
 
@@ -492,7 +492,7 @@ export default function NewSalePage() {
             disabled={saving}
             className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {saving ? "Creating..." : "Create Sale"}
+            {saving ? "A criar..." : "Criar Venda"}
           </button>
         </div>
       </header>
@@ -508,11 +508,11 @@ export default function NewSalePage() {
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-950">
-                Sale Information
+                Informações da Venda
               </h2>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <Field label="Sales Location">
+                <Field label="Localização da Venda">
                   <select
                     value={locationId}
                     onChange={(event) =>
@@ -520,7 +520,7 @@ export default function NewSalePage() {
                     }
                     className="input"
                   >
-                    <option value="">Select location</option>
+                    <option value="">Selecionar localização</option>
 
                     {locations.map((location) => (
                       <option
@@ -533,7 +533,7 @@ export default function NewSalePage() {
                   </select>
                 </Field>
 
-                <Field label="Sales Channel">
+                <Field label="Canal de Venda">
                   <select
                     value={salesChannel}
                     onChange={(event) =>
@@ -552,7 +552,7 @@ export default function NewSalePage() {
                   </select>
                 </Field>
 
-                <Field label="Customer">
+                <Field label="Cliente">
                   <select
                     value={customerId}
                     onChange={(event) =>
@@ -560,7 +560,7 @@ export default function NewSalePage() {
                     }
                     className="input"
                   >
-                    <option value="">Walk-in customer</option>
+                    <option value="">Cliente de Balcão</option>
 
                     {customers.map((customer) => (
                       <option
@@ -573,27 +573,27 @@ export default function NewSalePage() {
                   </select>
                 </Field>
 
-                <Field label="Customer Reference">
+                <Field label="Referência do Cliente">
                   <input
                     value={customerReference}
                     onChange={(event) =>
                       setCustomerReference(event.target.value)
                     }
-                    placeholder="Optional reference"
+                    placeholder="Referência opcional"
                     className="input"
                   />
                 </Field>
               </div>
 
               <div className="mt-4">
-                <Field label="Notes">
+                <Field label="Notas">
                   <textarea
                     value={notes}
                     onChange={(event) =>
                       setNotes(event.target.value)
                     }
                     rows={3}
-                    placeholder="Optional sales notes"
+                    placeholder="Notas opcionais da venda"
                     className="input resize-none"
                   />
                 </Field>
@@ -602,12 +602,12 @@ export default function NewSalePage() {
 
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-950">
-                Add Products
+                Adicionar Produtos
               </h2>
 
               <div className="mt-5 grid gap-4 lg:grid-cols-5">
                 <div className="lg:col-span-2">
-                  <Field label="Product">
+                  <Field label="Produto">
                     <select
                       value={selectedProductId}
                       onChange={(event) =>
@@ -615,7 +615,7 @@ export default function NewSalePage() {
                       }
                       className="input"
                     >
-                      <option value="">Select product</option>
+                      <option value="">Selecionar produto</option>
 
                       {activeProducts.map((product) => (
                         <option
@@ -635,13 +635,13 @@ export default function NewSalePage() {
                             : "bg-red-50 text-red-700"
                         }`}
                       >
-                        Available stock: {remainingAvailableStock}
+                        Stock disponível: {remainingAvailableStock}
                       </div>
                     )}
                   </Field>
                 </div>
 
-                <Field label="Quantity">
+                <Field label="Quantidade">
                   <input
                     type="number"
                     min="0.01"
@@ -654,7 +654,7 @@ export default function NewSalePage() {
                   />
                 </Field>
 
-                <Field label="Unit Price">
+                <Field label="Preço Unitário">
                   <input
                     type="number"
                     min="0"
@@ -679,14 +679,14 @@ export default function NewSalePage() {
                   >
                     {selectedProductId &&
                     remainingAvailableStock <= 0
-                      ? "Out of Stock"
-                      : "Add Product"}
+                      ? "Sem Stock"
+                      : "Adicionar Produto"}
                   </button>
                 </div>
               </div>
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <Field label="Discount">
+                <Field label="Desconto">
                   <input
                     type="number"
                     min="0"
@@ -699,7 +699,7 @@ export default function NewSalePage() {
                   />
                 </Field>
 
-                <Field label="Tax">
+                <Field label="Imposto">
                   <input
                     type="number"
                     min="0"
@@ -717,25 +717,25 @@ export default function NewSalePage() {
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 px-6 py-5">
                 <h2 className="text-lg font-bold text-slate-950">
-                  Sale Items
+                  Itens da Venda
                 </h2>
               </div>
 
               {items.length === 0 ? (
                 <div className="px-6 py-12 text-center text-sm text-slate-500">
-                  No products added yet.
+                  Nenhum produto adicionado.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full">
                     <thead className="bg-slate-50">
                       <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <th className="px-6 py-4">Product</th>
+                        <th className="px-6 py-4">Produto</th>
                         <th className="px-6 py-4 text-right">
-                          Qty
+                          Qtd.
                         </th>
                         <th className="px-6 py-4 text-right">
-                          Price
+                          Preço
                         </th>
                         <th className="px-6 py-4 text-right">
                           Total
@@ -780,7 +780,7 @@ export default function NewSalePage() {
                                 onClick={() => removeItem(index)}
                                 className="text-sm font-semibold text-red-600 hover:text-red-800"
                               >
-                                Remove
+                                Remover
                               </button>
                             </td>
                           </tr>
@@ -796,7 +796,7 @@ export default function NewSalePage() {
           <aside>
             <div className="sticky top-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-950">
-                Sale Summary
+                Resumo da Venda
               </h2>
 
               <div className="mt-6 space-y-4">
@@ -806,16 +806,16 @@ export default function NewSalePage() {
                 />
 
                 <SummaryRow
-                  label="Discount"
+                  label="Desconto"
                   value={formatMoney(discountTotal)}
                 />
 
                 <SummaryRow
-                  label="Tax"
+                  label="Imposto"
                   value={formatMoney(taxTotal)}
                 />
 
-                <Field label="Shipping">
+                <Field label="Entrega">
                   <input
                     type="number"
                     min="0"
@@ -843,11 +843,11 @@ export default function NewSalePage() {
                 disabled={saving}
                 className="mt-6 w-full rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {saving ? "Creating Sale..." : "Create Sale"}
+                {saving ? "A criar venda..." : "Criar Venda"}
               </button>
 
               <p className="mt-3 text-center text-xs text-slate-400">
-                The sale will initially be created as a draft.
+                A venda será inicialmente criada como rascunho.
               </p>
             </div>
           </aside>
