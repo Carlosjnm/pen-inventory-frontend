@@ -410,7 +410,7 @@ export default function PurchaseOrderDetailPage() {
                     onClick={() => runAction("submit")}
                     className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
                   >
-                    Submit for Approval
+                    Submeter para Aprovação
                   </button>
 
                   <button
@@ -513,7 +513,7 @@ export default function PurchaseOrderDetailPage() {
 
                 {purchaseOrder.status === "draft" && (
                   <button className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                    + Add Item
+                    + Adicionar Item
                   </button>
                 )}
               </div>
