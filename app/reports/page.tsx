@@ -1149,7 +1149,7 @@ export default function ReportsPage() {
                     </table>
 
                     {topProducts.length === 0 && (
-                      <EmptyState text="No paid product sales yet." />
+                      <EmptyState text="Ainda não existem vendas pagas de produtos." />
                     )}
                   </ReportTable>
                 </div>
@@ -1209,7 +1209,7 @@ export default function ReportsPage() {
                     </table>
 
                     {customerAnalytics.length === 0 && (
-                      <EmptyState text="No registered customer sales yet." />
+                      <EmptyState text="Ainda não existem vendas registadas de clientes." />
                     )}
                   </ReportTable>
                 </div>
@@ -1343,7 +1343,7 @@ export default function ReportsPage() {
                     </div>
                   ) : (
                     <div className="flex h-28 items-center justify-center text-sm text-slate-400">
-                      No payments received for this period.
+                      Não foram recebidos pagamentos neste período.
                     </div>
                   )}
                 </section>
@@ -1395,7 +1395,7 @@ export default function ReportsPage() {
                   </table>
 
                   {stockAlerts.length === 0 && (
-                    <EmptyState text="No out-of-stock items." />
+                    <EmptyState text="Não existem artigos sem stock." />
                   )}
                 </ReportTable>
               </>
