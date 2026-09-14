@@ -33,7 +33,7 @@ export default function SettingsPage() {
   const [reorderLevel, setReorderLevel] = useState("5");
   const [defaultPaymentMethod, setDefaultPaymentMethod] = useState("cash");
   const [businessName, setBusinessName] = useState("PEN");
-  const [businessSubtitle, setBusinessSubtitle] = useState("Inventory & Sales");
+  const [businessSubtitle, setBusinessSubtitle] = useState("Inventário e Vendas");
   const [businessTaxNumber, setBusinessTaxNumber] = useState("");
   const [businessPhone, setBusinessPhone] = useState("");
   const [businessEmail, setBusinessEmail] = useState("");
@@ -99,7 +99,7 @@ export default function SettingsPage() {
 
         setBusinessName(String(settingMap.business_name ?? "PEN"));
         setBusinessSubtitle(
-          String(settingMap.business_subtitle ?? "Inventory & Sales")
+          String(settingMap.business_subtitle ?? "Inventário e Vendas")
         );
         setBusinessTaxNumber(String(settingMap.business_tax_number ?? ""));
         setBusinessPhone(String(settingMap.business_phone ?? ""));
@@ -545,7 +545,7 @@ export default function SettingsPage() {
                 Definições
               </h1>
               <p className="text-sm text-slate-500">
-                Organization and system configuration
+                Configuração da organização e do sistema
               </p>
             </div>
 
@@ -676,7 +676,7 @@ export default function SettingsPage() {
                     className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
                   >
                     {logoBusy === "delete"
-                      ? "Removing..."
+                      ? "A remover..."
                       : "Remover Logótipo"}
                   </button>
                 )}
@@ -699,7 +699,7 @@ export default function SettingsPage() {
               Definições do Sistema
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              Current configuration values for this organization
+              Valores atuais de configuração desta organização
             </p>
           </div>
 
