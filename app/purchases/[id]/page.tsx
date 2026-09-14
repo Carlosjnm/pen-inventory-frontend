@@ -122,7 +122,7 @@ export default function PurchaseOrderDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Unable to load purchase order.");
+        throw new Error(data.detail || "Não foi possível carregar a ordem de compra.");
       }
 
       setPurchaseOrder(data.purchase_order || null);
@@ -131,7 +131,7 @@ export default function PurchaseOrderDetailPage() {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Unable to load purchase order."
+          : "Não foi possível carregar a ordem de compra."
       );
     } finally {
       setLoading(false);
@@ -225,7 +225,7 @@ export default function PurchaseOrderDetailPage() {
 
       if (!receiptResponse.ok) {
         throw new Error(
-          receiptData.detail || "Unable to create goods receipt."
+          receiptData.detail || "Não foi possível criar a receção de mercadoria."
         );
       }
 
@@ -251,7 +251,7 @@ export default function PurchaseOrderDetailPage() {
 
         if (!response.ok) {
           throw new Error(
-            data.detail || "Unable to receive purchase order item."
+            data.detail || "Não foi possível receber o item da ordem de compra."
           );
         }
       }
@@ -263,7 +263,7 @@ export default function PurchaseOrderDetailPage() {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Unable to receive goods."
+          : "Não foi possível receber a mercadoria."
       );
     } finally {
       setReceiving(false);
@@ -296,7 +296,7 @@ export default function PurchaseOrderDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Unable to update purchase order.");
+        throw new Error(data.detail || "Não foi possível atualizar a ordem de compra.");
       }
 
       await loadPurchaseOrder(firebaseUser);
@@ -305,13 +305,13 @@ export default function PurchaseOrderDetailPage() {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Unable to update purchase order."
+          : "Não foi possível atualizar a ordem de compra."
       );
     }
   }
 
   async function handleCancel() {
-    const reason = window.prompt("Reason for cancellation:");
+    const reason = window.prompt("Motivo do cancelamento:");
 
     if (!reason?.trim()) return;
 
@@ -323,7 +323,7 @@ export default function PurchaseOrderDetailPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm text-slate-500">
-        Loading purchase order...
+        A carregar ordem de compra...
       </div>
     );
   }
@@ -333,16 +333,16 @@ export default function PurchaseOrderDetailPage() {
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
           <div className="font-semibold text-slate-950">
-            Purchase order unavailable
+            Ordem de compra indisponível
           </div>
           <div className="mt-2 text-sm text-red-600">
-            {message || "Unable to load this purchase order."}
+            {message || "Não foi possível carregar esta ordem de compra."}
           </div>
           <a
             href="/purchases"
             className="mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white"
           >
-            Back to Purchases
+            Voltar às Compras
           </a>
         </div>
       </div>
@@ -390,7 +390,7 @@ export default function PurchaseOrderDetailPage() {
                 href="/purchases"
                 className="text-sm font-semibold text-slate-500 hover:text-slate-950"
               >
-                ← Back to Purchases
+                ← Voltar às Compras
               </a>
               <div className="mt-1 flex items-center gap-3">
                 <h1 className="text-2xl font-bold tracking-tight text-slate-950">
@@ -417,7 +417,7 @@ export default function PurchaseOrderDetailPage() {
                     onClick={handleCancel}
                     className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50"
                   >
-                    Cancel PO
+                    Cancelar OC
                   </button>
                 </>
               )}
@@ -435,7 +435,7 @@ export default function PurchaseOrderDetailPage() {
                     onClick={handleCancel}
                     className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50"
                   >
-                    Cancel PO
+                    Cancelar OC
                   </button>
                 </>
               )}
@@ -445,7 +445,7 @@ export default function PurchaseOrderDetailPage() {
                   onClick={() => runAction("mark-ordered")}
                   className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
                 >
-                  Mark as Ordered
+                  Marcar como Encomendada
                 </button>
               )}
 
@@ -457,7 +457,7 @@ export default function PurchaseOrderDetailPage() {
                   onClick={openReceiveGoods}
                   className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white"
                 >
-                  Receive Goods
+                  Receber Mercadoria
                 </button>
               )}
             </div>
@@ -474,19 +474,19 @@ export default function PurchaseOrderDetailPage() {
 
             <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <SummaryCard
-                label="Supplier"
+                label="Fornecedor"
                 value={purchaseOrder.supplier_name}
-                detail={purchaseOrder.supplier_reference || "No supplier reference"}
+                detail={purchaseOrder.supplier_reference || "Sem referência do fornecedor"}
               />
               <SummaryCard
-                label="Destination"
+                label="Destino"
                 value={purchaseOrder.destination_location_name}
-                detail="Receiving location"
+                detail="Localização de receção"
               />
               <SummaryCard
-                label="Currency"
+                label="Moeda"
                 value={purchaseOrder.currency}
-                detail="Purchase order currency"
+                detail="Moeda da ordem de compra"
               />
               <SummaryCard
                 label="Total"
@@ -504,10 +504,10 @@ export default function PurchaseOrderDetailPage() {
               <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                 <div>
                   <h2 className="font-bold text-slate-950">
-                    Purchase Order Items
+                    Itens da Ordem de Compra
                   </h2>
                   <p className="mt-1 text-xs text-slate-500">
-                    Products ordered from this supplier
+                    Produtos encomendados a este fornecedor
                   </p>
                 </div>
 
@@ -527,12 +527,12 @@ export default function PurchaseOrderDetailPage() {
                   <table className="min-w-full divide-y divide-slate-200">
                     <thead className="bg-slate-50">
                       <tr>
-                        <TableHead>Product</TableHead>
-                        <TableHead>Supplier SKU</TableHead>
-                        <TableHead align="right">Ordered</TableHead>
-                        <TableHead align="right">Received</TableHead>
-                        <TableHead align="right">Unit Cost</TableHead>
-                        <TableHead align="right">Line Total</TableHead>
+                        <TableHead>Produto</TableHead>
+                        <TableHead>SKU do Fornecedor</TableHead>
+                        <TableHead align="right">Encomendado</TableHead>
+                        <TableHead align="right">Recebido</TableHead>
+                        <TableHead align="right">Custo Unitário</TableHead>
+                        <TableHead align="right">Total da Linha</TableHead>
                       </tr>
                     </thead>
 
@@ -594,7 +594,7 @@ export default function PurchaseOrderDetailPage() {
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-950">
-                  Receive Goods
+                  Receber Mercadoria
                 </h2>
                 <p className="text-sm text-slate-500">
                   {purchaseOrder.po_number} · {purchaseOrder.supplier_name}
@@ -626,7 +626,7 @@ export default function PurchaseOrderDetailPage() {
                 </label>
 
                 <label className="text-sm font-semibold text-slate-700">
-                  Supplier Delivery Reference
+                  Referência de Entrega do Fornecedor
                   <input
                     value={deliveryReference}
                     onChange={(e) => setDeliveryReference(e.target.value)}
@@ -652,13 +652,13 @@ export default function PurchaseOrderDetailPage() {
                           {item.product_sku} · {item.product_name}
                         </div>
                         <div className="mt-1 text-xs text-slate-500">
-                          Ordered {item.quantity_ordered} · Already received{" "}
+                          Encomendado {item.quantity_ordered} · Já recebido{" "}
                           {item.quantity_received} · Remaining {remaining}
                         </div>
                       </div>
 
                       <label className="text-xs font-semibold text-slate-500">
-                        Receive Now
+                        Receber Agora
                         <input
                           type="number"
                           min="0"
@@ -680,7 +680,7 @@ export default function PurchaseOrderDetailPage() {
               </div>
 
               <label className="block text-sm font-semibold text-slate-700">
-                Receipt Notes
+                Notas da Receção
                 <textarea
                   value={receiptNotes}
                   onChange={(e) => setReceiptNotes(e.target.value)}
@@ -691,8 +691,8 @@ export default function PurchaseOrderDetailPage() {
               </label>
 
               <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
-                Receiving goods creates permanent inventory movements. Confirm
-                the quantities and exchange rate carefully before posting.
+                A receção de mercadoria cria movimentos permanentes de inventário. Confirme
+                as quantidades e a taxa de câmbio cuidadosamente antes de confirmar.
               </div>
             </div>
 
@@ -702,7 +702,7 @@ export default function PurchaseOrderDetailPage() {
                 disabled={receiving}
                 className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700"
               >
-                Cancel
+                Cancelar
               </button>
 
               <button
@@ -710,7 +710,7 @@ export default function PurchaseOrderDetailPage() {
                 disabled={receiving}
                 className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
               >
-                {receiving ? "Receiving..." : "Confirm Receipt"}
+                {receiving ? "A receber..." : "Confirmar Receção"}
               </button>
             </div>
           </div>
@@ -824,10 +824,24 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function formatStatus(status: string) {
-  return status
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  const translations: Record<string, string> = {
+    draft: "Rascunho",
+    submitted: "Submetida",
+    approved: "Aprovada",
+    ordered: "Encomendada",
+    partially_received: "Parcialmente Recebida",
+    received: "Recebida",
+    closed: "Fechada",
+    cancelled: "Cancelada",
+  };
+
+  return (
+    translations[status.toLowerCase()] ||
+    status
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ")
+  );
 }
 
 function formatMoney(value: number | string | null, currency: string) {
