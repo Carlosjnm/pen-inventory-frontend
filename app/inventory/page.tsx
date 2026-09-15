@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import MobileNav from "@/components/MobileNav";
 
@@ -43,11 +43,24 @@ type Movement = {
   created_at: string;
 };
 
+type InventoryLocation = {
+  id: string;
+  location_code: string;
+  name: string;
+  location_type?: string;
+};
+
 export default function InventoryPage() {
   const router = useRouter();
 
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [balances, setBalances] = useState<Balance[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
+  const [inventoryLocations, setInventoryLocations] =
+    useState<InventoryLocation[]>([]);
+  const [operationalLocations, setOperationalLocations] =
+    useState<InventoryLocation[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"balances" | "movements">("balances");
@@ -82,15 +95,105 @@ export default function InventoryPage() {
         setLoading(true);
         setError("");
 
+        setFirebaseUser(user);
         const token = await user.getIdToken();
 
-        const [balancesResponse, movementsResponse] = await Promise.all([
+        const [
+          balancesResponse,
+          movementsResponse,
+          inventoryLocationsResponse,
+          operationalLocationsResponse,
+        ] = await Promise.all([
           fetch(`${API_URL}/api/inventory/balances`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }),
           fetch(`${API_URL}/api/inventory/movements`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          fetch(`${API_URL}/api/inventory/locations`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          fetch(`${API_URL}/api/locations`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+        ]);
+
+        if (!balancesResponse.ok) {
+          throw new Error(`API de saldos: ${balancesResponse.status}`);
+        }
+
+        if (!movementsResponse.ok) {
+          throw new Error(`API de movimentos: ${movementsResponse.status}`);
+        }
+
+        if (!inventoryLocationsResponse.ok) {
+          throw new Error(
+            `API de lojas do inventário: ${inventoryLocationsResponse.status}`
+          );
+        }
+
+        if (!operationalLocationsResponse.ok) {
+          throw new Error(
+            `API de lojas operacionais: ${operationalLocationsResponse.status}`
+          );
+        }
+
+        const balancesData = await balancesResponse.json();
+        const movementsData = await movementsResponse.json();
+        const inventoryLocationsData =
+          await inventoryLocationsResponse.json();
+        const operationalLocationsData =
+          await operationalLocationsResponse.json();
+
+        setBalances(balancesData.balances || []);
+        setMovements(movementsData.movements || []);
+        setInventoryLocations(
+          inventoryLocationsData.locations || inventoryLocationsData || []
+        );
+        setOperationalLocations(
+          operationalLocationsData.locations || operationalLocationsData || []
+        );
+      } catch (err) {
+        console.error(err);
+        setError("Não foi possível carregar os dados do inventário.");
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  useEffect(() => {
+    if (!firebaseUser) return;
+
+    const authenticatedUser = firebaseUser;
+
+    async function loadSelectedInventory() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const token = await authenticatedUser.getIdToken();
+        const query = selectedLocationId
+          ? `?location_id=${encodeURIComponent(selectedLocationId)}`
+          : "";
+
+        const [balancesResponse, movementsResponse] = await Promise.all([
+          fetch(`${API_URL}/api/inventory/balances${query}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          fetch(`${API_URL}/api/inventory/movements${query}`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -112,14 +215,14 @@ export default function InventoryPage() {
         setMovements(movementsData.movements || []);
       } catch (err) {
         console.error(err);
-        setError("Não foi possível carregar os dados do inventário.");
+        setError("Não foi possível carregar o inventário desta loja.");
       } finally {
         setLoading(false);
       }
-    });
+    }
 
-    return () => unsubscribe();
-  }, [router]);
+    loadSelectedInventory();
+  }, [firebaseUser, selectedLocationId]);
 
   function openAdjustment(item: Balance) {
     setAdjustItem(item);
@@ -190,14 +293,12 @@ export default function InventoryPage() {
   }
 
   function openTransfer(item: Balance) {
-    const destinations = balances.filter(
-      (balance) =>
-        balance.product_id === item.product_id &&
-        balance.location_id !== item.location_id
+    const destinations = operationalLocations.filter(
+      (location) => location.id !== item.location_id
     );
 
     setTransferItem(item);
-    setTransferDestination(destinations[0]?.location_id || "");
+    setTransferDestination(destinations[0]?.id || "");
     setTransferQty("1");
     setTransferReference("");
     setTransferReason("");
@@ -296,19 +397,15 @@ export default function InventoryPage() {
     }
   }
 
-  const transferDestinations = useMemo(() => {
-    if (!transferItem) return [];
-
-    return balances
-      .filter(
-        (balance) =>
-          balance.product_id === transferItem.product_id &&
-          balance.location_id !== transferItem.location_id
-      )
-      .sort((a, b) =>
-        a.location_name.localeCompare(b.location_name, "pt")
-      );
-  }, [balances, transferItem]);
+  const transferDestinations = transferItem
+    ? operationalLocations
+        .filter((location) => location.id !== transferItem.location_id)
+        .map((location) => ({
+          location_id: location.id,
+          location_code: location.location_code,
+          location_name: location.name,
+        }))
+    : [];
 
   const filteredBalances = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -406,13 +503,49 @@ export default function InventoryPage() {
       <div className="lg:pl-64">
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
           <div className="flex min-h-20 items-center justify-between gap-4 px-4 py-4 md:px-8">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-                Inventário
-              </h1>
-              <p className="mt-1 text-sm text-slate-500">
-                Saldos de stock e histórico de movimentos de inventário
-              </p>
+            <div className="flex flex-wrap items-center gap-4">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-950">
+                  Inventário
+                </h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  Saldos de stock e histórico de movimentos de inventário
+                </p>
+              </div>
+
+              <div className="min-w-[220px]">
+                <label
+                  htmlFor="inventory-store"
+                  className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500"
+                >
+                  Loja do Inventário
+                </label>
+
+                <select
+                  id="inventory-store"
+                  value={selectedLocationId}
+                  onChange={(event) =>
+                    setSelectedLocationId(event.target.value)
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-slate-400"
+                >
+                  <option value="">
+                    Todas as lojas
+                  </option>
+
+                  {inventoryLocations.map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name} · {location.location_code}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="mt-1 text-xs text-slate-500">
+                  {selectedLocationId
+                    ? "Inventário da loja selecionada"
+                    : "Inventário de todas as lojas autorizadas"}
+                </div>
+              </div>
             </div>
 
             <MobileNav onLogout={handleLogout} />
@@ -516,24 +649,36 @@ export default function InventoryPage() {
                           )}
                         </Td>
                         <Td>
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              onClick={() => openAdjustment(item)}
-                              className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
-                            >
-                              Ajustar
-                            </button>
+                          {operationalLocations.some(
+                            (location) => location.id === item.location_id
+                          ) ? (
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={() => openAdjustment(item)}
+                                className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+                              >
+                                Ajustar
+                              </button>
 
-                            <button
-                              onClick={() => openTransfer(item)}
-                              disabled={
-                                Number(item.quantity_available || 0) <= 0
-                              }
-                              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              Transferir
-                            </button>
-                          </div>
+                              <button
+                                onClick={() => openTransfer(item)}
+                                disabled={
+                                  Number(item.quantity_available || 0) <= 0 ||
+                                  operationalLocations.filter(
+                                    (location) =>
+                                      location.id !== item.location_id
+                                  ).length === 0
+                                }
+                                className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                Transferir
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-medium text-slate-400">
+                              Apenas consulta
+                            </span>
+                          )}
                         </Td>
                       </tr>
                     ))}

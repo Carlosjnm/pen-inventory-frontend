@@ -38,6 +38,7 @@ type AppUser = {
   is_active: boolean;
   can_access_all_locations: boolean;
   locations: Location[];
+  inventory_locations: Location[];
   last_login_at: string | null;
   created_at: string;
   updated_at: string;
@@ -74,6 +75,7 @@ type UserForm = {
   phone: string;
   role_ids: string[];
   location_ids: string[];
+  inventory_location_ids: string[];
   can_access_all_locations: boolean;
 };
 
@@ -83,6 +85,7 @@ const emptyForm: UserForm = {
   phone: "",
   role_ids: [],
   location_ids: [],
+  inventory_location_ids: [],
   can_access_all_locations: false,
 };
 
@@ -110,6 +113,8 @@ export default function UsersPage() {
   const [editPhone, setEditPhone] = useState("");
   const [editRoleIds, setEditRoleIds] = useState<string[]>([]);
   const [editLocationIds, setEditLocationIds] = useState<string[]>([]);
+  const [editInventoryLocationIds, setEditInventoryLocationIds] =
+    useState<string[]>([]);
   const [editAllLocations, setEditAllLocations] = useState(false);
   const [editActive, setEditActive] = useState(true);
   const [editMessage, setEditMessage] = useState("");
@@ -321,6 +326,7 @@ export default function UsersPage() {
             phone: form.phone.trim() || null,
             role_ids: form.role_ids,
             location_ids: form.location_ids,
+            inventory_location_ids: form.inventory_location_ids,
             can_access_all_locations:
               form.can_access_all_locations,
           }),
@@ -362,6 +368,9 @@ export default function UsersPage() {
     setEditPhone(user.phone || "");
     setEditRoleIds(user.roles.map((role) => role.id));
     setEditLocationIds(user.locations.map((location) => location.id));
+    setEditInventoryLocationIds(
+      user.inventory_locations.map((location) => location.id)
+    );
     setEditAllLocations(user.can_access_all_locations);
     setEditActive(user.is_active);
     setEditMessage("");
@@ -413,6 +422,7 @@ export default function UsersPage() {
             is_active: editActive,
             role_ids: editRoleIds,
             location_ids: editLocationIds,
+            inventory_location_ids: editInventoryLocationIds,
             can_access_all_locations: editAllLocations,
           }),
         }
@@ -924,6 +934,28 @@ export default function UsersPage() {
                 }
               />
 
+              {!form.can_access_all_locations && (
+                <InventoryLocationSelector
+                  locations={locations}
+                  operationalLocationIds={form.location_ids}
+                  selectedLocationIds={form.inventory_location_ids}
+                  onToggle={(locationId) =>
+                    setForm((current) => ({
+                      ...current,
+                      inventory_location_ids:
+                        current.inventory_location_ids.includes(locationId)
+                          ? current.inventory_location_ids.filter(
+                              (id) => id !== locationId
+                            )
+                          : [
+                              ...current.inventory_location_ids,
+                              locationId,
+                            ],
+                    }))
+                  }
+                />
+              )}
+
               <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
                 Depois de criar a conta, o PEN irá gerar um link para o
                 utilizador definir a sua palavra-passe.
@@ -1019,6 +1051,21 @@ export default function UsersPage() {
                   setEditAllLocations((current) => !current)
                 }
               />
+
+              {!editAllLocations && (
+                <InventoryLocationSelector
+                  locations={locations}
+                  operationalLocationIds={editLocationIds}
+                  selectedLocationIds={editInventoryLocationIds}
+                  onToggle={(locationId) =>
+                    setEditInventoryLocationIds((current) =>
+                      current.includes(locationId)
+                        ? current.filter((id) => id !== locationId)
+                        : [...current, locationId]
+                    )
+                  }
+                />
+              )}
 
               <div className="rounded-xl border border-slate-200 p-4">
                 <div className="flex items-center justify-between gap-4">
@@ -1172,6 +1219,74 @@ function RoleSelector({
     </div>
   );
 }
+
+function InventoryLocationSelector({
+  locations,
+  operationalLocationIds,
+  selectedLocationIds,
+  onToggle,
+}: {
+  locations: Location[];
+  operationalLocationIds: string[];
+  selectedLocationIds: string[];
+  onToggle: (locationId: string) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <div className="text-sm font-semibold text-slate-900">
+        Visibilidade adicional do Inventário
+      </div>
+
+      <p className="mt-1 text-xs leading-5 text-slate-600">
+        Permite consultar o stock de outras lojas sem dar acesso
+        operacional a vendas, compras, receções, ajustes ou transferências.
+      </p>
+
+      <div className="mt-3 grid gap-2 md:grid-cols-2">
+        {locations.map((location) => {
+          const operational = operationalLocationIds.includes(location.id);
+          const selected = selectedLocationIds.includes(location.id);
+
+          return (
+            <button
+              key={location.id}
+              type="button"
+              disabled={operational}
+              onClick={() => !operational && onToggle(location.id)}
+              className={`rounded-xl border p-3 text-left transition ${
+                operational
+                  ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500"
+                  : selected
+                    ? "border-amber-500 bg-amber-100 text-slate-900"
+                    : "border-slate-200 bg-white text-slate-800 hover:bg-amber-50"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold">
+                    {location.name}
+                  </div>
+                  <div className="mt-1 text-xs opacity-75">
+                    {location.location_code}
+                  </div>
+                </div>
+
+                <div className="text-xs font-semibold">
+                  {operational
+                    ? "Incluída"
+                    : selected
+                      ? "✓ Só inventário"
+                      : ""}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 
 function LocationSelector({
   locations,
