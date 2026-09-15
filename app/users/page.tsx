@@ -18,6 +18,17 @@ type Role = {
   permission_count: number;
 };
 
+type Location = {
+  id: string;
+  location_code: string;
+  name: string;
+  location_type: string;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
+  is_active: boolean;
+};
+
 type AppUser = {
   id: string;
   firebase_uid: string | null;
@@ -25,6 +36,8 @@ type AppUser = {
   full_name: string;
   phone: string | null;
   is_active: boolean;
+  can_access_all_locations: boolean;
+  locations: Location[];
   last_login_at: string | null;
   created_at: string;
   updated_at: string;
@@ -51,6 +64,8 @@ type CurrentUser = {
     name: string;
   }[];
   permissions: string[];
+  can_access_all_locations: boolean;
+  locations: Location[];
 };
 
 type UserForm = {
@@ -58,6 +73,8 @@ type UserForm = {
   full_name: string;
   phone: string;
   role_ids: string[];
+  location_ids: string[];
+  can_access_all_locations: boolean;
 };
 
 const emptyForm: UserForm = {
@@ -65,6 +82,8 @@ const emptyForm: UserForm = {
   full_name: "",
   phone: "",
   role_ids: [],
+  location_ids: [],
+  can_access_all_locations: false,
 };
 
 export default function UsersPage() {
@@ -72,6 +91,7 @@ export default function UsersPage() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -89,6 +109,8 @@ export default function UsersPage() {
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editRoleIds, setEditRoleIds] = useState<string[]>([]);
+  const [editLocationIds, setEditLocationIds] = useState<string[]>([]);
+  const [editAllLocations, setEditAllLocations] = useState(false);
   const [editActive, setEditActive] = useState(true);
   const [editMessage, setEditMessage] = useState("");
 
@@ -133,10 +155,16 @@ export default function UsersPage() {
       setLoading(true);
       setMessage("");
 
-      const [usersResponse, rolesResponse, meResponse] = await Promise.all([
+      const [
+        usersResponse,
+        rolesResponse,
+        meResponse,
+        locationsResponse,
+      ] = await Promise.all([
         authenticatedFetch(user, "/api/users"),
         authenticatedFetch(user, "/api/roles"),
         authenticatedFetch(user, "/api/me"),
+        authenticatedFetch(user, "/api/locations"),
       ]);
 
       if (!usersResponse.ok) {
@@ -157,13 +185,22 @@ export default function UsersPage() {
         throw new Error("Não foi possível identificar o utilizador atual.");
       }
 
+      if (!locationsResponse.ok) {
+        const data = await locationsResponse.json().catch(() => null);
+        throw new Error(
+          data?.detail || "Não foi possível carregar as lojas."
+        );
+      }
+
       const usersData = await usersResponse.json();
       const rolesData = await rolesResponse.json();
       const meData = await meResponse.json();
+      const locationsData = await locationsResponse.json();
 
       setUsers(usersData.users || []);
       setRoles(rolesData.roles || []);
       setCurrentUser(meData);
+      setLocations(locationsData.locations || []);
     } catch (error) {
       console.error(error);
       setMessage(
@@ -224,6 +261,23 @@ export default function UsersPage() {
     );
   }
 
+  function toggleCreateLocation(locationId: string) {
+    setForm((current) => ({
+      ...current,
+      location_ids: current.location_ids.includes(locationId)
+        ? current.location_ids.filter((id) => id !== locationId)
+        : [...current.location_ids, locationId],
+    }));
+  }
+
+  function toggleEditLocation(locationId: string) {
+    setEditLocationIds((current) =>
+      current.includes(locationId)
+        ? current.filter((id) => id !== locationId)
+        : [...current, locationId]
+    );
+  }
+
   async function handleCreateUser(event: FormEvent) {
     event.preventDefault();
 
@@ -244,6 +298,14 @@ export default function UsersPage() {
       return;
     }
 
+    if (
+      !form.can_access_all_locations &&
+      form.location_ids.length === 0
+    ) {
+      setFormMessage("Selecione pelo menos uma loja.");
+      return;
+    }
+
     try {
       setSaving(true);
       setFormMessage("");
@@ -258,6 +320,9 @@ export default function UsersPage() {
             full_name: form.full_name.trim(),
             phone: form.phone.trim() || null,
             role_ids: form.role_ids,
+            location_ids: form.location_ids,
+            can_access_all_locations:
+              form.can_access_all_locations,
           }),
         }
       );
@@ -296,6 +361,8 @@ export default function UsersPage() {
     setEditEmail(user.email);
     setEditPhone(user.phone || "");
     setEditRoleIds(user.roles.map((role) => role.id));
+    setEditLocationIds(user.locations.map((location) => location.id));
+    setEditAllLocations(user.can_access_all_locations);
     setEditActive(user.is_active);
     setEditMessage("");
   }
@@ -325,6 +392,11 @@ export default function UsersPage() {
       return;
     }
 
+    if (!editAllLocations && editLocationIds.length === 0) {
+      setEditMessage("Selecione pelo menos uma loja.");
+      return;
+    }
+
     try {
       setSaving(true);
       setEditMessage("");
@@ -340,6 +412,8 @@ export default function UsersPage() {
             phone: editPhone.trim() || null,
             is_active: editActive,
             role_ids: editRoleIds,
+            location_ids: editLocationIds,
+            can_access_all_locations: editAllLocations,
           }),
         }
       );
@@ -836,6 +910,20 @@ export default function UsersPage() {
                 onToggle={toggleCreateRole}
               />
 
+              <LocationSelector
+                locations={locations}
+                selectedLocationIds={form.location_ids}
+                allLocations={form.can_access_all_locations}
+                onToggleLocation={toggleCreateLocation}
+                onToggleAll={() =>
+                  setForm((current) => ({
+                    ...current,
+                    can_access_all_locations:
+                      !current.can_access_all_locations,
+                  }))
+                }
+              />
+
               <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
                 Depois de criar a conta, o PEN irá gerar um link para o
                 utilizador definir a sua palavra-passe.
@@ -920,6 +1008,16 @@ export default function UsersPage() {
                 roles={roles}
                 selectedRoleIds={editRoleIds}
                 onToggle={toggleEditRole}
+              />
+
+              <LocationSelector
+                locations={locations}
+                selectedLocationIds={editLocationIds}
+                allLocations={editAllLocations}
+                onToggleLocation={toggleEditLocation}
+                onToggleAll={() =>
+                  setEditAllLocations((current) => !current)
+                }
               />
 
               <div className="rounded-xl border border-slate-200 p-4">
@@ -1074,6 +1172,119 @@ function RoleSelector({
     </div>
   );
 }
+
+function LocationSelector({
+  locations,
+  selectedLocationIds,
+  allLocations,
+  onToggleLocation,
+  onToggleAll,
+}: {
+  locations: Location[];
+  selectedLocationIds: string[];
+  allLocations: boolean;
+  onToggleLocation: (locationId: string) => void;
+  onToggleAll: () => void;
+}) {
+  return (
+    <div>
+      <div className="mb-2 text-sm font-medium text-slate-700">
+        Acesso às Lojas
+      </div>
+
+      <button
+        type="button"
+        onClick={onToggleAll}
+        className={`mb-3 w-full rounded-xl border p-4 text-left transition ${
+          allLocations
+            ? "border-slate-900 bg-slate-950 text-white"
+            : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-sm font-semibold">
+              Todas as lojas
+            </div>
+            <div
+              className={`mt-1 text-xs ${
+                allLocations ? "text-slate-300" : "text-slate-500"
+              }`}
+            >
+              Pode consultar e trabalhar em todas as localizações.
+            </div>
+          </div>
+
+          <div
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
+              allLocations
+                ? "border-white bg-white text-slate-950"
+                : "border-slate-300"
+            }`}
+          >
+            {allLocations ? "✓" : ""}
+          </div>
+        </div>
+      </button>
+
+      {!allLocations && (
+        <div className="grid gap-2 md:grid-cols-2">
+          {locations.map((location) => {
+            const selected = selectedLocationIds.includes(location.id);
+
+            return (
+              <button
+                key={location.id}
+                type="button"
+                onClick={() => onToggleLocation(location.id)}
+                className={`rounded-xl border p-3 text-left transition ${
+                  selected
+                    ? "border-slate-900 bg-slate-950 text-white"
+                    : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold">
+                      {location.name}
+                    </div>
+
+                    <div
+                      className={`mt-1 text-xs ${
+                        selected ? "text-slate-300" : "text-slate-400"
+                      }`}
+                    >
+                      {location.location_code}
+                      {location.city ? ` · ${location.city}` : ""}
+                      {location.country ? ` · ${location.country}` : ""}
+                    </div>
+                  </div>
+
+                  <div
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
+                      selected
+                        ? "border-white bg-white text-slate-950"
+                        : "border-slate-300"
+                    }`}
+                  >
+                    {selected ? "✓" : ""}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+
+          {locations.length === 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 md:col-span-2">
+              Não existem lojas disponíveis.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function StatusBadge({ active }: { active: boolean }) {
   return active ? (
