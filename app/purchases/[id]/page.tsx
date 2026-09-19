@@ -9,6 +9,17 @@ import MobileNav from "@/components/MobileNav";
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
 
+type Product = {
+  id: string;
+  sku: string;
+  name: string;
+  status: string;
+  supplier_offer_id: string | null;
+  supplier_sku: string | null;
+  supplier_unit_cost: number | null;
+  minimum_order_quantity: number | null;
+};
+
 type PurchaseOrderItem = {
   id: string;
   product_id: string;
@@ -78,6 +89,14 @@ export default function PurchaseOrderDetailPage() {
     useState<PurchaseOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [addItemOpen, setAddItemOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState("");
+  const [itemQuantity, setItemQuantity] = useState("1");
+  const [itemUnitCost, setItemUnitCost] = useState("");
+  const [itemSupplierSku, setItemSupplierSku] = useState("");
+  const [itemDescription, setItemDescription] = useState("");
+  const [addingItem, setAddingItem] = useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [receiving, setReceiving] = useState(false);
   const [exchangeRate, setExchangeRate] = useState("");
@@ -96,12 +115,102 @@ export default function PurchaseOrderDetailPage() {
       setFirebaseUser(user);
 
       if (purchaseOrderId) {
-        await loadPurchaseOrder(user);
+        const order = await loadPurchaseOrder(user);
+        if (order) {
+          await loadProducts(user, order);
+        }
       }
     });
 
     return () => unsubscribe();
   }, [purchaseOrderId]);
+
+  async function loadProducts(user: User, order: PurchaseOrder) {
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(`${API_URL}/api/products`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || "Não foi possível carregar os produtos.");
+      }
+
+      const availableProducts: Product[] = (data.products || []).filter(
+        (product: Product) =>
+          !["inactive", "discontinued", "archived"].includes(product.status)
+      );
+
+      const productsWithOffers = await Promise.all(
+        availableProducts.map(async (product) => {
+          try {
+            const offerResponse = await fetch(
+              `${API_URL}/api/products/${product.id}/supplier-offers`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+                cache: "no-store",
+              }
+            );
+            if (!offerResponse.ok) {
+              return {
+                ...product,
+                supplier_offer_id: null,
+                supplier_sku: null,
+                supplier_unit_cost: null,
+                minimum_order_quantity: null,
+              };
+            }
+            const offerData = await offerResponse.json();
+            const offer = (offerData.offers || []).find(
+              (candidate: {
+                supplier_id: string;
+                currency: string;
+                is_active: boolean;
+              }) =>
+                candidate.is_active &&
+                candidate.supplier_id === order.supplier_id &&
+                candidate.currency === order.currency
+            );
+            return {
+              ...product,
+              supplier_offer_id: offer?.id || null,
+              supplier_sku: offer?.supplier_sku || null,
+              supplier_unit_cost:
+                offer?.unit_cost === undefined ? null : Number(offer.unit_cost),
+              minimum_order_quantity:
+                offer?.minimum_order_quantity === undefined ||
+                offer?.minimum_order_quantity === null
+                  ? null
+                  : Number(offer.minimum_order_quantity),
+            };
+          } catch {
+            return {
+              ...product,
+              supplier_offer_id: null,
+              supplier_sku: null,
+              supplier_unit_cost: null,
+              minimum_order_quantity: null,
+            };
+          }
+        })
+      );
+
+      productsWithOffers.sort((a, b) => {
+        if (a.supplier_offer_id && !b.supplier_offer_id) return -1;
+        if (!a.supplier_offer_id && b.supplier_offer_id) return 1;
+        return a.name.localeCompare(b.name);
+      });
+      setProducts(productsWithOffers);
+    } catch (error) {
+      console.error(error);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar os produtos."
+      );
+    }
+  }
 
   async function loadPurchaseOrder(user: User) {
     try {
@@ -126,7 +235,9 @@ export default function PurchaseOrderDetailPage() {
         throw new Error(data.detail || "Não foi possível carregar a ordem de compra.");
       }
 
-      setPurchaseOrder(data.purchase_order || null);
+      const order = data.purchase_order || null;
+      setPurchaseOrder(order);
+      return order;
     } catch (error) {
       console.error(error);
       setMessage(
@@ -136,6 +247,67 @@ export default function PurchaseOrderDetailPage() {
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function submitPurchaseOrderItem() {
+    if (!firebaseUser || !purchaseOrder) return;
+    const quantity = Number(itemQuantity);
+    const unitCost = Number(itemUnitCost);
+
+    if (!selectedProductId) {
+      setMessage("Selecione um produto.");
+      return;
+    }
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setMessage("Introduza uma quantidade superior a zero.");
+      return;
+    }
+    if (!Number.isFinite(unitCost) || unitCost < 0) {
+      setMessage("Introduza um preço de compra válido.");
+      return;
+    }
+
+    try {
+      setAddingItem(true);
+      setMessage("");
+      const token = await firebaseUser.getIdToken();
+      const response = await fetch(
+        `${API_URL}/api/purchase-orders/${purchaseOrder.id}/items`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            product_id: selectedProductId,
+            supplier_offer_id:
+              products.find((product) => product.id === selectedProductId)
+                ?.supplier_offer_id || null,
+            quantity_ordered: quantity,
+            unit_cost: unitCost,
+            supplier_sku: itemSupplierSku.trim() || null,
+            description: itemDescription.trim() || null,
+          }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || "Não foi possível adicionar o item.");
+      }
+      setAddItemOpen(false);
+      setSelectedProductId("");
+      setItemQuantity("1");
+      setItemUnitCost("");
+      setItemSupplierSku("");
+      setItemDescription("");
+      await loadPurchaseOrder(firebaseUser);
+    } catch (error) {
+      console.error(error);
+      setMessage(error instanceof Error ? error.message : "Não foi possível adicionar o item.");
+    } finally {
+      setAddingItem(false);
     }
   }
 
@@ -515,11 +687,97 @@ export default function PurchaseOrderDetailPage() {
                 </div>
 
                 {purchaseOrder.status === "draft" && (
-                  <button className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                    + Adicionar Item
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMessage("");
+                      setAddItemOpen((open) => !open);
+                    }}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    {addItemOpen ? "Fechar" : "+ Adicionar Item"}
                   </button>
                 )}
               </div>
+
+              {addItemOpen && (
+                <div className="border-b border-slate-200 bg-slate-50 p-5">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                    <label className="xl:col-span-2">
+                      <span className="mb-1.5 block text-xs font-semibold text-slate-600">Produto *</span>
+                      <select
+                        value={selectedProductId}
+                        onChange={(event) => {
+                          const productId = event.target.value;
+                          const selected = products.find(
+                            (product) => product.id === productId
+                          );
+                          setSelectedProductId(productId);
+                          setItemUnitCost(
+                            selected?.supplier_unit_cost !== null &&
+                              selected?.supplier_unit_cost !== undefined
+                              ? String(selected.supplier_unit_cost)
+                              : ""
+                          );
+                          setItemSupplierSku(selected?.supplier_sku || "");
+                          if (
+                            selected?.minimum_order_quantity &&
+                            Number(itemQuantity) < selected.minimum_order_quantity
+                          ) {
+                            setItemQuantity(
+                              String(selected.minimum_order_quantity)
+                            );
+                          }
+                        }}
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900"
+                      >
+                        <option value="">Selecionar produto</option>
+                        {products.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.sku} — {product.name}
+                            {product.supplier_offer_id
+                              ? " — Oferta do fornecedor"
+                              : " — Sem oferta guardada"}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label>
+                      <span className="mb-1.5 block text-xs font-semibold text-slate-600">Quantidade *</span>
+                      <input type="number" min="0.01" step="0.01" value={itemQuantity} onChange={(event) => setItemQuantity(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900" />
+                    </label>
+
+                    <label>
+                      <span className="mb-1.5 block text-xs font-semibold text-slate-600">Preço de compra do fornecedor ({purchaseOrder.currency}) *</span>
+                      <input type="number" min="0" step="0.01" value={itemUnitCost} onChange={(event) => setItemUnitCost(event.target.value)} placeholder="0,00" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900" />
+                    </label>
+
+                    <div>
+                      <span className="mb-1.5 block text-xs font-semibold text-slate-600">Total da linha</span>
+                      <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-900">
+                        {formatMoney((Number(itemQuantity) || 0) * (Number(itemUnitCost) || 0), purchaseOrder.currency)}
+                      </div>
+                    </div>
+
+                    <label>
+                      <span className="mb-1.5 block text-xs font-semibold text-slate-600">SKU do fornecedor</span>
+                      <input value={itemSupplierSku} onChange={(event) => setItemSupplierSku(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900" />
+                    </label>
+
+                    <label className="md:col-span-2 xl:col-span-3">
+                      <span className="mb-1.5 block text-xs font-semibold text-slate-600">Descrição / notas</span>
+                      <input value={itemDescription} onChange={(event) => setItemDescription(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900" />
+                    </label>
+
+                    <div className="flex items-end">
+                      <button type="button" onClick={submitPurchaseOrderItem} disabled={addingItem} className="w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
+                        {addingItem ? "A adicionar..." : "Adicionar à ordem"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {purchaseOrder.items.length === 0 ? (
                 <div className="p-8 text-sm text-slate-500">
