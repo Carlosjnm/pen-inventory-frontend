@@ -128,7 +128,6 @@ export default function SaleDetailPage({
         saleResponse,
         paymentsResponse,
         settingsResponse,
-        logoResponse,
       ] = await Promise.all([
         fetch(`${API_URL}/api/sales-orders/${id}`, {
           headers,
@@ -139,10 +138,6 @@ export default function SaleDetailPage({
           cache: "no-store",
         }),
         fetch(`${API_URL}/api/settings`, {
-          headers,
-          cache: "no-store",
-        }),
-        fetch(`${API_URL}/api/settings/business-logo`, {
           headers,
           cache: "no-store",
         }),
@@ -165,30 +160,61 @@ export default function SaleDetailPage({
         setPayments([]);
       }
 
-      if (logoResponse.ok) {
-        const logoBlob = await logoResponse.blob();
+      const receiptLocationId =
+        saleData.sales_order?.location_id;
 
-        const logoDataUrl = await new Promise<string>(
-          (resolve, reject) => {
-            const reader = new FileReader();
+      if (receiptLocationId) {
+        try {
+          const logoResponse = await fetch(
+            `${API_URL}/api/locations/${receiptLocationId}/invoice-logo`,
+            {
+              headers,
+              cache: "no-store",
+            }
+          );
 
-            reader.onloadend = () => {
-              if (typeof reader.result === "string") {
-                resolve(reader.result);
-              } else {
-                reject(new Error("Não foi possível ler o logótipo da empresa."));
+          if (logoResponse.ok) {
+            const logoBlob = await logoResponse.blob();
+
+            const logoDataUrl = await new Promise<string>(
+              (resolve, reject) => {
+                const reader = new FileReader();
+
+                reader.onloadend = () => {
+                  if (typeof reader.result === "string") {
+                    resolve(reader.result);
+                  } else {
+                    reject(
+                      new Error(
+                        "Não foi possível ler o logótipo da loja."
+                      )
+                    );
+                  }
+                };
+
+                reader.onerror = () => {
+                  reject(
+                    new Error(
+                      "Não foi possível ler o logótipo da loja."
+                    )
+                  );
+                };
+
+                reader.readAsDataURL(logoBlob);
               }
-            };
+            );
 
-            reader.onerror = () => {
-              reject(new Error("Não foi possível ler o logótipo da empresa."));
-            };
-
-            reader.readAsDataURL(logoBlob);
+            setReceiptLogoDataUrl(logoDataUrl);
+          } else {
+            setReceiptLogoDataUrl(null);
           }
-        );
-
-        setReceiptLogoDataUrl(logoDataUrl);
+        } catch (logoError) {
+          console.error(
+            "Não foi possível carregar o logótipo da loja:",
+            logoError
+          );
+          setReceiptLogoDataUrl(null);
+        }
       } else {
         setReceiptLogoDataUrl(null);
       }
@@ -235,6 +261,56 @@ export default function SaleDetailPage({
               "Obrigado pela sua compra."
           ),
         });
+      }
+
+      // Store-specific receipt identity overrides organization defaults.
+      const saleLocationId = saleData.sales_order?.location_id;
+
+      if (saleLocationId) {
+        try {
+          const locationSettingsResponse = await fetch(
+            `${API_URL}/api/locations/${saleLocationId}/invoice-settings`,
+            {
+              headers,
+              cache: "no-store",
+            }
+          );
+
+          if (locationSettingsResponse.ok) {
+            const locationSettingsData =
+              await locationSettingsResponse.json();
+            const locationSettings =
+              locationSettingsData.invoice_settings;
+
+            setReceiptSettings({
+              business_name:
+                locationSettings.business_name || "PEN",
+              business_subtitle:
+                locationSettings.business_subtitle ||
+                "Inventário e Vendas",
+              business_tax_number:
+                locationSettings.tax_number || "",
+              business_phone:
+                locationSettings.phone || "",
+              business_email:
+                locationSettings.email || "",
+              business_address:
+                locationSettings.address || "",
+              receipt_footer:
+                locationSettings.receipt_footer ||
+                "Obrigado pela sua compra.",
+            });
+          } else {
+            console.error(
+              "Não foi possível carregar a faturação específica da loja."
+            );
+          }
+        } catch (locationSettingsError) {
+          console.error(
+            "Store-specific receipt identity:",
+            locationSettingsError
+          );
+        }
       }
     } catch (error) {
       console.error(error);

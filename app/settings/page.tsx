@@ -48,6 +48,41 @@ type LocationForm = {
   notes: string;
 };
 
+
+type InvoiceSettings = {
+  location_id: string;
+  location_code: string;
+  location_name: string;
+  invoice_prefix: string;
+  next_number: number;
+  padding: number;
+  business_name: string;
+  business_subtitle: string;
+  tax_number: string;
+  phone: string;
+  email: string;
+  address: string;
+  receipt_footer: string;
+};
+
+type InvoiceSettingsForm = Omit<
+  InvoiceSettings,
+  "location_id" | "location_code" | "location_name"
+>;
+
+const emptyInvoiceSettingsForm: InvoiceSettingsForm = {
+  invoice_prefix: "",
+  next_number: 1,
+  padding: 6,
+  business_name: "",
+  business_subtitle: "",
+  tax_number: "",
+  phone: "",
+  email: "",
+  address: "",
+  receipt_footer: "Obrigado pela sua compra.",
+};
+
 export default function SettingsPage() {
   const [organization, setOrganization] =
     useState<Organization | null>(null);
@@ -81,6 +116,19 @@ export default function SettingsPage() {
     country: "",
     notes: "",
   });
+
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [invoiceLocation, setInvoiceLocation] = useState<Location | null>(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [invoiceSaving, setInvoiceSaving] = useState(false);
+  const [invoiceLogoUrl, setInvoiceLogoUrl] = useState<string | null>(null);
+  const [invoiceLogoBusy, setInvoiceLogoBusy] = useState<
+    "upload" | "delete" | null
+  >(null);
+  const [invoiceLogoMessage, setInvoiceLogoMessage] = useState("");
+  const [invoiceForm, setInvoiceForm] = useState<InvoiceSettingsForm>(
+    emptyInvoiceSettingsForm
+  );
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -736,6 +784,263 @@ export default function SettingsPage() {
     }
   }
 
+  async function openInvoiceSettings(location: Location) {
+    const user = auth.currentUser;
+
+    if (!user) {
+      setMessage("Autenticação necessária.");
+      return;
+    }
+
+    try {
+      setInvoiceLocation(location);
+      setInvoiceModalOpen(true);
+      setInvoiceLoading(true);
+      setInvoiceLogoMessage("");
+      setMessage("");
+
+      const token = await user.getIdToken();
+      const response = await fetch(
+        `${API_URL}/api/locations/${location.id}/invoice-settings`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        }
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Não foi possível carregar a faturação desta loja."
+        );
+      }
+
+      const invoiceSettings: InvoiceSettings = data.invoice_settings;
+      setInvoiceForm({
+        invoice_prefix: invoiceSettings.invoice_prefix,
+        next_number: Number(invoiceSettings.next_number),
+        padding: Number(invoiceSettings.padding),
+        business_name: invoiceSettings.business_name || "",
+        business_subtitle: invoiceSettings.business_subtitle || "",
+        tax_number: invoiceSettings.tax_number || "",
+        phone: invoiceSettings.phone || "",
+        email: invoiceSettings.email || "",
+        address: invoiceSettings.address || "",
+        receipt_footer: invoiceSettings.receipt_footer || "",
+      });
+
+      await loadInvoiceLogo(location.id, token);
+    } catch (error) {
+      console.error(error);
+      setInvoiceModalOpen(false);
+      setMessageType("error");
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar a faturação desta loja."
+      );
+    } finally {
+      setInvoiceLoading(false);
+    }
+  }
+
+  async function loadInvoiceLogo(
+    locationId: string,
+    token: string
+  ) {
+    const response = await fetch(
+      `${API_URL}/api/locations/${locationId}/invoice-logo?v=${Date.now()}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      }
+    );
+
+    if (response.status === 404) {
+      setInvoiceLogoUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return null;
+      });
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        "Não foi possível carregar o logótipo desta loja."
+      );
+    }
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    setInvoiceLogoUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return objectUrl;
+    });
+  }
+
+  async function uploadInvoiceLogo(file: File) {
+    const user = auth.currentUser;
+
+    if (!user || !invoiceLocation) {
+      setInvoiceLogoMessage("Autenticação necessária.");
+      return;
+    }
+
+    try {
+      setInvoiceLogoBusy("upload");
+      setInvoiceLogoMessage("");
+
+      const token = await user.getIdToken();
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(
+        `${API_URL}/api/locations/${invoiceLocation.id}/invoice-logo`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Não foi possível guardar o logótipo."
+        );
+      }
+
+      await loadInvoiceLogo(invoiceLocation.id, token);
+      setInvoiceLogoMessage("Logótipo da loja guardado com sucesso.");
+    } catch (error) {
+      console.error(error);
+      setInvoiceLogoMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível guardar o logótipo."
+      );
+    } finally {
+      setInvoiceLogoBusy(null);
+    }
+  }
+
+  async function deleteInvoiceLogo() {
+    const user = auth.currentUser;
+
+    if (!user || !invoiceLocation) {
+      setInvoiceLogoMessage("Autenticação necessária.");
+      return;
+    }
+
+    try {
+      setInvoiceLogoBusy("delete");
+      setInvoiceLogoMessage("");
+
+      const token = await user.getIdToken();
+      const response = await fetch(
+        `${API_URL}/api/locations/${invoiceLocation.id}/invoice-logo`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Não foi possível remover o logótipo."
+        );
+      }
+
+      await loadInvoiceLogo(invoiceLocation.id, token);
+      setInvoiceLogoMessage(
+        "Logótipo específico removido. Esta loja usa agora o logótipo principal."
+      );
+    } catch (error) {
+      console.error(error);
+      setInvoiceLogoMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível remover o logótipo."
+      );
+    } finally {
+      setInvoiceLogoBusy(null);
+    }
+  }
+
+  async function saveInvoiceSettings() {
+    const user = auth.currentUser;
+
+    if (!user || !invoiceLocation) {
+      setMessage("Autenticação necessária.");
+      return;
+    }
+
+    if (!invoiceForm.invoice_prefix.trim()) {
+      setMessageType("error");
+      setMessage("O prefixo da fatura é obrigatório.");
+      return;
+    }
+
+    try {
+      setInvoiceSaving(true);
+      setMessage("");
+
+      const token = await user.getIdToken();
+      const response = await fetch(
+        `${API_URL}/api/locations/${invoiceLocation.id}/invoice-settings`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            invoice_prefix: invoiceForm.invoice_prefix.trim().toUpperCase(),
+            padding: Number(invoiceForm.padding),
+            business_name: invoiceForm.business_name.trim(),
+            business_subtitle: invoiceForm.business_subtitle.trim(),
+            tax_number: invoiceForm.tax_number.trim(),
+            phone: invoiceForm.phone.trim(),
+            email: invoiceForm.email.trim(),
+            address: invoiceForm.address.trim(),
+            receipt_footer : invoiceForm.receipt_footer.trim(),
+          }),
+        }
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Não foi possível guardar a faturação desta loja."
+        );
+      }
+
+      setInvoiceModalOpen(false);
+      setMessageType("success");
+      setMessage(
+        `Faturação de ${invoiceLocation.name} guardada com sucesso.`
+      );
+    } catch (error) {
+      console.error(error);
+      setMessageType("error");
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível guardar a faturação desta loja."
+      );
+    } finally {
+      setInvoiceSaving(false);
+    }
+  }
+
   function locationTypeLabel(type: string) {
     const labels: Record<string, string> = {
       warehouse: "Armazém",
@@ -982,6 +1287,14 @@ export default function SettingsPage() {
                             className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                           >
                             Editar
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => void openInvoiceSettings(location)}
+                            className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                          >
+                            Faturaçã
                           </button>
 
                           <button
@@ -1318,6 +1631,263 @@ export default function SettingsPage() {
           </div>
             </section>
 
+            {invoiceModalOpen && invoiceLocation && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+                <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+                  <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5">
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-950">
+                        Faturação por Loja
+                      </h2>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {invoiceLocation.name} · {invoiceLocation.location_code}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setInvoiceModalOpen(false)}
+                      className="text-2xl text-slate-400 hover:text-slate-700"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  {invoiceLoading ? (
+                    <div className="p-10 text-center text-sm text-slate-500">
+                      A carregar definições de faturação...
+                    </div>
+                  ) : (
+                    <div className="space-y-6 p-6">
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                          <div className="flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white p-3">
+                            {invoiceLogoUrl ? (
+                              <img
+                                src={invoiceLogoUrl}
+                                alt={`Logótipo de ${invoiceLocation.name}`}
+                                className="max-h-full max-w-full object-contain"
+                              />
+                            ) : (
+                              <span className="text-center text-xs text-slate-400">
+                                Sem logótipo disponível
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="text-sm font-semibold text-slate-900">
+                              Logótipo da loja
+                            </div>
+                            <p className="mt-1 text-xs text-slate-500">
+                              Se não carregar um logótipo específico, será usado o logótipo principal da empresa.
+                            </p>
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <label
+                                className={`cursor-pointer rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white ${
+                                  invoiceLogoBusy
+                                    ? "pointer-events-none opacity-50"
+                                    : ""
+                                }`}
+                              >
+                                {invoiceLogoBusy === "upload"
+                                  ? "A carregar..."
+                                  : "Carregar ou substituir"}
+                                <input
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  className="hidden"
+                                  disabled={invoiceLogoBusy !== null}
+                                  onChange={(event) => {
+                                    const file = event.target.files?.[0];
+
+                                    if (file) {
+                                      void uploadInvoiceLogo(file);
+                                    }
+
+                                    event.target.value = "";
+                                  }}
+                                />
+                              </label>
+
+                              <button
+                                type="button"
+                                onClick={() => void deleteInvoiceLogo()}
+                                disabled={invoiceLogoBusy !== null}
+                                className="rounded-lg border border-red-300 px-3 py-2 text-xs font-semibold text-red-700 disabled:opacity-50"
+                              >
+                                {invoiceLogoBusy === "delete"
+                                  ? "A remover..."
+                                  : "Usar logótipo principal"}
+                              </button>
+                            </div>
+
+                            <p className="mt-2 text-xs text-slate-500">
+                              JPEG, PNG ou WEBP · máximo 5 MB
+                            </p>
+
+                            {invoiceLogoMessage && (
+                              <p className="mt-2 text-xs font-medium text-slate-700">
+                                {invoiceLogoMessage}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                        <div className="text-sm font-semibold text-blue-950">
+                          Próxima fatura
+                        </div>
+                        <div className="mt-1 text-xl font-bold text-blue-900">
+                          {invoiceForm.invoice_prefix}
+                          {String(invoiceForm.next_number).padStart(
+                            invoiceForm.padding,
+                            "0"
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-blue-700">
+                          Cada loja mantém a sua própria sequência. O número não pode ser reiniciado aqui.
+                        </p>
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <InvoiceField
+                          label="Prefixo da fatura *"
+                          value={invoiceForm.invoice_prefix}
+                          onChange={(value) =>
+                            setInvoiceForm((current) => ({
+                              ...current,
+                              invoice_prefix: value.toUpperCase(),
+                            }))
+                          }
+                          placeholder="STORE01-SO-"
+                        />
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-slate-700">
+                            Dígitos do número
+                          </label>
+                          <select
+                            value={invoiceForm.padding}
+                            onChange={(event) =>
+                              setInvoiceForm((current) => ({
+                                ...current,
+                                padding: Number(event.target.value),
+                              }))
+                            }
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-950"
+                          >
+                            {[4, 5, 6, 7, 8].map((value) => (
+                              <option key={value} value={value}>
+                                {value} dígitos
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <InvoiceField
+                          label="Nome comercial"
+                          value={invoiceForm.business_name}
+                          onChange={(value) =>
+                            setInvoiceForm((current) => ({
+                              ...current,
+                              business_name: value,
+                            }))
+                          }
+                          placeholder="Nome apresentado na fatura"
+                        />
+                        <InvoiceField
+                          label="Subtítulo"
+                          value={invoiceForm.business_subtitle}
+                          onChange={(value) =>
+                            setInvoiceForm((current) => ({
+                              ...current,
+                              business_subtitle: value,
+                            }))
+                          }
+                          placeholder="Inventário e Vendas"
+                        />
+                        <InvoiceField
+                          label="NIF / Número fiscal"
+                          value={invoiceForm.tax_number}
+                          onChange={(value) =>
+                            setInvoiceForm((current) => ({
+                              ...current,
+                              tax_number: value,
+                            }))
+                          }
+                        />
+                        <InvoiceField
+                          label="Telefone"
+                          value={invoiceForm.phone}
+                          onChange={(value) =>
+                            setInvoiceForm((current) => ({
+                              ...current,
+                              phone: value,
+                            }))
+                          }
+                        />
+                        <InvoiceField
+                          label="Email"
+                          value={invoiceForm.email}
+                          type="email"
+                          onChange={(value) =>
+                            setInvoiceForm((current) => ({
+                              ...current,
+                              email: value,
+                            }))
+                          }
+                        />
+                        <div className="md:col-span-2">
+                          <InvoiceField
+                            label="Endereço da loja"
+                            value={invoiceForm.address}
+                            onChange={(value) =>
+                              setInvoiceForm((current) => ({
+                                ...current,
+                                address: value,
+                              }))
+                            }
+                            multiline
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <InvoiceField
+                            label="Mensagem no rodapé"
+                            value={invoiceForm.receipt_footer}
+                            onChange={(value) =>
+                              setInvoiceForm((current) => ({
+                                ...current,
+                                receipt_footer: value,
+                              }))
+                            }
+                            multiline
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+                    <button
+                      type="button"
+                      onClick={() => setInvoiceModalOpen(false)}
+                      className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void saveInvoiceSettings()}
+                      disabled={invoiceLoading || invoiceSaving}
+                      className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      {invoiceSaving ? "A guardar..." : "Guardar Faturação"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {locationModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
                 <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
@@ -1532,6 +2102,47 @@ function NavItem({
     >
       <span className="w-5 text-center text-base">{icon}</span>
       <span>{label}</span>
+    </div>
+  );
+}
+
+function InvoiceField({
+  label,
+  value,
+  onChange,
+  placeholder = "",
+  type = "text",
+  multiline = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+  multiline?: boolean;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-slate-700">
+        {label}
+      </label>
+      {multiline ? (
+        <textarea
+          rows={3}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-950 placeholder:text-slate-400"
+        />
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-950 placeholder:text-slate-400"
+        />
+      )}
     </div>
   );
 }
