@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import UserSessionBar from "@/app/components/UserSessionBar";
 
 export const metadata: Metadata = {
   title: "PEN Inventory",
@@ -13,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body><UserSessionBar />{children}</body>
     </html>
   );
 }
