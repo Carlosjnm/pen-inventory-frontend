@@ -50,6 +50,30 @@ type InventoryLocation = {
   location_type?: string;
 };
 
+type QuarantineRecord = {
+  id: string;
+  product_id: string;
+  product_sku: string;
+  product_name: string;
+  location_id: string;
+  location_code: string;
+  location_name: string;
+  reference_number: string;
+  quantity_original: number;
+  quantity_remaining: number;
+  unit_cost: number;
+  currency: string;
+  reason: string;
+  notes: string | null;
+  status: "open" | "resolved";
+  resolution_action: string | null;
+  resolution_notes: string | null;
+  created_by_name: string;
+  resolved_by_name: string | null;
+  created_at: string;
+  resolved_at: string | null;
+};
+
 export default function InventoryPage() {
   const router = useRouter();
 
@@ -63,7 +87,7 @@ export default function InventoryPage() {
   const [selectedLocationId, setSelectedLocationId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState<"balances" | "movements">("balances");
+  const [tab, setTab] = useState<"balances" | "movements" | "quarantine">("balances");
   const [search, setSearch] = useState("");
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustItem, setAdjustItem] = useState<Balance | null>(null);
@@ -83,6 +107,17 @@ export default function InventoryPage() {
   const [transferReason, setTransferReason] = useState("");
   const [transferNotes, setTransferNotes] = useState("");
   const [transferSaving, setTransferSaving] = useState(false);
+
+  const [quarantine, setQuarantine] = useState<QuarantineRecord[]>([]);
+  const [quarantineLoading, setQuarantineLoading] = useState(false);
+  const [quarantineOpen, setQuarantineOpen] = useState(false);
+  const [quarantineItem, setQuarantineItem] = useState<Balance | null>(null);
+  const [quarantineQty, setQuarantineQty] = useState("1");
+  const [quarantineReason, setQuarantineReason] = useState("Produto danificado");
+  const [quarantineNotes, setQuarantineNotes] = useState("");
+  const [quarantineReference, setQuarantineReference] = useState("");
+  const [quarantineSaving, setQuarantineSaving] = useState(false);
+  const [resolvingQuarantineId, setResolvingQuarantineId] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -223,6 +258,172 @@ export default function InventoryPage() {
 
     loadSelectedInventory();
   }, [firebaseUser, selectedLocationId]);
+
+  useEffect(() => {
+    if (!firebaseUser || !selectedLocationId) {
+      setQuarantine([]);
+      return;
+    }
+
+    void loadQuarantine(selectedLocationId);
+  }, [firebaseUser, selectedLocationId]);
+
+  async function loadQuarantine(locationId: string) {
+    if (!auth.currentUser || !locationId) return;
+
+    try {
+      setQuarantineLoading(true);
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(
+        `${API_URL}/api/inventory/quarantine?location_id=${encodeURIComponent(locationId)}`,
+        { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }
+      );
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Não foi possível carregar o stock em quarentena.");
+      }
+
+      const data = await response.json();
+      setQuarantine(data.quarantine || []);
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível carregar o stock em quarentena."
+      );
+    } finally {
+      setQuarantineLoading(false);
+    }
+  }
+
+  function openQuarantine(item: Balance) {
+    setQuarantineItem(item);
+    setQuarantineQty("1");
+    setQuarantineReason("Produto danificado");
+    setQuarantineNotes("");
+    setQuarantineReference("");
+    setError("");
+    setQuarantineOpen(true);
+  }
+
+  async function submitQuarantine() {
+    if (!quarantineItem || !auth.currentUser) return;
+
+    const quantity = Number(quarantineQty);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setError("Introduza uma quantidade válida.");
+      return;
+    }
+    if (quantity > Number(quarantineItem.quantity_available || 0)) {
+      setError(
+        `Stock disponível insuficiente. Disponível: ${formatQty(
+          quarantineItem.quantity_available
+        )}.`
+      );
+      return;
+    }
+    if (!quarantineReason.trim()) {
+      setError("Selecione ou escreva o motivo da quarentena.");
+      return;
+    }
+
+    try {
+      setQuarantineSaving(true);
+      setError("");
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(`${API_URL}/api/inventory/quarantine`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          product_id: quarantineItem.product_id,
+          location_id: quarantineItem.location_id,
+          quantity,
+          reason: quarantineReason.trim(),
+          notes: quarantineNotes.trim() || null,
+          reference_number: quarantineReference.trim() || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const detail = data.detail || `Falha ao colocar o produto em quarentena: ${response.status}`;
+        throw new Error(
+          typeof detail === "string"
+            ? detail
+                .replace("Insufficient available stock. Available quantity:", "Stock disponível insuficiente. Quantidade disponível:")
+                .replace("Reason is required", "O motivo é obrigatório.")
+                .replace("Quantity must be greater than zero", "A quantidade deve ser superior a zero.")
+            : "Falha ao colocar o produto em quarentena."
+        );
+      }
+
+      setQuarantineOpen(false);
+      window.location.reload();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Falha ao colocar o produto em quarentena."
+      );
+    } finally {
+      setQuarantineSaving(false);
+    }
+  }
+
+  async function resolveQuarantine(
+    record: QuarantineRecord,
+    action: "restored" | "written_off" | "returned_to_supplier"
+  ) {
+    if (!auth.currentUser) return;
+
+    const actionNames = {
+      restored: "restaurar este produto ao stock disponível",
+      written_off: "abater definitivamente este produto",
+      returned_to_supplier: "registar a devolução deste produto ao fornecedor",
+    };
+
+    if (!window.confirm(`Confirma que pretende ${actionNames[action]}?`)) return;
+    const notes = window.prompt("Notas da resolução (opcional):", "") || null;
+
+    try {
+      setResolvingQuarantineId(record.id);
+      setError("");
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(
+        `${API_URL}/api/inventory/quarantine/${record.id}/resolve`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ action, notes }),
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Não foi possível resolver a quarentena.");
+      }
+
+      await loadQuarantine(record.location_id);
+      const currentLocation = selectedLocationId;
+      if (action === "restored" && currentLocation) {
+        window.location.reload();
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Não foi possível resolver a quarentena."
+      );
+    } finally {
+      setResolvingQuarantineId("");
+    }
+  }
 
   function openAdjustment(item: Balance) {
     setAdjustItem(item);
@@ -434,6 +635,20 @@ export default function InventoryPage() {
     );
   }, [movements, search]);
 
+  const filteredQuarantine = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return quarantine;
+
+    return quarantine.filter(
+      (item) =>
+        item.product_sku.toLowerCase().includes(q) ||
+        item.product_name.toLowerCase().includes(q) ||
+        item.location_name.toLowerCase().includes(q) ||
+        (item.reference_number || "").toLowerCase().includes(q) ||
+        (item.reason || "").toLowerCase().includes(q)
+    );
+  }, [quarantine, search]);
+
   const totalUnits = balances.reduce(
     (sum, item) => sum + Number(item.quantity_on_hand || 0),
     0
@@ -598,6 +813,17 @@ export default function InventoryPage() {
               Histórico de Movimentos
             </button>
 
+            <button
+              onClick={() => setTab("quarantine")}
+              className={`rounded-lg px-4 py-2 text-sm font-medium ${
+                tab === "quarantine"
+                  ? "bg-amber-600 text-white"
+                  : "border bg-white text-slate-700"
+              }`}
+            >
+              Stock em Quarentena
+            </button>
+
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -658,6 +884,14 @@ export default function InventoryPage() {
                                 className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
                               >
                                 Ajustar
+                              </button>
+
+                              <button
+                                onClick={() => openQuarantine(item)}
+                                disabled={Number(item.quantity_available || 0) <= 0}
+                                className="rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                Quarentena
                               </button>
 
                               <button
@@ -732,6 +966,111 @@ export default function InventoryPage() {
               </div>
             </div>
           )}
+          {tab === "quarantine" && (
+            !selectedLocationId ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+                Selecione uma loja em <strong>Loja do Inventário</strong> para consultar e gerir o stock em quarentena.
+              </div>
+            ) : quarantineLoading ? (
+              <div className="rounded-xl border bg-white p-6 text-sm text-slate-500">
+                A carregar stock em quarentena...
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-xl border bg-white">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-amber-50 text-left text-slate-700">
+                      <tr>
+                        <Th>Data</Th>
+                        <Th>Referência</Th>
+                        <Th>Produto</Th>
+                        <Th>Localização</Th>
+                        <Th>Quantidade</Th>
+                        <Th>Motivo</Th>
+                        <Th>Registado por</Th>
+                        <Th>Estado</Th>
+                        <Th>Resolução</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredQuarantine.length === 0 ? (
+                        <tr className="border-t">
+                          <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
+                            Não existem produtos em quarentena nesta loja.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredQuarantine.map((item) => (
+                          <tr key={item.id} className="border-t align-top">
+                            <Td>{formatDate(item.created_at)}</Td>
+                            <Td>{item.reference_number}</Td>
+                            <Td>
+                              <div className="font-semibold text-slate-900">{item.product_sku}</div>
+                              <div className="text-xs text-slate-500">{item.product_name}</div>
+                            </Td>
+                            <Td>{item.location_name}</Td>
+                            <Td>{formatQty(Number(item.quantity_remaining || item.quantity_original || 0))}</Td>
+                            <Td>
+                              <div>{item.reason}</div>
+                              {item.notes && <div className="mt-1 text-xs text-slate-500">{item.notes}</div>}
+                            </Td>
+                            <Td>{item.created_by_name || "—"}</Td>
+                            <Td>
+                              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                item.status === "open"
+                                  ? "bg-amber-100 text-amber-800"
+                                  : "bg-emerald-100 text-emerald-800"
+                              }`}>
+                                {item.status === "open" ? "Em quarentena" : "Resolvido"}
+                              </span>
+                            </Td>
+                            <Td>
+                              {item.status === "open" && operationalLocations.some(
+                                (location) => location.id === item.location_id
+                              ) ? (
+                                <div className="flex min-w-[180px] flex-col gap-2">
+                                  <button
+                                    onClick={() => resolveQuarantine(item, "restored")}
+                                    disabled={resolvingQuarantineId === item.id}
+                                    className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                                  >
+                                    Restaurar ao stock
+                                  </button>
+                                  <button
+                                    onClick={() => resolveQuarantine(item, "written_off")}
+                                    disabled={resolvingQuarantineId === item.id}
+                                    className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                                  >
+                                    Abater produto
+                                  </button>
+                                  <button
+                                    onClick={() => resolveQuarantine(item, "returned_to_supplier")}
+                                    disabled={resolvingQuarantineId === item.id}
+                                    className="rounded-lg border px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                                  >
+                                    Devolver ao fornecedor
+                                  </button>
+                                </div>
+                              ) : item.status === "resolved" ? (
+                                <div className="text-xs text-slate-600">
+                                  <div>{formatQuarantineResolution(item.resolution_action)}</div>
+                                  {item.resolved_by_name && <div className="mt-1">Por: {item.resolved_by_name}</div>}
+                                  {item.resolved_at && <div>{formatDate(item.resolved_at)}</div>}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-400">Apenas consulta</span>
+                              )}
+                            </Td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
+          )}
+
           {transferOpen && transferItem && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
               <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
@@ -896,6 +1235,103 @@ export default function InventoryPage() {
                     {transferSaving
                       ? "A transferir..."
                       : "Confirmar Transferência"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {quarantineOpen && quarantineItem && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+              <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+                <div className="mb-5 flex items-start justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">Colocar em Quarentena</h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {quarantineItem.sku} · {quarantineItem.product_name}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {quarantineItem.location_name} · Disponível: {formatQty(quarantineItem.quantity_available)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setQuarantineOpen(false)}
+                    className="text-xl text-slate-400 hover:text-slate-700"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Quantidade *</label>
+                    <input
+                      type="number"
+                      min="0.001"
+                      step="0.001"
+                      max={Number(quarantineItem.quantity_available || 0)}
+                      value={quarantineQty}
+                      onChange={(e) => setQuarantineQty(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Motivo *</label>
+                    <select
+                      value={quarantineReason}
+                      onChange={(e) => setQuarantineReason(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
+                    >
+                      <option>Produto danificado</option>
+                      <option>Produto partido</option>
+                      <option>Embalagem danificada</option>
+                      <option>Defeito de fabrico</option>
+                      <option>Devolução de cliente para inspeção</option>
+                      <option>Outro</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Referência</label>
+                    <input
+                      value={quarantineReference}
+                      onChange={(e) => setQuarantineReference(e.target.value)}
+                      placeholder="Automática se ficar em branco"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Notas</label>
+                    <textarea
+                      value={quarantineNotes}
+                      onChange={(e) => setQuarantineNotes(e.target.value)}
+                      rows={3}
+                      placeholder="Descreva o estado do produto"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+                )}
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick={() => setQuarantineOpen(false)}
+                    disabled={quarantineSaving}
+                    className="rounded-lg border px-4 py-2"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={submitQuarantine}
+                    disabled={quarantineSaving}
+                    className="rounded-lg bg-amber-600 px-4 py-2 font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    {quarantineSaving ? "A guardar..." : "Confirmar Quarentena"}
                   </button>
                 </div>
               </div>
@@ -1090,6 +1526,8 @@ function formatMovement(value: string) {
     transfer_out: "Transferência de Saída",
     stock_transfer_in: "Transferência de Entrada",
     stock_transfer_out: "Transferência de Saída",
+    quarantine_out: "Saída para Quarentena",
+    quarantine_restore: "Reposição da Quarentena",
   };
 
   return (
@@ -1098,4 +1536,15 @@ function formatMovement(value: string) {
       .replaceAll("_", " ")
       .replace(/\b\w/g, (letter) => letter.toUpperCase())
   );
+}
+
+
+function formatQuarantineResolution(value: string | null) {
+  const translations: Record<string, string> = {
+    restored: "Restaurado ao stock",
+    written_off: "Produto abatido",
+    returned_to_supplier: "Devolvido ao fornecedor",
+  };
+
+  return value ? translations[value] || value : "—";
 }
