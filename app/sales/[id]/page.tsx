@@ -1136,6 +1136,25 @@ export default function SaleDetailPage({
           </div>
 
           <div className="flex flex-wrap gap-3">
+            {sale.status !== "draft" &&
+              sale.status !== "cancelled" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const query = new URLSearchParams({
+                      sale_id: String(id),
+                      location_id: sale.location_id,
+                    });
+
+                    window.location.href =
+                      `/deliveries?${query.toString()}`;
+                  }}
+                  className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                >
+                  Agendar Entrega
+                </button>
+              )}
+
             {sale.status !== "draft" && (
               <button
                 type="button"

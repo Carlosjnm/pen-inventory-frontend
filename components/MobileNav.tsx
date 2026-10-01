@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import PermissionGate from "@/components/PermissionGate";
 
 const navigation = [
   { label: "Painel", href: "/dashboard", icon: "⌂" },
@@ -11,6 +12,13 @@ const navigation = [
   { label: "Inventário", href: "/inventory", icon: "▣" },
   { label: "Compras", href: "/purchases", icon: "↓" },
   { label: "Vendas", href: "/sales", icon: "↑" },
+  {
+    label: "Entregas",
+    href: "/deliveries",
+    icon: "▰",
+    permission: "deliveries.view",
+  },
+  { label: "Despesas", href: "/expenses", icon: "−" },
   { label: "Fornecedores", href: "/suppliers", icon: "♢" },
   { label: "Clientes", href: "/customers", icon: "♙" },
   { label: "Relatórios", href: "/reports", icon: "▤" },
@@ -82,9 +90,8 @@ export default function MobileNav({
                   (item.href !== "/dashboard" &&
                     pathname.startsWith(`${item.href}/`));
 
-                return (
+                const link = (
                   <a
-                    key={item.href}
                     href={item.href}
                     onClick={() => setOpen(false)}
                     className={`flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition ${
@@ -98,6 +105,17 @@ export default function MobileNav({
                     </span>
                     <span>{item.label}</span>
                   </a>
+                );
+
+                return item.href === "/users" ? (
+                  <PermissionGate
+                    key={item.href}
+                    permission="users.manage"
+                  >
+                    {link}
+                  </PermissionGate>
+                ) : (
+                  <div key={item.href}>{link}</div>
                 );
               })}
             </nav>

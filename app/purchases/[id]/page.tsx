@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import MobileNav from "@/components/MobileNav";
+import PermissionGate from "@/components/PermissionGate";
 
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
@@ -538,10 +539,16 @@ export default function PurchaseOrderDetailPage() {
           <NavItem label="Inventário" icon="▣" href="/inventory" />
           <NavItem label="Compras" icon="↓" href="/purchases" active />
           <NavItem label="Vendas" icon="↑" href="/sales" />
+          <PermissionGate permission="deliveries.view">
+            <NavItem label="Entregas" icon="▰" href="/deliveries" />
+          </PermissionGate>
+          <NavItem label="Despesas" icon="−" href="/expenses" />
           <NavItem label="Fornecedores" icon="♢" href="/suppliers" />
           <NavItem label="Clientes" icon="♙" href="/customers" />
           <NavItem label="Relatórios" icon="▤" href="/reports" />
-          <NavItem label="Utilizadores" icon="♧" href="/users" />
+          <PermissionGate permission="users.manage">
+            <NavItem label="Utilizadores" icon="♧" href="/users" />
+          </PermissionGate>
           <NavItem label="Definições" icon="⚙" href="/settings" />
         </nav>
 

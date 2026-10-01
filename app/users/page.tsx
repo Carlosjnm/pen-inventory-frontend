@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import MobileNav from "@/components/MobileNav";
+import PermissionGate from "@/components/PermissionGate";
 
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
@@ -118,6 +119,10 @@ export default function UsersPage() {
   const [editAllLocations, setEditAllLocations] = useState(false);
   const [editActive, setEditActive] = useState(true);
   const [editMessage, setEditMessage] = useState("");
+  const [accountAction, setAccountAction] =
+    useState<"reset" | "delete" | null>(null);
+  const [passwordResetLink, setPasswordResetLink] = useState("");
+  const [passwordResetMessage, setPasswordResetMessage] = useState("");
 
   const [setupLink, setSetupLink] = useState("");
   const [createdUserName, setCreatedUserName] = useState("");
@@ -160,17 +165,30 @@ export default function UsersPage() {
       setLoading(true);
       setMessage("");
 
-      const [
-        usersResponse,
-        rolesResponse,
-        meResponse,
-        locationsResponse,
-      ] = await Promise.all([
-        authenticatedFetch(user, "/api/users"),
-        authenticatedFetch(user, "/api/roles"),
-        authenticatedFetch(user, "/api/me"),
-        authenticatedFetch(user, "/api/locations"),
-      ]);
+      const meResponse = await authenticatedFetch(user, "/api/me");
+
+      if (!meResponse.ok) {
+        throw new Error("Não foi possível identificar o utilizador atual.");
+      }
+
+      const meData = await meResponse.json();
+
+      if (
+        !Array.isArray(meData.permissions) ||
+        !meData.permissions.includes("users.manage")
+      ) {
+        window.location.replace("/dashboard");
+        return;
+      }
+
+      setCurrentUser(meData);
+
+      const [usersResponse, rolesResponse, locationsResponse] =
+        await Promise.all([
+          authenticatedFetch(user, "/api/users"),
+          authenticatedFetch(user, "/api/roles"),
+          authenticatedFetch(user, "/api/locations"),
+        ]);
 
       if (!usersResponse.ok) {
         const data = await usersResponse.json().catch(() => null);
@@ -186,10 +204,6 @@ export default function UsersPage() {
         );
       }
 
-      if (!meResponse.ok) {
-        throw new Error("Não foi possível identificar o utilizador atual.");
-      }
-
       if (!locationsResponse.ok) {
         const data = await locationsResponse.json().catch(() => null);
         throw new Error(
@@ -197,14 +211,15 @@ export default function UsersPage() {
         );
       }
 
-      const usersData = await usersResponse.json();
-      const rolesData = await rolesResponse.json();
-      const meData = await meResponse.json();
-      const locationsData = await locationsResponse.json();
+      const [usersData, rolesData, locationsData] =
+        await Promise.all([
+          usersResponse.json(),
+          rolesResponse.json(),
+          locationsResponse.json(),
+        ]);
 
       setUsers(usersData.users || []);
       setRoles(rolesData.roles || []);
-      setCurrentUser(meData);
       setLocations(locationsData.locations || []);
     } catch (error) {
       console.error(error);
@@ -374,11 +389,17 @@ export default function UsersPage() {
     setEditAllLocations(user.can_access_all_locations);
     setEditActive(user.is_active);
     setEditMessage("");
+    setPasswordResetLink("");
+    setPasswordResetMessage("");
+    setAccountAction(null);
   }
 
   function closeEdit() {
     setEditingUser(null);
     setEditMessage("");
+    setPasswordResetLink("");
+    setPasswordResetMessage("");
+    setAccountAction(null);
   }
 
   async function handleUpdateUser(event: FormEvent) {
@@ -450,6 +471,114 @@ export default function UsersPage() {
     }
   }
 
+  async function handlePasswordReset() {
+    if (!firebaseUser || !editingUser) return;
+
+    try {
+      setAccountAction("reset");
+      setEditMessage("");
+      setPasswordResetLink("");
+      setPasswordResetMessage("");
+
+      const response = await authenticatedFetch(
+        firebaseUser,
+        `/api/users/${editingUser.id}/password-reset-link`,
+        { method: "POST" }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            "Não foi possível criar o link de redefinição da senha."
+        );
+      }
+
+      setPasswordResetLink(data.reset_link);
+      setPasswordResetMessage(
+        `Link criado para ${data.email}. Copie e envie ao utilizador.`
+      );
+    } catch (error) {
+      console.error(error);
+      setEditMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível criar o link de redefinição da senha."
+      );
+    } finally {
+      setAccountAction(null);
+    }
+  }
+
+  async function copyPasswordResetLink() {
+    if (!passwordResetLink) return;
+
+    try {
+      await navigator.clipboard.writeText(passwordResetLink);
+      setPasswordResetMessage(
+        "Link copiado. Envie-o ao utilizador de forma privada."
+      );
+    } catch {
+      setPasswordResetMessage(
+        "Não foi possível copiar automaticamente. Selecione e copie o link."
+      );
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!firebaseUser || !editingUser || editingSelf) return;
+
+    const confirmation = window.prompt(
+      `Esta ação elimina o acesso de ${editingUser.full_name}, ` +
+        `remove a conta Firebase e preserva o histórico comercial.\n\n` +
+        `Para confirmar, escreva o email completo:\n${editingUser.email}`
+    );
+
+    if (confirmation !== editingUser.email) {
+      if (confirmation !== null) {
+        setEditMessage(
+          "O email de confirmação não corresponde. A conta não foi eliminada."
+        );
+      }
+      return;
+    }
+
+    try {
+      setAccountAction("delete");
+      setEditMessage("");
+
+      const response = await authenticatedFetch(
+        firebaseUser,
+        `/api/users/${editingUser.id}`,
+        { method: "DELETE" }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Não foi possível eliminar a conta."
+        );
+      }
+
+      closeEdit();
+      setMessage(
+        "Conta eliminada com segurança. O histórico comercial foi preservado."
+      );
+      await loadData(firebaseUser);
+    } catch (error) {
+      console.error(error);
+      setEditMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível eliminar a conta."
+      );
+    } finally {
+      setAccountAction(null);
+    }
+  }
+
   async function copySetupLink() {
     if (!setupLink) return;
 
@@ -511,6 +640,10 @@ export default function UsersPage() {
           <NavItem label="Inventário" icon="▣" href="/inventory" />
           <NavItem label="Compras" icon="↓" href="/purchases" />
           <NavItem label="Vendas" icon="↑" href="/sales" />
+          <PermissionGate permission="deliveries.view">
+            <NavItem label="Entregas" icon="▰" href="/deliveries" />
+          </PermissionGate>
+          <NavItem label="Despesas" icon="−" href="/expenses" />
           <NavItem label="Fornecedores" icon="♢" href="/suppliers" />
           <NavItem label="Clientes" icon="♙" href="/customers" />
           <NavItem label="Relatórios" icon="▤" href="/reports" />
@@ -1108,6 +1241,80 @@ export default function UsersPage() {
                     />
                   </button>
                 </div>
+              </div>
+
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                <div className="font-semibold text-slate-900">
+                  Redefinir senha
+                </div>
+                <p className="mt-1 text-sm text-slate-600">
+                  Cria um link seguro para o utilizador escolher uma nova senha.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handlePasswordReset}
+                  disabled={
+                    accountAction !== null ||
+                    !editingUser.is_active ||
+                    !editingUser.firebase_uid
+                  }
+                  className="mt-3 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {accountAction === "reset"
+                    ? "A criar link..."
+                    : "Criar link de redefinição"}
+                </button>
+
+                {passwordResetLink && (
+                  <div className="mt-3 space-y-2">
+                    <input
+                      readOnly
+                      value={passwordResetLink}
+                      className={inputClass}
+                    />
+                    <button
+                      type="button"
+                      onClick={copyPasswordResetLink}
+                      className="rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+                    >
+                      Copiar link
+                    </button>
+                  </div>
+                )}
+
+                {passwordResetMessage && (
+                  <p className="mt-2 text-sm text-blue-700">
+                    {passwordResetMessage}
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                <div className="font-semibold text-red-900">
+                  Eliminar conta
+                </div>
+                <p className="mt-1 text-sm text-red-700">
+                  Remove definitivamente o acesso e a conta Firebase. O
+                  histórico comercial permanece preservado e anonimizado.
+                </p>
+
+                {editingSelf ? (
+                  <p className="mt-2 text-xs font-semibold text-amber-700">
+                    Não pode eliminar a sua própria conta.
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleDeleteAccount}
+                    disabled={accountAction !== null}
+                    className="mt-3 rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {accountAction === "delete"
+                      ? "A eliminar..."
+                      : "Eliminar conta permanentemente"}
+                  </button>
+                )}
               </div>
             </div>
 
