@@ -9,6 +9,9 @@ import { User } from "firebase/auth";
 import ServiceMaterialsManager from "./ServiceMaterialsManager";
 import ProviderMediaManager from "./ProviderMediaManager";
 import ServiceReviewsManager from "./ServiceReviewsManager";
+import ServicesHomepageEditor from "./ServicesHomepageEditor";
+
+// NAZUNGA SERVICES HOMEPAGE EDITOR V1
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -188,7 +191,7 @@ export default function ServicesManager({
   user: User;
 }) {
   const [section, setSection] = useState<
-    "providers" | "requests" | "reviews" | "settings"
+    "providers" | "requests" | "reviews" | "homepage" | "settings"
   >("providers");
   const [categories, setCategories] =
     useState<Category[]>([]);
@@ -554,6 +557,12 @@ export default function ServicesManager({
             onClick={() => setSection("reviews")}
           >
             Avaliações
+          </SectionButton>
+          <SectionButton
+            active={section === "homepage"}
+            onClick={() => setSection("homepage")}
+          >
+            Página pública
           </SectionButton>
           <SectionButton
             active={section === "settings"}
@@ -1210,6 +1219,10 @@ export default function ServicesManager({
             </div>
           )}
         </section>
+      )}
+
+      {section === "homepage" && (
+        <ServicesHomepageEditor user={user} />
       )}
 
       {section === "settings" && config && (
