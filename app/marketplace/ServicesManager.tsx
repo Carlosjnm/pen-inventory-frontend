@@ -7,10 +7,17 @@ import {
 } from "react";
 import { User } from "firebase/auth";
 import ServiceMaterialsManager from "./ServiceMaterialsManager";
+import ProviderMediaManager from "./ProviderMediaManager";
+import ServiceReviewsManager from "./ServiceReviewsManager";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
+
+// NAZUNGA SERVICE REVIEW LINK V1
+const NAZUNGA_URL =
+  process.env.NEXT_PUBLIC_NAZUNGA_URL ||
+  "https://nazunga-marketplace-250574343787.africa-south1.run.app";
 
 type Category = {
   id: string;
@@ -77,6 +84,20 @@ type ServicesConfig = {
   default_commission_percentage: number;
   commission_billing_cycle: "weekly" | "monthly";
   commission_payment_days: number;
+};
+
+// NAZUNGA SERVICE CATEGORY MANAGER V1
+const emptyCategory = {
+  name: "",
+  slug: "",
+  description: "",
+  booking_mode: "quote" as
+    | "appointment"
+    | "quote"
+    | "both",
+  icon_name: "",
+  sort_order: "0",
+  is_active: true,
 };
 
 const emptyProvider = {
@@ -167,10 +188,14 @@ export default function ServicesManager({
   user: User;
 }) {
   const [section, setSection] = useState<
-    "providers" | "requests" | "settings"
+    "providers" | "requests" | "reviews" | "settings"
   >("providers");
   const [categories, setCategories] =
     useState<Category[]>([]);
+  const [categoryForm, setCategoryForm] =
+    useState(emptyCategory);
+  const [showCategoryForm, setShowCategoryForm] =
+    useState(false);
   const [providers, setProviders] =
     useState<Provider[]>([]);
   const [requests, setRequests] =
@@ -185,6 +210,10 @@ export default function ServicesManager({
     selectedMaterialRequest,
     setSelectedMaterialRequest,
   ] = useState<ServiceRequest | null>(null);
+  const [
+    selectedMediaProvider,
+    setSelectedMediaProvider,
+  ] = useState<Provider | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -270,6 +299,41 @@ export default function ServicesManager({
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
+  }
+
+  async function createCategory(
+    event: FormEvent
+  ) {
+    event.preventDefault();
+
+    try {
+      setSaving(true);
+      setMessage("");
+
+      const response = await apiFetch(
+        user,
+        "/api/marketplace/services/categories",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            ...categoryForm,
+            sort_order: Number(
+              categoryForm.sort_order || 0
+            ),
+          }),
+        }
+      );
+
+      await responseData(response);
+      setCategoryForm(emptyCategory);
+      setShowCategoryForm(false);
+      success("Categoria criada com sucesso.");
+      await loadData();
+    } catch (error) {
+      failure(error);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function createProvider(event: FormEvent) {
@@ -380,6 +444,35 @@ export default function ServicesManager({
     }
   }
 
+  async function copyReviewLink(
+    request: ServiceRequest
+  ) {
+    try {
+      setSaving(true);
+      setMessage("");
+
+      const response = await apiFetch(
+        user,
+        `/api/marketplace/services/requests/${request.id}/review-link`
+      );
+
+      const data = await responseData(response);
+
+      const url =
+        `${NAZUNGA_URL}${data.relative_url}`;
+
+      await navigator.clipboard.writeText(url);
+
+      success(
+        "Link de avaliação copiado. Pode enviá-lo ao cliente."
+      );
+    } catch (error) {
+      failure(error);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function saveConfig(event: FormEvent) {
     event.preventDefault();
     if (!config) return;
@@ -457,6 +550,12 @@ export default function ServicesManager({
             Pedidos ({requests.length})
           </SectionButton>
           <SectionButton
+            active={section === "reviews"}
+            onClick={() => setSection("reviews")}
+          >
+            Avaliações
+          </SectionButton>
+          <SectionButton
             active={section === "settings"}
             onClick={() => setSection("settings")}
           >
@@ -479,6 +578,156 @@ export default function ServicesManager({
 
       {section === "providers" && (
         <>
+          {selectedMediaProvider && (
+            <ProviderMediaManager
+              user={user}
+              provider={selectedMediaProvider}
+              onClose={() =>
+                setSelectedMediaProvider(null)
+              }
+            />
+          )}
+
+          <div className="flex flex-wrap justify-end gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                setShowCategoryForm(
+                  (current) => !current
+                )
+              }
+              className="rounded-xl border border-emerald-700 bg-emerald-50 px-5 py-3 font-black text-emerald-900"
+            >
+              {showCategoryForm
+                ? "Fechar categoria"
+                : "+ Nova categoria"}
+            </button>
+          </div>
+
+          {showCategoryForm && (
+            <form
+              onSubmit={createCategory}
+              className="rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm"
+            >
+              <h3 className="text-xl font-black">
+                Nova categoria de serviço
+              </h3>
+
+              <p className="mt-1 text-sm text-slate-600">
+                Crie categorias para organizar os
+                profissionais e facilitar a pesquisa.
+              </p>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <Input
+                  label="Nome da categoria"
+                  value={categoryForm.name}
+                  onChange={(value) =>
+                    setCategoryForm((current) => ({
+                      ...current,
+                      name: value,
+                      slug:
+                        current.slug ||
+                        makeSlug(value),
+                    }))
+                  }
+                  required
+                />
+
+                <Input
+                  label="Identificador"
+                  value={categoryForm.slug}
+                  onChange={(value) =>
+                    setCategoryForm((current) => ({
+                      ...current,
+                      slug: makeSlug(value),
+                    }))
+                  }
+                  required
+                />
+
+                <label>
+                  <span className="mb-2 block text-sm font-bold">
+                    Tipo de pedido
+                  </span>
+                  <select
+                    value={
+                      categoryForm.booking_mode
+                    }
+                    onChange={(event) =>
+                      setCategoryForm(
+                        (current) => ({
+                          ...current,
+                          booking_mode:
+                            event.target.value as
+                              | "appointment"
+                              | "quote"
+                              | "both",
+                        })
+                      )
+                    }
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3"
+                  >
+                    <option value="quote">
+                      Pedido de orçamento
+                    </option>
+                    <option value="appointment">
+                      Marcação
+                    </option>
+                    <option value="both">
+                      Marcação ou orçamento
+                    </option>
+                  </select>
+                </label>
+
+                <Input
+                  label="Ordem de apresentação"
+                  type="number"
+                  value={categoryForm.sort_order}
+                  onChange={(value) =>
+                    setCategoryForm((current) => ({
+                      ...current,
+                      sort_order: value,
+                    }))
+                  }
+                />
+              </div>
+
+              <label className="mt-4 block">
+                <span className="mb-2 block text-sm font-bold">
+                  Descrição
+                </span>
+                <textarea
+                  value={categoryForm.description}
+                  onChange={(event) =>
+                    setCategoryForm((current) => ({
+                      ...current,
+                      description:
+                        event.target.value,
+                    }))
+                  }
+                  rows={3}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3"
+                  placeholder="Explique os serviços incluídos nesta categoria."
+                />
+              </label>
+
+              <button
+                type="submit"
+                disabled={
+                  saving ||
+                  !categoryForm.name.trim() ||
+                  !categoryForm.slug.trim()
+                }
+                className="mt-5 rounded-xl bg-emerald-800 px-6 py-3 font-black text-white disabled:opacity-50"
+              >
+                {saving
+                  ? "A guardar..."
+                  : "Criar categoria"}
+              </button>
+            </form>
+          )}
+
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             {categories.map((category) => (
               <div
@@ -850,6 +1099,23 @@ export default function ServicesManager({
                   <button
                     type="button"
                     disabled={saving}
+                    onClick={() => {
+                      setSelectedMediaProvider(
+                        provider
+                      );
+                      window.scrollTo({
+                        top: 0,
+                        behavior: "smooth",
+                      });
+                    }}
+                    className="rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-900"
+                  >
+                    Fotografias
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={saving}
                     onClick={() =>
                       updateProvider(provider, {
                         status:
@@ -901,6 +1167,10 @@ export default function ServicesManager({
         </>
       )}
 
+      {section === "reviews" && (
+        <ServiceReviewsManager user={user} />
+      )}
+
       {section === "requests" && (
         <section className="space-y-4">
           {selectedMaterialRequest && (
@@ -919,6 +1189,9 @@ export default function ServicesManager({
               request={request}
               saving={saving}
               onSave={updateRequest}
+              onReviewLink={() =>
+                copyReviewLink(request)
+              }
               onMaterials={() => {
                 setSelectedMaterialRequest(
                   request
@@ -1060,10 +1333,12 @@ function RequestCard({
   saving,
   onSave,
   onMaterials,
+  onReviewLink,
 }: {
   request: ServiceRequest;
   saving: boolean;
   onMaterials: () => void;
+  onReviewLink: () => void;
   onSave: (
     request: ServiceRequest,
     status: string,
@@ -1185,6 +1460,17 @@ function RequestCard({
         >
           Gerir materiais
         </button>
+
+        {request.status === "completed" && (
+          <button
+            type="button"
+            disabled={saving}
+            onClick={onReviewLink}
+            className="rounded-xl border border-amber-400 bg-amber-50 px-5 py-3 font-black text-amber-900 disabled:opacity-50"
+          >
+            Copiar link de avaliação
+          </button>
+        )}
       </div>
     </article>
   );
