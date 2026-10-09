@@ -166,7 +166,13 @@ export default function ProductDetailPage() {
         }
 
         const data = await response.json();
+
+        // ABERTURA IMEDIATA DO PRODUTO V1
         setProduct(data.product);
+
+        // Os dados principais já chegaram. Mostrar a página
+        // enquanto categorias, fornecedores e imagens carregam.
+        setLoading(false);
 
         const categoriesResponse = await fetch(
           `${API_URL}/api/categories`,
@@ -851,6 +857,60 @@ export default function ProductDetailPage() {
     );
   }
 
+  // RESUMO FINANCEIRO DO PRODUTO V1
+  const activeSupplierOffers = supplierOffers.filter(
+    (offer) => offer.is_active
+  );
+
+  const preferredSupplierOffer =
+    activeSupplierOffers.find(
+      (offer) => offer.is_preferred
+    ) || null;
+
+  const comparableSupplierOffers =
+    activeSupplierOffers.filter(
+      (offer) =>
+        offer.currency === product.selling_currency
+    );
+
+  const lowestComparableOffer =
+    comparableSupplierOffers.length > 0
+      ? comparableSupplierOffers.reduce(
+          (lowest, offer) =>
+            Number(offer.unit_cost) <
+            Number(lowest.unit_cost)
+              ? offer
+              : lowest
+        )
+      : null;
+
+  const marginReferenceOffer =
+    preferredSupplierOffer?.currency ===
+    product.selling_currency
+      ? preferredSupplierOffer
+      : lowestComparableOffer;
+
+  const financialSellingPrice =
+    product.selling_price === null
+      ? null
+      : Number(product.selling_price);
+
+  const estimatedGrossProfit =
+    financialSellingPrice !== null &&
+    marginReferenceOffer
+      ? financialSellingPrice -
+        Number(marginReferenceOffer.unit_cost)
+      : null;
+
+  const estimatedGrossMargin =
+    estimatedGrossProfit !== null &&
+    financialSellingPrice !== null &&
+    financialSellingPrice > 0
+      ? (estimatedGrossProfit /
+          financialSellingPrice) *
+        100
+      : null;
+
   return (
     <div className="min-h-screen bg-slate-50">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-slate-950 text-white lg:block">
@@ -880,6 +940,13 @@ export default function ProductDetailPage() {
           <NavItem label="Vendas" icon="↑" href="/sales" />
           <PermissionGate permission="deliveries.view">
             <NavItem label="Entregas" icon="▰" href="/deliveries" />
+          </PermissionGate>
+          <PermissionGate permission="marketplace.view">
+            <NavItem
+              label="Marketplace"
+              icon="◈"
+              href="/marketplace"
+            />
           </PermissionGate>
           <NavItem label="Despesas" icon="−" href="/expenses" />
           <NavItem label="Fornecedores" icon="♢" href="/suppliers" />
@@ -1555,6 +1622,167 @@ export default function ProductDetailPage() {
                 </div>
               </section>
             </div>
+
+            {/* RESUMO FINANCEIRO DO PRODUTO V1 */}
+            <section className="mt-6 overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm">
+              <div className="border-b border-blue-100 bg-blue-50 px-5 py-4">
+                <h2 className="font-bold text-slate-950">
+                  Resumo Financeiro
+                </h2>
+                <p className="mt-1 text-sm text-slate-700">
+                  Comparação entre o preço de venda e os
+                  custos registados pelos fornecedores.
+                </p>
+              </div>
+
+              {supplierOffersLoading ? (
+                <div className="p-5 text-sm font-medium text-slate-700">
+                  A calcular o resumo financeiro...
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-5">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-950">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
+                        Preço de venda
+                      </p>
+                      <p className="mt-2 text-lg font-black">
+                        {formatPrice(
+                          product.selling_price,
+                          product.selling_currency
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-950">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
+                        Custo preferencial
+                      </p>
+                      <p className="mt-2 text-lg font-black">
+                        {preferredSupplierOffer
+                          ? formatPrice(
+                              Number(
+                                preferredSupplierOffer.unit_cost
+                              ),
+                              preferredSupplierOffer.currency
+                            )
+                          : "—"}
+                      </p>
+                      <p className="mt-1 truncate text-xs font-semibold text-slate-600">
+                        {preferredSupplierOffer
+                          ? preferredSupplierOffer.supplier_name
+                          : "Sem fornecedor preferencial"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-950">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
+                        Menor custo comparável
+                      </p>
+                      <p className="mt-2 text-lg font-black">
+                        {lowestComparableOffer
+                          ? formatPrice(
+                              Number(
+                                lowestComparableOffer.unit_cost
+                              ),
+                              lowestComparableOffer.currency
+                            )
+                          : "—"}
+                      </p>
+                      <p className="mt-1 truncate text-xs font-semibold text-slate-600">
+                        {lowestComparableOffer
+                          ? lowestComparableOffer.supplier_name
+                          : "Sem oferta na moeda de venda"}
+                      </p>
+                    </div>
+
+                    <div
+                      className={`rounded-xl border p-4 ${
+                        estimatedGrossProfit !== null &&
+                        estimatedGrossProfit >= 0
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+                          : estimatedGrossProfit !== null
+                            ? "border-red-200 bg-red-50 text-red-950"
+                            : "border-slate-200 bg-slate-50 text-slate-950"
+                      }`}
+                    >
+                      <p className="text-xs font-bold uppercase tracking-wide">
+                        Lucro bruto estimado
+                      </p>
+                      <p className="mt-2 text-lg font-black">
+                        {estimatedGrossProfit !== null
+                          ? formatPrice(
+                              estimatedGrossProfit,
+                              product.selling_currency
+                            )
+                          : "—"}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold">
+                        {marginReferenceOffer
+                          ? `Base: ${marginReferenceOffer.supplier_name}`
+                          : "Sem custo comparável"}
+                      </p>
+                    </div>
+
+                    <div
+                      className={`rounded-xl border p-4 ${
+                        estimatedGrossMargin !== null &&
+                        estimatedGrossMargin >= 0
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+                          : estimatedGrossMargin !== null
+                            ? "border-red-200 bg-red-50 text-red-950"
+                            : "border-slate-200 bg-slate-50 text-slate-950"
+                      }`}
+                    >
+                      <p className="text-xs font-bold uppercase tracking-wide">
+                        Margem bruta estimada
+                      </p>
+                      <p className="mt-2 text-lg font-black">
+                        {estimatedGrossMargin !== null
+                          ? `${estimatedGrossMargin.toLocaleString(
+                              "pt-PT",
+                              {
+                                minimumFractionDigits: 1,
+                                maximumFractionDigits: 1,
+                              }
+                            )}%`
+                          : "—"}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold">
+                        Sobre o preço de venda
+                      </p>
+                    </div>
+                  </div>
+
+                  {activeSupplierOffers.length === 0 && (
+                    <div className="mx-5 mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950">
+                      Adicione uma oferta de fornecedor para
+                      visualizar o custo e a margem estimada.
+                    </div>
+                  )}
+
+                  {activeSupplierOffers.length > 0 &&
+                    comparableSupplierOffers.length === 0 && (
+                      <div className="mx-5 mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950">
+                        A margem não foi calculada porque as
+                        ofertas estão numa moeda diferente de{" "}
+                        {product.selling_currency}. Registe um
+                        custo nessa moeda para obter uma
+                        comparação segura.
+                      </div>
+                    )}
+
+                  {estimatedGrossProfit !== null &&
+                    estimatedGrossProfit < 0 && (
+                      <div className="mx-5 mb-5 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-bold text-red-950">
+                        Atenção: o custo utilizado é superior
+                        ao preço de venda. Este produto apresenta
+                        prejuízo bruto estimado.
+                      </div>
+                    )}
+                </>
+              )}
+            </section>
 
             <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">

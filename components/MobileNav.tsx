@@ -18,6 +18,18 @@ const navigation = [
     icon: "▰",
     permission: "deliveries.view",
   },
+  {
+    label: "Marketplace",
+    href: "/marketplace",
+    icon: "◈",
+    permission: "marketplace.view",
+  },
+  {
+    label: "Página Nazunga",
+    href: "/marketplace-home",
+    icon: "✦",
+    permission: "marketplace.view",
+  },
   { label: "Despesas", href: "/expenses", icon: "−" },
   { label: "Fornecedores", href: "/suppliers", icon: "♢" },
   { label: "Clientes", href: "/customers", icon: "♙" },
@@ -107,10 +119,16 @@ export default function MobileNav({
                   </a>
                 );
 
-                return item.href === "/users" ? (
+                const requiredPermission =
+                  item.permission ||
+                  (item.href === "/users"
+                    ? "users.manage"
+                    : undefined);
+
+                return requiredPermission ? (
                   <PermissionGate
                     key={item.href}
-                    permission="users.manage"
+                    permission={requiredPermission}
                   >
                     {link}
                   </PermissionGate>

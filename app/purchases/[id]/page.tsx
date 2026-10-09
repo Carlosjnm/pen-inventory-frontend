@@ -98,6 +98,8 @@ export default function PurchaseOrderDetailPage() {
   const [itemSupplierSku, setItemSupplierSku] = useState("");
   const [itemDescription, setItemDescription] = useState("");
   const [addingItem, setAddingItem] = useState(false);
+  const [itemOfferLoading, setItemOfferLoading] =
+    useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [receiving, setReceiving] = useState(false);
   const [exchangeRate, setExchangeRate] = useState("");
@@ -126,83 +128,56 @@ export default function PurchaseOrderDetailPage() {
     return () => unsubscribe();
   }, [purchaseOrderId]);
 
-  async function loadProducts(user: User, order: PurchaseOrder) {
+  // CARREGAMENTO RÁPIDO DOS ITENS DE COMPRA V1
+  async function loadProducts(
+    user: User,
+    _order: PurchaseOrder
+  ) {
     try {
       const token = await user.getIdToken();
-      const response = await fetch(`${API_URL}/api/products`, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-      });
+
+      const response = await fetch(
+        `${API_URL}/api/products`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        }
+      );
+
       const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(data.detail || "Não foi possível carregar os produtos.");
+        throw new Error(
+          data.detail ||
+            "Não foi possível carregar os produtos."
+        );
       }
 
-      const availableProducts: Product[] = (data.products || []).filter(
-        (product: Product) =>
-          !["inactive", "discontinued", "archived"].includes(product.status)
-      );
+      const availableProducts: Product[] = (
+        data.products || []
+      )
+        .filter(
+          (product: Product) =>
+            ![
+              "inactive",
+              "discontinued",
+              "archived",
+            ].includes(product.status)
+        )
+        .map((product: Product) => ({
+          ...product,
+          supplier_offer_id: null,
+          supplier_sku: null,
+          supplier_unit_cost: null,
+          minimum_order_quantity: null,
+        }))
+        .sort((a: Product, b: Product) =>
+          a.name.localeCompare(b.name)
+        );
 
-      const productsWithOffers = await Promise.all(
-        availableProducts.map(async (product) => {
-          try {
-            const offerResponse = await fetch(
-              `${API_URL}/api/products/${product.id}/supplier-offers`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-                cache: "no-store",
-              }
-            );
-            if (!offerResponse.ok) {
-              return {
-                ...product,
-                supplier_offer_id: null,
-                supplier_sku: null,
-                supplier_unit_cost: null,
-                minimum_order_quantity: null,
-              };
-            }
-            const offerData = await offerResponse.json();
-            const offer = (offerData.offers || []).find(
-              (candidate: {
-                supplier_id: string;
-                currency: string;
-                is_active: boolean;
-              }) =>
-                candidate.is_active &&
-                candidate.supplier_id === order.supplier_id &&
-                candidate.currency === order.currency
-            );
-            return {
-              ...product,
-              supplier_offer_id: offer?.id || null,
-              supplier_sku: offer?.supplier_sku || null,
-              supplier_unit_cost:
-                offer?.unit_cost === undefined ? null : Number(offer.unit_cost),
-              minimum_order_quantity:
-                offer?.minimum_order_quantity === undefined ||
-                offer?.minimum_order_quantity === null
-                  ? null
-                  : Number(offer.minimum_order_quantity),
-            };
-          } catch {
-            return {
-              ...product,
-              supplier_offer_id: null,
-              supplier_sku: null,
-              supplier_unit_cost: null,
-              minimum_order_quantity: null,
-            };
-          }
-        })
-      );
-
-      productsWithOffers.sort((a, b) => {
-        if (a.supplier_offer_id && !b.supplier_offer_id) return -1;
-        if (!a.supplier_offer_id && b.supplier_offer_id) return 1;
-        return a.name.localeCompare(b.name);
-      });
-      setProducts(productsWithOffers);
+      setProducts(availableProducts);
     } catch (error) {
       console.error(error);
       setMessage(
@@ -210,6 +185,112 @@ export default function PurchaseOrderDetailPage() {
           ? error.message
           : "Não foi possível carregar os produtos."
       );
+    }
+  }
+
+  async function loadSelectedProductOffer(
+    user: User,
+    order: PurchaseOrder,
+    productId: string
+  ) {
+    if (!productId) return;
+
+    try {
+      setItemOfferLoading(true);
+      setMessage("");
+      setItemUnitCost("");
+      setItemSupplierSku("");
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        `${API_URL}/api/products/${productId}/supplier-offers`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            "Não foi possível consultar o preço do fornecedor."
+        );
+      }
+
+      const offer = (data.offers || []).find(
+        (candidate: {
+          id: string;
+          supplier_id: string;
+          supplier_sku: string | null;
+          currency: string;
+          unit_cost: number;
+          minimum_order_quantity: number | null;
+          is_active: boolean;
+        }) =>
+          candidate.is_active &&
+          candidate.supplier_id === order.supplier_id &&
+          candidate.currency === order.currency
+      );
+
+      const offerData = {
+        supplier_offer_id: offer?.id || null,
+        supplier_sku: offer?.supplier_sku || null,
+        supplier_unit_cost:
+          offer?.unit_cost === undefined
+            ? null
+            : Number(offer.unit_cost),
+        minimum_order_quantity:
+          offer?.minimum_order_quantity === undefined ||
+          offer?.minimum_order_quantity === null
+            ? null
+            : Number(offer.minimum_order_quantity),
+      };
+
+      setProducts((current) =>
+        current.map((product) =>
+          product.id === productId
+            ? {
+                ...product,
+                ...offerData,
+              }
+            : product
+        )
+      );
+
+      if (offerData.supplier_unit_cost !== null) {
+        setItemUnitCost(
+          String(offerData.supplier_unit_cost)
+        );
+      }
+
+      setItemSupplierSku(
+        offerData.supplier_sku || ""
+      );
+
+      if (
+        offerData.minimum_order_quantity !== null &&
+        Number(itemQuantity) <
+          offerData.minimum_order_quantity
+      ) {
+        setItemQuantity(
+          String(offerData.minimum_order_quantity)
+        );
+      }
+    } catch (error) {
+      console.error(error);
+
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível consultar o preço do fornecedor."
+      );
+    } finally {
+      setItemOfferLoading(false);
     }
   }
 
@@ -542,6 +623,13 @@ export default function PurchaseOrderDetailPage() {
           <PermissionGate permission="deliveries.view">
             <NavItem label="Entregas" icon="▰" href="/deliveries" />
           </PermissionGate>
+          <PermissionGate permission="marketplace.view">
+            <NavItem
+              label="Marketplace"
+              icon="◈"
+              href="/marketplace"
+            />
+          </PermissionGate>
           <NavItem label="Despesas" icon="−" href="/expenses" />
           <NavItem label="Fornecedores" icon="♢" href="/suppliers" />
           <NavItem label="Clientes" icon="♙" href="/customers" />
@@ -714,25 +802,24 @@ export default function PurchaseOrderDetailPage() {
                       <span className="mb-1.5 block text-xs font-semibold text-slate-600">Produto *</span>
                       <select
                         value={selectedProductId}
-                        onChange={(event) => {
-                          const productId = event.target.value;
-                          const selected = products.find(
-                            (product) => product.id === productId
-                          );
+                        onChange={async (event) => {
+                          const productId =
+                            event.target.value;
+
                           setSelectedProductId(productId);
-                          setItemUnitCost(
-                            selected?.supplier_unit_cost !== null &&
-                              selected?.supplier_unit_cost !== undefined
-                              ? String(selected.supplier_unit_cost)
-                              : ""
-                          );
-                          setItemSupplierSku(selected?.supplier_sku || "");
+                          setItemUnitCost("");
+                          setItemSupplierSku("");
+                          setMessage("");
+
                           if (
-                            selected?.minimum_order_quantity &&
-                            Number(itemQuantity) < selected.minimum_order_quantity
+                            productId &&
+                            firebaseUser &&
+                            purchaseOrder
                           ) {
-                            setItemQuantity(
-                              String(selected.minimum_order_quantity)
+                            await loadSelectedProductOffer(
+                              firebaseUser,
+                              purchaseOrder,
+                              productId
                             );
                           }
                         }}
@@ -742,9 +829,6 @@ export default function PurchaseOrderDetailPage() {
                         {products.map((product) => (
                           <option key={product.id} value={product.id}>
                             {product.sku} — {product.name}
-                            {product.supplier_offer_id
-                              ? " — Oferta do fornecedor"
-                              : " — Sem oferta guardada"}
                           </option>
                         ))}
                       </select>
@@ -757,7 +841,39 @@ export default function PurchaseOrderDetailPage() {
 
                     <label>
                       <span className="mb-1.5 block text-xs font-semibold text-slate-600">Preço de compra do fornecedor ({purchaseOrder.currency}) *</span>
-                      <input type="number" min="0" step="0.01" value={itemUnitCost} onChange={(event) => setItemUnitCost(event.target.value)} placeholder="0,00" className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900" />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={itemUnitCost}
+                        onChange={(event) =>
+                          setItemUnitCost(
+                            event.target.value
+                          )
+                        }
+                        placeholder="0,00"
+                        disabled={itemOfferLoading}
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 disabled:cursor-wait disabled:bg-slate-100"
+                      />
+
+                      {itemOfferLoading && (
+                        <span className="mt-1.5 block text-xs font-bold text-blue-800">
+                          A procurar preço do fornecedor...
+                        </span>
+                      )}
+
+                      {!itemOfferLoading &&
+                        selectedProductId &&
+                        !products.find(
+                          (product) =>
+                            product.id ===
+                            selectedProductId
+                        )?.supplier_offer_id && (
+                          <span className="mt-1.5 block text-xs font-semibold text-amber-900">
+                            Sem oferta compatível. Introduza
+                            o preço manualmente.
+                          </span>
+                        )}
                     </label>
 
                     <div>
@@ -778,8 +894,21 @@ export default function PurchaseOrderDetailPage() {
                     </label>
 
                     <div className="flex items-end">
-                      <button type="button" onClick={submitPurchaseOrderItem} disabled={addingItem} className="w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
-                        {addingItem ? "A adicionar..." : "Adicionar à ordem"}
+                      <button
+                        type="button"
+                        onClick={submitPurchaseOrderItem}
+                        disabled={
+                          addingItem ||
+                          itemOfferLoading ||
+                          !selectedProductId
+                        }
+                        className="w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-700"
+                      >
+                        {addingItem
+                          ? "A adicionar..."
+                          : itemOfferLoading
+                            ? "A procurar preço..."
+                            : "Adicionar à ordem"}
                       </button>
                     </div>
                   </div>
@@ -788,7 +917,7 @@ export default function PurchaseOrderDetailPage() {
 
               {purchaseOrder.items.length === 0 ? (
                 <div className="p-8 text-sm text-slate-500">
-                  No items have been added to this purchase order.
+                  Ainda não foram adicionados itens a esta ordem de compra.
                 </div>
               ) : (
                 <div className="overflow-x-auto">

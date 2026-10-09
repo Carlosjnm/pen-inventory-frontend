@@ -777,6 +777,13 @@ export default function DeliveriesPage() {
           <NavItem label="Compras" icon="↓" href="/purchases" />
           <NavItem label="Vendas" icon="↑" href="/sales" />
           <NavItem label="Entregas" icon="▰" href="/deliveries" active />
+          <PermissionGate permission="marketplace.view">
+            <NavItem
+              label="Marketplace"
+              icon="◈"
+              href="/marketplace"
+            />
+          </PermissionGate>
           <NavItem label="Despesas" icon="−" href="/expenses" />
           <NavItem label="Fornecedores" icon="♢" href="/suppliers" />
           <NavItem label="Clientes" icon="♙" href="/customers" />

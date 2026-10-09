@@ -101,6 +101,9 @@ export default function InventoryPage() {
   const [adjustSaving, setAdjustSaving] = useState(false);
 
   const [transferOpen, setTransferOpen] = useState(false);
+  const [transferMode, setTransferMode] = useState<
+    "transfer" | "warehouse_return"
+  >("transfer");
   const [transferItem, setTransferItem] = useState<Balance | null>(null);
   const [transferDestination, setTransferDestination] = useState("");
   const [transferQty, setTransferQty] = useState("1");
@@ -494,16 +497,77 @@ export default function InventoryPage() {
     }
   }
 
+  // DEVOLUÇÃO AO ARMAZÉM V1
+  function warehouseReturnDestination(item: Balance) {
+    const destinations = operationalLocations.filter(
+      (location) => location.id !== item.location_id
+    );
+
+    const mainWarehouse = destinations.find((location) => {
+      const name = location.name
+        .trim()
+        .toLocaleLowerCase("pt-PT");
+
+      const code = (
+        location.location_code || ""
+      )
+        .trim()
+        .toLocaleLowerCase("pt-PT");
+
+      return (
+        name === "main warehouse" ||
+        name.includes("armazém principal") ||
+        name.includes("armazem principal") ||
+        code === "main" ||
+        code === "main-warehouse"
+      );
+    });
+
+    return (
+      mainWarehouse ||
+      destinations.find(
+        (location) =>
+          location.location_type === "warehouse"
+      ) ||
+      null
+    );
+  }
+
   function openTransfer(item: Balance) {
     const destinations = operationalLocations.filter(
       (location) => location.id !== item.location_id
     );
 
+    setTransferMode("transfer");
     setTransferItem(item);
     setTransferDestination(destinations[0]?.id || "");
     setTransferQty("1");
     setTransferReference("");
     setTransferReason("");
+    setTransferNotes("");
+    setError("");
+    setTransferOpen(true);
+  }
+
+  function openWarehouseReturn(item: Balance) {
+    const warehouse =
+      warehouseReturnDestination(item);
+
+    if (!warehouse) {
+      setError(
+        "Não foi encontrado um armazém principal ativo para receber a devolução."
+      );
+      return;
+    }
+
+    setTransferMode("warehouse_return");
+    setTransferItem(item);
+    setTransferDestination(warehouse.id);
+    setTransferQty("1");
+    setTransferReference("");
+    setTransferReason(
+      "Devolução ao armazém — produto em boas condições"
+    );
     setTransferNotes("");
     setError("");
     setTransferOpen(true);
@@ -704,6 +768,28 @@ export default function InventoryPage() {
               <span>{label}</span>
             </button>
           ))}
+
+          <PermissionGate permission="deliveries.view">
+            <button
+              type="button"
+              onClick={() => router.push("/deliveries")}
+              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-medium text-slate-400 hover:bg-white/10 hover:text-white"
+            >
+              <span className="w-5 text-center">▰</span>
+              <span>Entregas</span>
+            </button>
+          </PermissionGate>
+
+          <PermissionGate permission="marketplace.view">
+            <button
+              type="button"
+              onClick={() => router.push("/marketplace")}
+              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-medium text-slate-400 hover:bg-white/10 hover:text-white"
+            >
+              <span className="w-5 text-center">◈</span>
+              <span>Marketplace</span>
+            </button>
+          </PermissionGate>
 
           <PermissionGate permission="users.manage">
             <button
@@ -906,6 +992,26 @@ export default function InventoryPage() {
                               </button>
 
                               <button
+                                onClick={() =>
+                                  openWarehouseReturn(item)
+                                }
+                                disabled={
+                                  Number(
+                                    item.quantity_available || 0
+                                  ) <= 0 ||
+                                  !warehouseReturnDestination(item)
+                                }
+                                title={
+                                  warehouseReturnDestination(item)
+                                    ? "Devolver produto em boas condições ao armazém principal"
+                                    : "Armazém principal não disponível"
+                                }
+                                className="rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                              >
+                                Devolver ao armazém
+                              </button>
+
+                              <button
                                 onClick={() => openTransfer(item)}
                                 disabled={
                                   Number(item.quantity_available || 0) <= 0 ||
@@ -1084,11 +1190,13 @@ export default function InventoryPage() {
 
           {transferOpen && transferItem && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-              <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+              <div className="w-full max-w-lg rounded-xl bg-white p-6 text-slate-950 shadow-xl">
                 <div className="mb-5 flex items-start justify-between">
                   <div>
                     <h2 className="text-xl font-bold text-slate-900">
-                      Transferir Stock
+                      {transferMode === "warehouse_return"
+                        ? "Devolver ao armazém"
+                        : "Transferir Stock"}
                     </h2>
 
                     <p className="mt-1 text-sm text-slate-500">
@@ -1114,6 +1222,25 @@ export default function InventoryPage() {
                 </div>
 
                 <div className="space-y-4">
+                  {transferMode === "warehouse_return" && (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+                      <p className="font-bold">
+                        Devolução de produto em boas condições
+                      </p>
+                      <p className="mt-1">
+                        O stock será retirado de{" "}
+                        <strong>
+                          {transferItem.location_name}
+                        </strong>{" "}
+                        e adicionado ao armazém principal.
+                      </p>
+                      <p className="mt-2 font-semibold text-amber-900">
+                        Se o produto estiver danificado, feche
+                        esta janela e utilize Quarentena.
+                      </p>
+                    </div>
+                  )}
+
                   <div>
                     <label className="mb-1 block text-sm font-medium text-slate-700">
                       Localização de Destino *
@@ -1124,7 +1251,10 @@ export default function InventoryPage() {
                       onChange={(e) =>
                         setTransferDestination(e.target.value)
                       }
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
+                      disabled={
+                        transferMode === "warehouse_return"
+                      }
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-950 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-800"
                     >
                       <option value="">Selecionar destino</option>
 
@@ -1197,7 +1327,11 @@ export default function InventoryPage() {
                       onChange={(e) =>
                         setTransferReason(e.target.value)
                       }
-                      placeholder="Ex.: Reposição de stock da loja"
+                      placeholder={
+                        transferMode === "warehouse_return"
+                          ? "Devolução ao armazém"
+                          : "Ex.: Reposição de stock da loja"
+                      }
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
@@ -1213,7 +1347,11 @@ export default function InventoryPage() {
                         setTransferNotes(e.target.value)
                       }
                       rows={3}
-                      placeholder="Informação adicional sobre a transferência"
+                      placeholder={
+                        transferMode === "warehouse_return"
+                          ? "Ex.: Produto não vendido, embalagem intacta"
+                          : "Informação adicional sobre a transferência"
+                      }
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
@@ -1229,7 +1367,7 @@ export default function InventoryPage() {
                   <button
                     onClick={() => setTransferOpen(false)}
                     disabled={transferSaving}
-                    className="rounded-lg border px-4 py-2"
+                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-800 hover:bg-slate-100 disabled:opacity-50"
                   >
                     Cancelar
                   </button>
@@ -1244,8 +1382,12 @@ export default function InventoryPage() {
                     className="rounded-lg bg-slate-900 px-4 py-2 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {transferSaving
-                      ? "A transferir..."
-                      : "Confirmar Transferência"}
+                      ? transferMode === "warehouse_return"
+                        ? "A devolver..."
+                        : "A transferir..."
+                      : transferMode === "warehouse_return"
+                        ? "Confirmar devolução"
+                        : "Confirmar Transferência"}
                   </button>
                 </div>
               </div>

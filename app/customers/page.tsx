@@ -240,6 +240,13 @@ export default function CustomersPage() {
           <PermissionGate permission="deliveries.view">
             <NavItem label="Entregas" icon="▰" href="/deliveries" />
           </PermissionGate>
+          <PermissionGate permission="marketplace.view">
+            <NavItem
+              label="Marketplace"
+              icon="◈"
+              href="/marketplace"
+            />
+          </PermissionGate>
           <NavItem label="Despesas" icon="−" href="/expenses" />
           <NavItem label="Fornecedores" icon="♢" href="/suppliers" />
           <NavItem label="Clientes" icon="♙" active href="/customers" />

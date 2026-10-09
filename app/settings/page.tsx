@@ -1103,12 +1103,26 @@ export default function SettingsPage() {
           <PermissionGate permission="deliveries.view">
             <NavItem label="Entregas" icon="▰" href="/deliveries" />
           </PermissionGate>
+          <PermissionGate permission="marketplace.view">
+            <NavItem
+              label="Marketplace"
+              icon="◈"
+              href="/marketplace"
+            />
+          </PermissionGate>
           <NavItem label="Despesas" icon="−" href="/expenses" />
           <NavItem label="Fornecedores" icon="♢" href="/suppliers" />
           <NavItem label="Clientes" icon="♙" href="/customers" />
           <NavItem label="Relatórios" icon="▤" href="/reports" />
           <PermissionGate permission="users.manage">
             <NavItem label="Utilizadores" icon="♧" href="/users" />
+          </PermissionGate>
+          <PermissionGate permission="marketplace.view">
+            <NavItem
+              label="Página Nazunga"
+              icon="✦"
+              href="/marketplace-home"
+            />
           </PermissionGate>
           <NavItem label="Definições" icon="⚙" active href="/settings" />
         </nav>
