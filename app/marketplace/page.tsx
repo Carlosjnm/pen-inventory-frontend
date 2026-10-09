@@ -12,6 +12,7 @@ import { auth } from "@/lib/firebase";
 import MobileNav from "@/components/MobileNav";
 import PermissionGate from "@/components/PermissionGate";
 import HomepageEditor from "./HomepageEditor";
+import ServicesManager from "./ServicesManager";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -508,6 +509,7 @@ export default function MarketplacePage() {
     | "campaigns"
     | "advertising_inquiries"
     | "store_applications"
+    | "services"
     | "homepage"
     | "settings"
   >("orders");
@@ -2077,6 +2079,15 @@ export default function MarketplacePage() {
 
                     {canManage && (
                       <TabButton
+                        active={tab === "services"}
+                        onClick={() => setTab("services")}
+                      >
+                        Serviços
+                      </TabButton>
+                    )}
+
+                    {canManage && (
+                      <TabButton
                         active={tab === "homepage"}
                         onClick={() => setTab("homepage")}
                       >
@@ -2095,6 +2106,7 @@ export default function MarketplacePage() {
                   </div>
 
                   {tab !== "settings" &&
+                    tab !== "services" &&
                     tab !== "homepage" &&
                     tab !== "campaigns" &&
                     tab !== "advertising_inquiries" &&
@@ -3067,6 +3079,14 @@ export default function MarketplacePage() {
                           )}
                         </div>
                       </section>
+                    )}
+
+                  {tab === "services" &&
+                    canManage &&
+                    firebaseUser && (
+                      <ServicesManager
+                        user={firebaseUser}
+                      />
                     )}
 
                   {tab === "homepage" &&
