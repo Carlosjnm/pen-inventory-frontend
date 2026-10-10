@@ -12,6 +12,7 @@ import ServiceReviewsManager from "./ServiceReviewsManager";
 import ProtectedPaymentControl from "./ProtectedPaymentControl";
 import NotificationControl from "./NotificationControl";
 import ProviderAccountsManager from "./ProviderAccountsManager";
+import ConversationRetentionControl from "./ConversationRetentionControl";
 import ServicesHomepageEditor from "./ServicesHomepageEditor";
 
 // NAZUNGA SERVICES HOMEPAGE EDITOR V1
@@ -203,6 +204,7 @@ export default function ServicesManager({
     | "homepage"
     | "protected_payments"
     | "notifications"
+    | "retention"
     | "settings"
   >("providers");
   const [categories, setCategories] =
@@ -616,6 +618,18 @@ export default function ServicesManager({
               Notificações
             </SectionButton>
           )}
+          {/* PEN CONVERSATION RETENTION PANEL V1 */}
+          {isSuperAdmin && (
+            <SectionButton
+              active={section === "retention"}
+              onClick={() =>
+                setSection("retention")
+              }
+            >
+              Retenção
+            </SectionButton>
+          )}
+
           <SectionButton
             active={section === "settings"}
             onClick={() => setSection("settings")}
@@ -1411,6 +1425,13 @@ export default function ServicesManager({
       {section === "homepage" && (
         <ServicesHomepageEditor user={user} />
       )}
+
+      {section === "retention" &&
+        isSuperAdmin && (
+          <ConversationRetentionControl
+            user={user}
+          />
+        )}
 
       {section === "protected_payments" &&
         isSuperAdmin && (
