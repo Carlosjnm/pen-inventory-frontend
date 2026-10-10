@@ -13,6 +13,7 @@ import MobileNav from "@/components/MobileNav";
 import PermissionGate from "@/components/PermissionGate";
 import HomepageEditor from "./HomepageEditor";
 import ServicesManager from "./ServicesManager";
+import StoreImportControl from "./StoreImportControl";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -20,6 +21,12 @@ const API_URL =
 
 type CurrentUser = {
   permissions: string[];
+  roles?: Array<
+    string | {
+      code?: string;
+      name?: string;
+    }
+  >;
 };
 
 type Store = {
@@ -48,6 +55,9 @@ type Store = {
   is_accepting_orders: boolean;
   listing_count: number;
   active_listing_count: number;
+
+  // PEN STORE IMPORT ADMIN UI V1
+  product_import_enabled: boolean;
 };
 
 type MarketplaceLocation = {
@@ -3086,6 +3096,14 @@ export default function MarketplacePage() {
                     firebaseUser && (
                       <ServicesManager
                         user={firebaseUser}
+                        isSuperAdmin={Boolean(
+                          currentUser?.roles?.some(
+                            (role) =>
+                              typeof role === "string"
+                                ? role === "super_admin"
+                                : role.code === "super_admin"
+                          )
+                        )}
                       />
                     )}
 
@@ -3098,6 +3116,21 @@ export default function MarketplacePage() {
                     )}
 
                   {tab === "settings" && canManage && (
+                    <>
+                      {firebaseUser &&
+                        currentUser?.roles?.some(
+                          (role) =>
+                            typeof role === "string"
+                              ? role === "super_admin"
+                              : role.code === "super_admin"
+                        ) && (
+                          <StoreImportControl
+                            user={firebaseUser}
+                            stores={stores}
+                            onUpdated={refreshAll}
+                          />
+                        )}
+
                     <form
                       onSubmit={saveStore}
                       className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-950 shadow-sm"
@@ -3496,6 +3529,7 @@ export default function MarketplacePage() {
                         </button>
                       </div>
                     </form>
+                    </>
                   )}
                 </>
               )}

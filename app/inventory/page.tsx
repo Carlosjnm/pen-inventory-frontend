@@ -925,7 +925,7 @@ export default function InventoryPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Pesquisar SKU, produto ou referência..."
-              className="ml-auto w-80 rounded-lg border bg-white px-4 py-2 text-sm"
+              className="ml-auto w-80 rounded-lg border border-slate-400 bg-white px-4 py-2 text-sm text-slate-950 caret-slate-950 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
           </div>
 

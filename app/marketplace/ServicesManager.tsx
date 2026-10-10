@@ -9,6 +9,7 @@ import { User } from "firebase/auth";
 import ServiceMaterialsManager from "./ServiceMaterialsManager";
 import ProviderMediaManager from "./ProviderMediaManager";
 import ServiceReviewsManager from "./ServiceReviewsManager";
+import ProtectedPaymentControl from "./ProtectedPaymentControl";
 import ServicesHomepageEditor from "./ServicesHomepageEditor";
 
 // NAZUNGA SERVICES HOMEPAGE EDITOR V1
@@ -185,13 +186,21 @@ function money(
   }).format(Number(value || 0));
 }
 
+// PEN PROTECTED PAYMENT PANEL V1
 export default function ServicesManager({
   user,
+  isSuperAdmin = false,
 }: {
   user: User;
+  isSuperAdmin?: boolean;
 }) {
   const [section, setSection] = useState<
-    "providers" | "requests" | "reviews" | "homepage" | "settings"
+    | "providers"
+    | "requests"
+    | "reviews"
+    | "homepage"
+    | "protected_payments"
+    | "settings"
   >("providers");
   const [categories, setCategories] =
     useState<Category[]>([]);
@@ -199,6 +208,14 @@ export default function ServicesManager({
     useState(emptyCategory);
   const [showCategoryForm, setShowCategoryForm] =
     useState(false);
+
+  // NAZUNGA COMPACT CATEGORY MANAGEMENT V1
+  const [categorySearch, setCategorySearch] =
+    useState("");
+  const [
+    providerCategorySearch,
+    setProviderCategorySearch,
+  ] = useState("");
   const [providers, setProviders] =
     useState<Provider[]>([]);
   const [requests, setRequests] =
@@ -564,6 +581,21 @@ export default function ServicesManager({
           >
             Página pública
           </SectionButton>
+          {isSuperAdmin && (
+            <SectionButton
+              active={
+                section === "protected_payments"
+              }
+              onClick={() =>
+                setSection(
+                  "protected_payments"
+                )
+              }
+            >
+              Pagamento Protegido
+            </SectionButton>
+          )}
+
           <SectionButton
             active={section === "settings"}
             onClick={() => setSection("settings")}
@@ -737,32 +769,84 @@ export default function ServicesManager({
             </form>
           )}
 
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            {categories.map((category) => (
-              <div
-                key={category.id}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-              >
-                <p className="font-black">
-                  {category.name}
-                </p>
-                <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">
-                  {category.booking_mode ===
-                  "appointment"
-                    ? "Marcação"
-                    : category.booking_mode ===
-                        "quote"
-                      ? "Orçamento"
-                      : "Marcação ou orçamento"}
-                </p>
-                <p className="mt-4 text-2xl font-black text-emerald-800">
-                  {category.provider_count || 0}
-                </p>
-                <p className="text-xs text-slate-500">
-                  profissionais
+          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-4 border-b border-slate-200 p-5 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h3 className="font-black">
+                  Categorias de serviços
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {categories.length} categorias disponíveis
                 </p>
               </div>
-            ))}
+
+              <input
+                type="search"
+                value={categorySearch}
+                onChange={(event) =>
+                  setCategorySearch(
+                    event.target.value
+                  )
+                }
+                placeholder="Pesquisar categoria..."
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 placeholder:text-slate-400 md:w-80"
+              />
+            </div>
+
+            <div className="max-h-[420px] overflow-auto">
+              <table className="w-full min-w-[620px] text-left text-sm">
+                <thead className="sticky top-0 bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
+                  <tr>
+                    <th className="px-5 py-3">
+                      Categoria
+                    </th>
+                    <th className="px-5 py-3">
+                      Tipo de pedido
+                    </th>
+                    <th className="px-5 py-3 text-right">
+                      Profissionais
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {categories
+                    .filter((category) =>
+                      category.name
+                        .toLocaleLowerCase("pt")
+                        .includes(
+                          categorySearch
+                            .trim()
+                            .toLocaleLowerCase("pt")
+                        )
+                    )
+                    .map((category) => (
+                      <tr
+                        key={category.id}
+                        className="border-t border-slate-100 hover:bg-emerald-50/50"
+                      >
+                        <td className="px-5 py-3 font-bold">
+                          {category.name}
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {category.booking_mode ===
+                          "appointment"
+                            ? "Marcação"
+                            : category.booking_mode ===
+                                "quote"
+                              ? "Orçamento"
+                              : "Marcação ou orçamento"}
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <span className="inline-flex min-w-9 justify-center rounded-full bg-emerald-100 px-3 py-1 font-black text-emerald-900">
+                            {category.provider_count || 0}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </section>
 
           <div className="flex justify-end">
@@ -940,42 +1024,92 @@ export default function ServicesManager({
               </label>
 
               <div className="mt-5">
-                <p className="mb-3 text-sm font-black">
-                  Categorias
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {categories.map((category) => (
-                    <label
-                      key={category.id}
-                      className="flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-bold"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={providerForm.category_ids.includes(
-                          category.id
-                        )}
-                        onChange={(event) =>
-                          setProviderForm(
-                            (current) => ({
-                              ...current,
-                              category_ids:
-                                event.target.checked
-                                  ? [
-                                      ...current.category_ids,
-                                      category.id,
-                                    ]
-                                  : current.category_ids.filter(
-                                      (id) =>
-                                        id !==
-                                        category.id
-                                    ),
-                            })
+                <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <p className="text-sm font-black">
+                      Categorias
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Selecione uma ou mais categorias para o profissional.
+                    </p>
+                  </div>
+
+                  <input
+                    type="search"
+                    value={providerCategorySearch}
+                    onChange={(event) =>
+                      setProviderCategorySearch(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Procurar categoria..."
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-950 placeholder:text-slate-400 md:w-72"
+                  />
+                </div>
+
+                {providerForm.category_ids.length > 0 && (
+                  <p className="mb-3 text-xs font-bold text-emerald-800">
+                    {providerForm.category_ids.length} categoria(s) selecionada(s)
+                  </p>
+                )}
+
+                <div className="max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    {categories
+                      .filter((category) =>
+                        category.name
+                          .toLocaleLowerCase("pt")
+                          .includes(
+                            providerCategorySearch
+                              .trim()
+                              .toLocaleLowerCase("pt")
                           )
-                        }
-                      />
-                      {category.name}
-                    </label>
-                  ))}
+                      )
+                      .map((category) => {
+                        const checked =
+                          providerForm.category_ids.includes(
+                            category.id
+                          );
+
+                        return (
+                          <label
+                            key={category.id}
+                            className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm font-bold transition ${
+                              checked
+                                ? "border-emerald-600 bg-emerald-100 text-emerald-950"
+                                : "border-slate-200 bg-white hover:border-emerald-400"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(event) =>
+                                setProviderForm(
+                                  (current) => ({
+                                    ...current,
+                                    category_ids:
+                                      event.target.checked
+                                        ? [
+                                            ...current.category_ids,
+                                            category.id,
+                                          ]
+                                        : current.category_ids.filter(
+                                            (id) =>
+                                              id !==
+                                              category.id
+                                          ),
+                                  })
+                                )
+                              }
+                              className="h-4 w-4 accent-emerald-700"
+                            />
+                            <span>
+                              {category.name}
+                            </span>
+                          </label>
+                        );
+                      })}
+                  </div>
                 </div>
               </div>
 
@@ -1224,6 +1358,13 @@ export default function ServicesManager({
       {section === "homepage" && (
         <ServicesHomepageEditor user={user} />
       )}
+
+      {section === "protected_payments" &&
+        isSuperAdmin && (
+          <ProtectedPaymentControl
+            user={user}
+          />
+        )}
 
       {section === "settings" && config && (
         <form

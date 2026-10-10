@@ -1,11 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 import { auth } from "@/lib/firebase";
 import MobileNav from "@/components/MobileNav";
 
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
+
+type ImportStore = {
+  id: string;
+  slug: string;
+  name: string;
+  status: string;
+  product_import_enabled: boolean;
+  can_import_products: boolean;
+  member_role: string;
+  allowed: boolean;
+};
+
+
+// PEN IMPORTED PRODUCT PHOTOS V1
+type ImportedProduct = {
+  id: string;
+  sku: string;
+  name: string;
+};
 
 export default function ImportProductsPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -16,8 +38,93 @@ export default function ImportProductsPage() {
   const [importResult, setImportResult] = useState<any>(null);
   const [acceptWarnings, setAcceptWarnings] = useState(false);
 
+  // PEN STORE-SCOPED IMPORT UI V1
+  const [importStores, setImportStores] =
+    useState<ImportStore[]>([]);
+  const [selectedStoreId, setSelectedStoreId] =
+    useState("");
+  const [loadingAccess, setLoadingAccess] =
+    useState(true);
+  const [accessError, setAccessError] =
+    useState("");
+  const [isSuperAdmin, setIsSuperAdmin] =
+    useState(false);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(
+      async (user) => {
+        if (!user) {
+          setLoadingAccess(false);
+          setAccessError(
+            "Inicie sessão para consultar as lojas autorizadas."
+          );
+          return;
+        }
+
+        try {
+          setLoadingAccess(true);
+          setAccessError("");
+
+          const token = await user.getIdToken();
+
+          const response = await fetch(
+            `${API_URL}/api/products/import/access`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              cache: "no-store",
+            }
+          );
+
+          const data = await response
+            .json()
+            .catch(() => ({}));
+
+          if (!response.ok) {
+            throw new Error(
+              data.detail ||
+                "Não foi possível consultar as autorizações."
+            );
+          }
+
+          const stores =
+            (data.stores || []) as ImportStore[];
+
+          setImportStores(stores);
+          setIsSuperAdmin(
+            Boolean(data.is_super_admin)
+          );
+
+          const firstAllowed = stores.find(
+            (store) => store.allowed
+          );
+
+          setSelectedStoreId(
+            firstAllowed?.id || ""
+          );
+        } catch (error) {
+          setAccessError(
+            error instanceof Error
+              ? error.message
+              : "Não foi possível consultar as autorizações."
+          );
+        } finally {
+          setLoadingAccess(false);
+        }
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
   async function performImport() {
-    if (!file) return;
+    if (!file || !selectedStoreId) {
+      setError(
+        "Selecione uma loja autorizada."
+      );
+      return;
+    }
 
     setImporting(true);
     setError("");
@@ -34,6 +141,10 @@ export default function ImportProductsPage() {
 
       const form = new FormData();
       form.append("file", file);
+      form.append(
+        "store_id",
+        selectedStoreId
+      );
 
       const response = await fetch(
         `${API_URL}/api/products/import?accept_warnings=${acceptWarnings}`,
@@ -66,7 +177,12 @@ export default function ImportProductsPage() {
   }
 
   async function previewImport() {
-    if (!file) return;
+    if (!file || !selectedStoreId) {
+      setError(
+        "Selecione uma loja autorizada."
+      );
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -83,6 +199,10 @@ export default function ImportProductsPage() {
 
       const form = new FormData();
       form.append("file", file);
+      form.append(
+        "store_id",
+        selectedStoreId
+      );
 
       const response = await fetch(
         `${API_URL}/api/products/import/preview`,
@@ -135,6 +255,80 @@ export default function ImportProductsPage() {
             </a>
 
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">
+              Autorização da loja
+            </p>
+            <h2 className="mt-2 text-xl font-bold text-slate-950">
+              Selecione a loja
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Os produtos importados e o respetivo
+              histórico ficarão associados à loja
+              selecionada.
+            </p>
+          </div>
+
+          {loadingAccess ? (
+            <div className="mt-5 rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-600">
+              A consultar as suas autorizações...
+            </div>
+          ) : accessError ? (
+            <div
+              role="alert"
+              className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700"
+            >
+              {accessError}
+            </div>
+          ) : importStores.length === 0 ? (
+            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+              Não está associado a nenhuma loja.
+              Contacte o super-administrador.
+            </div>
+          ) : (
+            <label className="mt-5 block max-w-xl">
+              <span className="mb-2 block text-sm font-bold text-slate-800">
+                Loja responsável pela importação
+              </span>
+
+              <select
+                value={selectedStoreId}
+                onChange={(event) => {
+                  setSelectedStoreId(
+                    event.target.value
+                  );
+                  setResult(null);
+                  setImportResult(null);
+                  setError("");
+                }}
+                className="w-full rounded-xl border border-slate-400 bg-white px-4 py-3 text-slate-950 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+              >
+                <option value="">
+                  Selecione uma loja
+                </option>
+
+                {importStores.map((store) => (
+                  <option
+                    key={store.id}
+                    value={store.id}
+                    disabled={!store.allowed}
+                  >
+                    {store.name}
+                    {!store.allowed
+                      ? " — importação não autorizada"
+                      : store.product_import_enabled
+                        ? " — autorizada"
+                        : isSuperAdmin
+                          ? " — acesso de super-admin"
+                          : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center transition hover:border-slate-500 hover:bg-slate-100">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-2xl text-white">
               ↑
@@ -187,7 +381,12 @@ export default function ImportProductsPage() {
 
           <button
             onClick={previewImport}
-            disabled={!file || loading}
+            disabled={
+              !file ||
+              !selectedStoreId ||
+              loading ||
+              loadingAccess
+            }
             className="mt-5 rounded-xl bg-slate-950 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             {loading ? "A analisar..." : "Analisar Ficheiro"}
@@ -374,22 +573,67 @@ export default function ImportProductsPage() {
               </div>
 
               {importResult && (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-                  <h3 className="text-lg font-bold text-emerald-950">
-                    Importação Concluída
-                  </h3>
+                <div className="space-y-5">
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                    <h3 className="text-lg font-bold text-emerald-950">
+                      Importação concluída
+                    </h3>
 
-                  <p className="mt-2 text-sm text-emerald-900">
-                    {importResult.created_count || 0} product(s) created.
-                    {" "}
-                    {importResult.skipped_existing_count || 0} existing product(s) skipped.
-                  </p>
+                    <p className="mt-2 text-sm text-emerald-900">
+                      {importResult.created_count || 0} produto(s) criado(s).
+                      {" "}
+                      {importResult.skipped_existing_count || 0} produto(s) existente(s) ignorado(s).
+                    </p>
+
+                    <p className="mt-2 text-sm text-emerald-800">
+                      Agora pode adicionar fotografias aos
+                      produtos criados. Esta etapa é opcional.
+                    </p>
+                  </div>
+
+                  {Array.isArray(
+                    importResult.created
+                  ) &&
+                    importResult.created.length > 0 && (
+                      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div>
+                          <h3 className="text-lg font-bold text-slate-950">
+                            Fotografias dos produtos
+                          </h3>
+
+                          <p className="mt-1 text-sm leading-6 text-slate-600">
+                            Escolha até 8 fotografias por
+                            produto. A primeira fotografia
+                            selecionada será a imagem
+                            principal.
+                          </p>
+                        </div>
+
+                        <div className="mt-5 space-y-5">
+                          {(
+                            importResult.created as
+                              ImportedProduct[]
+                          ).map((product) => (
+                            <ImportedProductPhotos
+                              key={product.id}
+                              product={product}
+                              importId={
+                                importResult.import_id
+                              }
+                              storeId={
+                                importResult.store.id
+                              }
+                            />
+                          ))}
+                        </div>
+                      </section>
+                    )}
 
                   <a
                     href="/products"
-                    className="mt-4 inline-flex rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-bold text-white hover:bg-slate-800"
+                    className="inline-flex rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-bold text-white hover:bg-slate-800"
                   >
-                    Ver Produtos
+                    Ver produtos
                   </a>
                 </div>
               )}
@@ -400,6 +644,269 @@ export default function ImportProductsPage() {
     </main>
   );
 }
+
+function ImportedProductPhotos({
+  product,
+  importId,
+  storeId,
+}: {
+  product: ImportedProduct;
+  importId: string;
+  storeId: string;
+}) {
+  const [
+    selectedImages,
+    setSelectedImages,
+  ] = useState<
+    Array<{
+      file: File;
+      previewUrl: string;
+    }>
+  >([]);
+  const [uploading, setUploading] =
+    useState(false);
+  const [message, setMessage] =
+    useState("");
+  const [isError, setIsError] =
+    useState(false);
+  const [uploadedCount, setUploadedCount] =
+    useState(0);
+
+  useEffect(() => {
+    return () => {
+      selectedImages.forEach((image) =>
+        URL.revokeObjectURL(
+          image.previewUrl
+        )
+      );
+    };
+  }, [selectedImages]);
+
+  function selectImages(
+    files: FileList | null
+  ) {
+    setMessage("");
+    setIsError(false);
+
+    if (!files) {
+      setSelectedImages([]);
+      return;
+    }
+
+    const chosen = Array.from(files).slice(
+      0,
+      8
+    );
+
+    const invalid = chosen.find(
+      (file) =>
+        ![
+          "image/jpeg",
+          "image/png",
+          "image/webp",
+        ].includes(file.type) ||
+        file.size > 10 * 1024 * 1024
+    );
+
+    if (invalid) {
+      setIsError(true);
+      setMessage(
+        "Use apenas JPEG, PNG ou WEBP até 10 MB por imagem."
+      );
+      return;
+    }
+
+    setSelectedImages(
+      chosen.map((file) => ({
+        file,
+        previewUrl:
+          URL.createObjectURL(file),
+      }))
+    );
+  }
+
+  async function uploadImages() {
+    if (selectedImages.length === 0) {
+      setIsError(true);
+      setMessage(
+        "Selecione pelo menos uma fotografia."
+      );
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setMessage("");
+      setIsError(false);
+
+      const user = auth.currentUser;
+
+      if (!user) {
+        throw new Error(
+          "Por favor, inicie sessão novamente."
+        );
+      }
+
+      const token = await user.getIdToken();
+      let completed = 0;
+
+      // O backend torna a imagem mais recente
+      // principal. Enviamos em ordem inversa
+      // para a primeira escolhida terminar
+      // como fotografia principal.
+      for (
+        const image of
+        [...selectedImages].reverse()
+      ) {
+        const form = new FormData();
+        form.append("file", image.file);
+        form.append("store_id", storeId);
+
+        const response = await fetch(
+          `${API_URL}/api/products/imports/${importId}/products/${product.id}/images`,
+          {
+            method: "POST",
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+            body: form,
+          }
+        );
+
+        const data = await response
+          .json()
+          .catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(
+            data.detail ||
+              `Não foi possível carregar ${image.file.name}.`
+          );
+        }
+
+        completed += 1;
+        setUploadedCount(completed);
+      }
+
+      setSelectedImages([]);
+      setMessage(
+        `${completed} fotografia(s) carregada(s).`
+      );
+    } catch (error) {
+      setIsError(true);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar as fotografias."
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+        <div>
+          <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
+            {product.sku}
+          </p>
+
+          <h4 className="mt-1 font-black text-slate-950">
+            {product.name}
+          </h4>
+        </div>
+
+        {uploadedCount > 0 && (
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">
+            {uploadedCount} carregada(s)
+          </span>
+        )}
+      </div>
+
+      <label className="mt-4 block cursor-pointer rounded-xl border-2 border-dashed border-slate-300 bg-white p-5 text-center hover:border-emerald-500">
+        <span className="block font-bold text-slate-800">
+          Escolher fotografias
+        </span>
+
+        <span className="mt-1 block text-xs text-slate-500">
+          JPEG, PNG ou WEBP · máximo 8 · 10 MB cada
+        </span>
+
+        <input
+          type="file"
+          multiple
+          accept="image/jpeg,image/png,image/webp"
+          disabled={uploading}
+          onChange={(event) => {
+            selectImages(
+              event.target.files
+            );
+            event.currentTarget.value = "";
+          }}
+          className="hidden"
+        />
+      </label>
+
+      {selectedImages.length > 0 && (
+        <>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {selectedImages.map(
+              (image, index) => (
+                <div
+                  key={
+                    image.file.name +
+                    image.file.lastModified
+                  }
+                  className="relative overflow-hidden rounded-xl border border-slate-200 bg-white"
+                >
+                  <img
+                    src={image.previewUrl}
+                    alt={`Pré-visualização ${index + 1}`}
+                    className="aspect-square w-full object-cover"
+                  />
+
+                  {index === 0 && (
+                    <span className="absolute left-2 top-2 rounded-full bg-[#b9ff66] px-2 py-1 text-[10px] font-black text-[#102820] shadow">
+                      PRINCIPAL
+                    </span>
+                  )}
+                </div>
+              )
+            )}
+          </div>
+
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={() =>
+              void uploadImages()
+            }
+            className="mt-4 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white hover:bg-emerald-800 disabled:opacity-50"
+          >
+            {uploading
+              ? `A carregar ${uploadedCount + 1} de ${selectedImages.length}...`
+              : "Carregar fotografias"}
+          </button>
+        </>
+      )}
+
+      {message && (
+        <p
+          className={`mt-3 rounded-xl border px-4 py-3 text-sm font-bold ${
+            isError
+              ? "border-red-300 bg-red-50 text-red-800"
+              : "border-emerald-300 bg-emerald-50 text-emerald-800"
+          }`}
+        >
+          {message}
+        </p>
+      )}
+    </article>
+  );
+}
+
 
 function SummaryCard({
   label,
