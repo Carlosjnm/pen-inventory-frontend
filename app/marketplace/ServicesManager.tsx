@@ -10,6 +10,8 @@ import ServiceMaterialsManager from "./ServiceMaterialsManager";
 import ProviderMediaManager from "./ProviderMediaManager";
 import ServiceReviewsManager from "./ServiceReviewsManager";
 import ProtectedPaymentControl from "./ProtectedPaymentControl";
+import NotificationControl from "./NotificationControl";
+import ProviderAccountsManager from "./ProviderAccountsManager";
 import ServicesHomepageEditor from "./ServicesHomepageEditor";
 
 // NAZUNGA SERVICES HOMEPAGE EDITOR V1
@@ -200,6 +202,7 @@ export default function ServicesManager({
     | "reviews"
     | "homepage"
     | "protected_payments"
+    | "notifications"
     | "settings"
   >("providers");
   const [categories, setCategories] =
@@ -233,6 +236,12 @@ export default function ServicesManager({
   const [
     selectedMediaProvider,
     setSelectedMediaProvider,
+  ] = useState<Provider | null>(null);
+
+  // PEN PROVIDER ACCOUNTS PANEL V1
+  const [
+    selectedAccountsProvider,
+    setSelectedAccountsProvider,
   ] = useState<Provider | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -596,6 +605,17 @@ export default function ServicesManager({
             </SectionButton>
           )}
 
+          {/* PEN NOTIFICATION CONTROL PANEL V1 */}
+          {isSuperAdmin && (
+            <SectionButton
+              active={section === "notifications"}
+              onClick={() =>
+                setSection("notifications")
+              }
+            >
+              Notificações
+            </SectionButton>
+          )}
           <SectionButton
             active={section === "settings"}
             onClick={() => setSection("settings")}
@@ -625,6 +645,16 @@ export default function ServicesManager({
               provider={selectedMediaProvider}
               onClose={() =>
                 setSelectedMediaProvider(null)
+              }
+            />
+          )}
+
+          {selectedAccountsProvider && (
+            <ProviderAccountsManager
+              user={user}
+              provider={selectedAccountsProvider}
+              onClose={() =>
+                setSelectedAccountsProvider(null)
               }
             />
           )}
@@ -1246,6 +1276,9 @@ export default function ServicesManager({
                       setSelectedMediaProvider(
                         provider
                       );
+                      setSelectedAccountsProvider(
+                        null
+                      );
                       window.scrollTo({
                         top: 0,
                         behavior: "smooth",
@@ -1254,6 +1287,26 @@ export default function ServicesManager({
                     className="rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-900"
                   >
                     Fotografias
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => {
+                      setSelectedAccountsProvider(
+                        provider
+                      );
+                      setSelectedMediaProvider(
+                        null
+                      );
+                      window.scrollTo({
+                        top: 0,
+                        behavior: "smooth",
+                      });
+                    }}
+                    className="rounded-xl border border-violet-300 bg-violet-50 px-4 py-2 text-sm font-bold text-violet-900"
+                  >
+                    Gerir contas
                   </button>
 
                   <button
@@ -1364,6 +1417,11 @@ export default function ServicesManager({
           <ProtectedPaymentControl
             user={user}
           />
+        )}
+
+      {section === "notifications" &&
+        isSuperAdmin && (
+          <NotificationControl user={user} />
         )}
 
       {section === "settings" && config && (
