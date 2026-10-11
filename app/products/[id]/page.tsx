@@ -63,6 +63,8 @@ type Product = {
   primary_image_bucket: string | null;
   primary_image_object_key: string | null;
   primary_image_url: string | null;
+  // SUPER ADMIN PRODUCT DELETE CONTROL V1
+  super_admin_control: boolean;
 };
 
 type Supplier = {
@@ -107,6 +109,8 @@ export default function ProductDetailPage() {
   const [editing, setEditing] = useState(false);
   const [savingProduct, setSavingProduct] = useState(false);
   const [editMessage, setEditMessage] = useState("");
+  const [removingProduct, setRemovingProduct] =
+    useState(false);
   const [editForm, setEditForm] = useState<ProductEditForm | null>(null);
   const [supplierOffers, setSupplierOffers] = useState<SupplierOffer[]>([]);
   const [supplierOffersLoading, setSupplierOffersLoading] = useState(true);
@@ -762,6 +766,73 @@ export default function ProductDetailPage() {
     }
   }
 
+  async function removeOrArchiveProduct() {
+    if (!product || removingProduct) return;
+
+    const confirmation = window.confirm(
+      `Eliminar o produto ${product.sku} — ${product.name}?\n\n` +
+        "Se o produto não tiver histórico será eliminado " +
+        "definitivamente. Se já tiver movimentos, será " +
+        "arquivado para preservar compras, vendas e stock."
+    );
+
+    if (!confirmation) return;
+
+    const user = auth.currentUser;
+
+    if (!user) {
+      window.location.href = "/";
+      return;
+    }
+
+    try {
+      setRemovingProduct(true);
+      setEditMessage(
+        "A verificar o histórico do produto..."
+      );
+
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        `${API_URL}/api/products/${productId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await response
+        .json()
+        .catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          result?.detail ||
+            "Não foi possível eliminar o produto."
+        );
+      }
+
+      window.alert(
+        result?.message ||
+          "Operação concluída."
+      );
+
+      window.location.href = "/products";
+    } catch (error) {
+      console.error(error);
+
+      setEditMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível eliminar o produto."
+      );
+    } finally {
+      setRemovingProduct(false);
+    }
+  }
+
   async function handleLogout() {
     await signOut(auth);
     window.location.href = "/";
@@ -1030,6 +1101,21 @@ export default function ProductDetailPage() {
                 >
                   Editar Produto
                 </button>
+
+                {product.super_admin_control && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void removeOrArchiveProduct()
+                    }
+                    disabled={removingProduct}
+                    className="rounded-xl border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+                  >
+                    {removingProduct
+                      ? "A verificar..."
+                      : "Eliminar / Arquivar"}
+                  </button>
+                )}
 
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset sm:hidden ${productStatusClass(
