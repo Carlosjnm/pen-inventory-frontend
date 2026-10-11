@@ -14,6 +14,10 @@ import PermissionGate from "@/components/PermissionGate";
 import HomepageEditor from "./HomepageEditor";
 import ServicesManager from "./ServicesManager";
 import StoreImportControl from "./StoreImportControl";
+import StoreOrderingControl from "./StoreOrderingControl";
+import SponsoredCampaignManager from "./SponsoredCampaignManager";
+
+// NAZUNGA SPONSORED CAMPAIGN MANAGER V1
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -58,6 +62,9 @@ type Store = {
 
   // PEN STORE IMPORT ADMIN UI V1
   product_import_enabled: boolean;
+  sort_order: number;
+  is_featured: boolean;
+  completed_order_count: number;
 };
 
 type MarketplaceLocation = {
@@ -2428,7 +2435,18 @@ export default function MarketplacePage() {
                   )}
 
                   {tab === "campaigns" && canManage && (
-                    <section className="space-y-5 text-slate-950">
+                    <section className="space-y-8 text-slate-950">
+                      {firebaseUser && (
+                        <SponsoredCampaignManager
+                          user={firebaseUser}
+                        />
+                      )}
+
+                      <div className="border-t border-slate-200 pt-8">
+                        <p className="mb-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                          Publicidade anterior por loja
+                        </p>
+                      </div>
                       <div className="flex flex-col justify-between gap-4 rounded-2xl bg-[#102820] p-6 text-white shadow-sm md:flex-row md:items-center">
                         <div>
                           <p className="text-xs font-black uppercase tracking-[0.2em] text-[#b9ff66]">
@@ -3124,11 +3142,20 @@ export default function MarketplacePage() {
                               ? role === "super_admin"
                               : role.code === "super_admin"
                         ) && (
-                          <StoreImportControl
+                          <>
+<StoreImportControl
                             user={firebaseUser}
                             stores={stores}
                             onUpdated={refreshAll}
                           />
+
+            <StoreOrderingControl
+              user={firebaseUser}
+              stores={stores}
+              onUpdated={refreshAll}
+            />
+            </>
+
                         )}
 
                     <form

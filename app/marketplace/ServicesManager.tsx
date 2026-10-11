@@ -8,6 +8,7 @@ import {
 import { User } from "firebase/auth";
 import ServiceMaterialsManager from "./ServiceMaterialsManager";
 import ProviderMediaManager from "./ProviderMediaManager";
+import ProviderOrderingControl from "./ProviderOrderingControl";
 import ServiceReviewsManager from "./ServiceReviewsManager";
 import ProtectedPaymentControl from "./ProtectedPaymentControl";
 import MilestonePaymentAdmin from "./MilestonePaymentAdmin";
@@ -44,6 +45,7 @@ type Provider = {
   slug: string;
   public_name: string;
   headline: string | null;
+  description: string | null;
   contact_name: string;
   phone: string;
   email: string | null;
@@ -62,6 +64,7 @@ type Provider = {
     slug: string;
     is_primary: boolean;
   }>;
+  sort_order: number;
 };
 
 type ServiceRequest = {
@@ -94,6 +97,15 @@ type ServicesConfig = {
   default_commission_percentage: number;
   commission_billing_cycle: "weekly" | "monthly";
   commission_payment_days: number;
+  provider_sort_mode:
+    | "manual"
+    | "recommended"
+    | "best_rated"
+    | "popular"
+    | "newest"
+    | "alphabetical"
+    | "fair_rotation";
+
 };
 
 // NAZUNGA SERVICE CATEGORY MANAGER V1
@@ -534,6 +546,8 @@ export default function ServicesManager({
               Number(
                 config.commission_payment_days
               ),
+            provider_sort_mode:
+              config.provider_sort_mode,
           }),
         }
       );
@@ -1211,7 +1225,17 @@ export default function ServicesManager({
             </form>
           )}
 
-          <section className="grid gap-5 xl:grid-cols-2">
+                    <ProviderOrderingControl
+            user={user}
+            providers={providers}
+            manualMode={
+              config?.provider_sort_mode ===
+              "manual"
+            }
+            onUpdated={loadData}
+          />
+
+<section className="grid gap-5 xl:grid-cols-2">
             {providers.map((provider) => (
               <article
                 key={provider.id}
@@ -1486,6 +1510,58 @@ export default function ServicesManager({
                 })
               }
             />
+          </div>
+
+          <div className="mt-6 max-w-xl">
+            <label className="block">
+              <span className="mb-2 block text-sm font-black">
+                Ordem pública dos profissionais
+              </span>
+
+              <select
+                value={config.provider_sort_mode}
+                onChange={(event) =>
+                  setConfig({
+                    ...config,
+                    provider_sort_mode:
+                      event.target.value as
+                        ServicesConfig[
+                          "provider_sort_mode"
+                        ],
+                  })
+                }
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"
+              >
+                <option value="manual">
+                  Manual
+                </option>
+                <option value="recommended">
+                  Recomendados
+                </option>
+                <option value="best_rated">
+                  Melhor avaliados
+                </option>
+                <option value="popular">
+                  Mais populares
+                </option>
+                <option value="newest">
+                  Mais recentes
+                </option>
+                <option value="alphabetical">
+                  Ordem alfabética
+                </option>
+                <option value="fair_rotation">
+                  Rotação justa diária
+                </option>
+              </select>
+
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                No modo manual pode utilizar os
+                botões Subir e Descer. A rotação
+                justa muda diariamente e permanece
+                estável durante o dia.
+              </p>
+            </label>
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
