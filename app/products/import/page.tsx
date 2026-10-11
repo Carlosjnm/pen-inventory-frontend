@@ -171,6 +171,8 @@ export default function ImportProductsPage() {
   }, []);
 
   async function performImport() {
+    if (importing || importResult) return;
+
     if (!file || !selectedStoreId) {
       setError(
         "Selecione uma loja autorizada e um ficheiro."
@@ -863,11 +865,12 @@ export default function ImportProductsPage() {
                       onClick={performImport}
                       disabled={
                         importing ||
+                        Boolean(importResult) ||
                         (result.summary?.warning > 0 && !acceptWarnings)
                       }
                       className="mt-5 rounded-xl bg-emerald-700 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
-                      {importing ? "A importar..." : "Importar Produtos"}
+                      {importResult ? "Importação concluída" : importing ? "A importar..." : "Importar Produtos"}
                     </button>
                   </>
                 )}
