@@ -10,6 +10,21 @@ import MobileNav from "@/components/MobileNav";
 const API_URL =
   "https://pen-inventory-backend-250574343787.africa-south1.run.app";
 
+// PEN INTELLIGENT INITIAL STOCK IMPORT UI V1
+type ImportLocation = {
+  id: string;
+  name: string;
+  code: string;
+  location_type: string;
+};
+
+type ImportSupplier = {
+  id: string;
+  supplier_code: string;
+  name: string;
+  default_currency: string | null;
+};
+
 type ImportStore = {
   id: string;
   slug: string;
@@ -49,6 +64,23 @@ export default function ImportProductsPage() {
     useState("");
   const [isSuperAdmin, setIsSuperAdmin] =
     useState(false);
+
+  const [importMode, setImportMode] =
+    useState<"catalog_only" | "opening_stock">(
+      "catalog_only"
+    );
+  const [importLocations, setImportLocations] =
+    useState<ImportLocation[]>([]);
+  const [importSuppliers, setImportSuppliers] =
+    useState<ImportSupplier[]>([]);
+  const [
+    selectedLocationId,
+    setSelectedLocationId,
+  ] = useState("");
+  const [
+    selectedSupplierId,
+    setSelectedSupplierId,
+  ] = useState("");
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(
@@ -96,6 +128,26 @@ export default function ImportProductsPage() {
             Boolean(data.is_super_admin)
           );
 
+          const locations = (
+            data.locations ||
+            data.inventory_locations ||
+            data.allowed_locations ||
+            []
+          ) as ImportLocation[];
+
+          const suppliers = (
+            data.suppliers || []
+          ) as ImportSupplier[];
+
+          setImportLocations(locations);
+          setImportSuppliers(suppliers);
+          setSelectedLocationId(
+            locations[0]?.id || ""
+          );
+          setSelectedSupplierId(
+            suppliers[0]?.id || ""
+          );
+
           const firstAllowed = stores.find(
             (store) => store.allowed
           );
@@ -121,7 +173,18 @@ export default function ImportProductsPage() {
   async function performImport() {
     if (!file || !selectedStoreId) {
       setError(
-        "Selecione uma loja autorizada."
+        "Selecione uma loja autorizada e um ficheiro."
+      );
+      return;
+    }
+
+    if (
+      importMode === "opening_stock" &&
+      (!selectedLocationId ||
+        !selectedSupplierId)
+    ) {
+      setError(
+        "Selecione o destino do stock e o fornecedor."
       );
       return;
     }
@@ -145,6 +208,21 @@ export default function ImportProductsPage() {
         "store_id",
         selectedStoreId
       );
+      form.append(
+        "import_mode",
+        importMode
+      );
+
+      if (importMode === "opening_stock") {
+        form.append(
+          "destination_location_id",
+          selectedLocationId
+        );
+        form.append(
+          "supplier_id",
+          selectedSupplierId
+        );
+      }
 
       const response = await fetch(
         `${API_URL}/api/products/import?accept_warnings=${acceptWarnings}`,
@@ -179,7 +257,18 @@ export default function ImportProductsPage() {
   async function previewImport() {
     if (!file || !selectedStoreId) {
       setError(
-        "Selecione uma loja autorizada."
+        "Selecione uma loja autorizada e um ficheiro."
+      );
+      return;
+    }
+
+    if (
+      importMode === "opening_stock" &&
+      (!selectedLocationId ||
+        !selectedSupplierId)
+    ) {
+      setError(
+        "Selecione o destino do stock e o fornecedor."
       );
       return;
     }
@@ -203,6 +292,21 @@ export default function ImportProductsPage() {
         "store_id",
         selectedStoreId
       );
+      form.append(
+        "import_mode",
+        importMode
+      );
+
+      if (importMode === "opening_stock") {
+        form.append(
+          "destination_location_id",
+          selectedLocationId
+        );
+        form.append(
+          "supplier_id",
+          selectedSupplierId
+        );
+      }
 
       const response = await fetch(
         `${API_URL}/api/products/import/preview`,
@@ -329,6 +433,169 @@ export default function ImportProductsPage() {
         </section>
 
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">
+              Tipo de importação
+            </p>
+
+            <h2 className="mt-2 text-xl font-bold text-slate-950">
+              Como pretende importar?
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Pode criar apenas o catálogo ou criar
+              produtos, oferta do fornecedor e stock
+              inicial numa única operação.
+            </p>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => {
+                setImportMode(
+                  "catalog_only"
+                );
+                setResult(null);
+                setImportResult(null);
+                setError("");
+              }}
+              className={`rounded-2xl border p-5 text-left transition ${
+                importMode === "catalog_only"
+                  ? "border-blue-600 bg-blue-50 ring-2 ring-blue-100"
+                  : "border-slate-200 bg-white hover:border-slate-400"
+              }`}
+            >
+              <span className="block font-black text-slate-950">
+                Só catálogo
+              </span>
+
+              <span className="mt-2 block text-sm leading-6 text-slate-600">
+                Cria os produtos sem alterar o stock.
+                As compras continuam a poder ser
+                registadas posteriormente.
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setImportMode(
+                  "opening_stock"
+                );
+                setResult(null);
+                setImportResult(null);
+                setError("");
+              }}
+              className={`rounded-2xl border p-5 text-left transition ${
+                importMode === "opening_stock"
+                  ? "border-emerald-600 bg-emerald-50 ring-2 ring-emerald-100"
+                  : "border-slate-200 bg-white hover:border-slate-400"
+              }`}
+            >
+              <span className="block font-black text-slate-950">
+                Produtos + stock inicial
+              </span>
+
+              <span className="mt-2 block text-sm leading-6 text-slate-600">
+                Cria os produtos, associa o fornecedor
+                e coloca as quantidades diretamente no
+                armazém ou loja selecionada.
+              </span>
+            </button>
+          </div>
+
+          {importMode === "opening_stock" && (
+            <div className="mt-6 grid gap-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 md:grid-cols-2">
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-slate-800">
+                  Destino do stock inicial
+                </span>
+
+                <select
+                  value={selectedLocationId}
+                  onChange={(event) => {
+                    setSelectedLocationId(
+                      event.target.value
+                    );
+                    setResult(null);
+                    setImportResult(null);
+                    setError("");
+                  }}
+                  className="w-full rounded-xl border border-slate-400 bg-white px-4 py-3 text-slate-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200"
+                >
+                  <option value="">
+                    Selecione o destino
+                  </option>
+
+                  {importLocations.map(
+                    (location) => (
+                      <option
+                        key={location.id}
+                        value={location.id}
+                      >
+                        {location.name}
+                        {" — "}
+                        {location.location_type ===
+                        "warehouse"
+                          ? "Armazém"
+                          : "Loja"}
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-slate-800">
+                  Fornecedor
+                </span>
+
+                <select
+                  value={selectedSupplierId}
+                  onChange={(event) => {
+                    setSelectedSupplierId(
+                      event.target.value
+                    );
+                    setResult(null);
+                    setImportResult(null);
+                    setError("");
+                  }}
+                  className="w-full rounded-xl border border-slate-400 bg-white px-4 py-3 text-slate-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200"
+                >
+                  <option value="">
+                    Selecione o fornecedor
+                  </option>
+
+                  {importSuppliers.map(
+                    (supplier) => (
+                      <option
+                        key={supplier.id}
+                        value={supplier.id}
+                      >
+                        {supplier.name}
+                        {" — "}
+                        {supplier.supplier_code}
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+
+              <div className="md:col-span-2 rounded-xl border border-emerald-200 bg-white p-4 text-sm leading-6 text-emerald-950">
+                <strong>
+                  Resultado:
+                </strong>{" "}
+                cada produto novo terá uma oferta
+                preferencial do fornecedor e um movimento
+                de stock do tipo saldo inicial. O custo
+                será usado no cálculo da margem.
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center transition hover:border-slate-500 hover:bg-slate-100">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-2xl text-white">
               ↑
@@ -385,7 +652,10 @@ export default function ImportProductsPage() {
               !file ||
               !selectedStoreId ||
               loading ||
-              loadingAccess
+              loadingAccess ||
+              (importMode === "opening_stock" &&
+                (!selectedLocationId ||
+                  !selectedSupplierId))
             }
             className="mt-5 rounded-xl bg-slate-950 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
@@ -407,6 +677,37 @@ export default function ImportProductsPage() {
                 <p className="mt-1 text-sm text-slate-500">
                   Review the analysis before importing anything.
                 </p>
+              </div>
+
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+                <p className="text-xs font-black uppercase tracking-wide text-blue-700">
+                  Destino da importação
+                </p>
+
+                <p className="mt-2 font-black text-slate-950">
+                  {result.import_mode ===
+                  "opening_stock"
+                    ? "Produtos + stock inicial"
+                    : "Só catálogo"}
+                </p>
+
+                {result.destination && (
+                  <p className="mt-1 text-sm text-slate-700">
+                    Stock:{" "}
+                    <strong>
+                      {result.destination.name}
+                    </strong>
+                  </p>
+                )}
+
+                {result.supplier && (
+                  <p className="mt-1 text-sm text-slate-700">
+                    Fornecedor:{" "}
+                    <strong>
+                      {result.supplier.name}
+                    </strong>
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -584,6 +885,21 @@ export default function ImportProductsPage() {
                       {" "}
                       {importResult.skipped_existing_count || 0} produto(s) existente(s) ignorado(s).
                     </p>
+
+                    {importResult.opening_stock_imported && (
+                      <p className="mt-2 text-sm font-bold text-emerald-900">
+                        ✓ Stock inicial registado em{" "}
+                        {importResult.destination?.name}.
+                      </p>
+                    )}
+
+                    {importResult.supplier_offers_imported && (
+                      <p className="mt-2 text-sm font-bold text-emerald-900">
+                        ✓ Oferta do fornecedor{" "}
+                        {importResult.supplier?.name} criada
+                        para cálculo da margem.
+                      </p>
+                    )}
 
                     <p className="mt-2 text-sm text-emerald-800">
                       Agora pode adicionar fotografias aos
