@@ -10,6 +10,9 @@ import ServiceMaterialsManager from "./ServiceMaterialsManager";
 import ProviderMediaManager from "./ProviderMediaManager";
 import ServiceReviewsManager from "./ServiceReviewsManager";
 import ProtectedPaymentControl from "./ProtectedPaymentControl";
+import MilestonePaymentAdmin from "./MilestonePaymentAdmin";
+
+// PEN MILESTONE PAYMENT ADMIN V1
 import NotificationControl from "./NotificationControl";
 import ProviderAccountsManager from "./ProviderAccountsManager";
 import ConversationRetentionControl from "./ConversationRetentionControl";
@@ -1435,9 +1438,15 @@ export default function ServicesManager({
 
       {section === "protected_payments" &&
         isSuperAdmin && (
-          <ProtectedPaymentControl
-            user={user}
-          />
+          <div className="space-y-8">
+            <ProtectedPaymentControl
+              user={user}
+            />
+
+            <MilestonePaymentAdmin
+              user={user}
+            />
+          </div>
         )}
 
       {section === "notifications" &&
