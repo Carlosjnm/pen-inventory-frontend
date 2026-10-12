@@ -957,6 +957,25 @@ export default function MarketplacePage() {
     }
   }
 
+  useEffect(() => {
+    if (tab !== "store_applications" || !firebaseUser || !canManage) return;
+    let active = true;
+    async function reloadApplications(user: User) {
+      try {
+        const response = await apiFetch(user, "/api/marketplace/store-applications");
+        const data = await responseData(response);
+        if (active) setStoreApplications(data.applications || []);
+      } catch (error) {
+        if (active) {
+          setMessageType("error");
+          setMessage(error instanceof Error ? error.message : "Erro ao carregar candidaturas.");
+        }
+      }
+    }
+    void reloadApplications(firebaseUser);
+    return () => { active = false; };
+  }, [tab, firebaseUser, canManage]);
+
   async function refreshAll() {
     if (!firebaseUser || !selectedStoreId) return;
 

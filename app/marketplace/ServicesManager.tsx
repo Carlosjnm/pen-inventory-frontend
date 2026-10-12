@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 import { User } from "firebase/auth";
+import ServiceApplicationsManager from "./ServiceApplicationsManager";
 import ServiceMaterialsManager from "./ServiceMaterialsManager";
 import ProviderMediaManager from "./ProviderMediaManager";
 import ProviderOrderingControl from "./ProviderOrderingControl";
@@ -214,6 +215,7 @@ export default function ServicesManager({
 }) {
   const [section, setSection] = useState<
     | "providers"
+    | "applications"
     | "requests"
     | "reviews"
     | "homepage"
@@ -591,6 +593,9 @@ export default function ServicesManager({
           >
             Profissionais ({providers.length})
           </SectionButton>
+          <SectionButton active={section === "applications"} onClick={() => setSection("applications")}>
+            Candidaturas de serviços
+          </SectionButton>
           <SectionButton
             active={section === "requests"}
             onClick={() => setSection("requests")}
@@ -667,6 +672,8 @@ export default function ServicesManager({
           {message}
         </div>
       )}
+
+      {section === "applications" && <ServiceApplicationsManager user={user} onApproved={() => { void apiFetch(user, "/api/marketplace/services/providers").then(responseData).then(data => setProviders(data.providers || [])).catch(failure); }} />}
 
       {section === "providers" && (
         <>
