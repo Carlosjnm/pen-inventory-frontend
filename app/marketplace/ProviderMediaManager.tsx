@@ -339,6 +339,7 @@ export default function ProviderMediaManager({
         <>
           <div className="mt-6 grid gap-5 lg:grid-cols-2">
             <MainImageBox
+              user={user}
               title="Fotografia principal"
               description="Retrato ou logótipo apresentado nos cartões."
               path={media?.provider.logo_path || null}
@@ -353,6 +354,7 @@ export default function ProviderMediaManager({
             />
 
             <MainImageBox
+              user={user}
               title="Imagem de capa"
               description="Imagem horizontal do perfil público."
               path={media?.provider.cover_path || null}
@@ -456,8 +458,9 @@ export default function ProviderMediaManager({
                   className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
                 >
                   <div className="aspect-[4/3] bg-slate-100">
-                    <img
-                      src={imageUrl(
+                    <AuthenticatedImage
+                      user={user}
+                      url={imageUrl(
                         item.image_path
                       )}
                       alt={
@@ -516,6 +519,7 @@ export default function ProviderMediaManager({
 }
 
 function MainImageBox({
+  user,
   title,
   description,
   path,
@@ -524,6 +528,7 @@ function MainImageBox({
   onUpload,
   onRemove,
 }: {
+  user: User;
   title: string;
   description: string;
   path: string | null;
@@ -541,8 +546,9 @@ function MainImageBox({
 
       <div className="mt-4 aspect-[16/9] overflow-hidden rounded-xl bg-slate-100">
         {path ? (
-          <img
-            src={imageUrl(path)}
+          <AuthenticatedImage
+            user={user}
+            url={imageUrl(path)}
             alt={title}
             loading="lazy"
             decoding="async"
@@ -591,4 +597,48 @@ function MainImageBox({
       </div>
     </div>
   );
+}
+
+
+function AuthenticatedImage({ user, url, alt, className, width, height }: {
+  user: User; url: string; alt: string; className?: string;
+  width?: number; height?: number; loading?: "lazy" | "eager";
+  decoding?: "async" | "sync" | "auto";
+}) {
+  const [preview, setPreview] = useState<{ url: string; blob: string } | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    let objectUrl = "";
+    const controller = new AbortController();
+    setPreview(null); setError("");
+    async function load() {
+      try {
+        const token = await user.getIdToken();
+        if (!active) return;
+        const response = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal, cache: "no-store",
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(typeof data.detail === "string" ? data.detail : `Erro ao carregar imagem (${response.status}).`);
+        }
+        const blob = await response.blob();
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPreview({ url, blob: objectUrl });
+      } catch (reason) {
+        if (active) setError(reason instanceof Error ? reason.message : "Erro ao carregar imagem.");
+      }
+    }
+    void load();
+    return () => {
+      active = false; controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [user, url]);
+  if (error) return <div role="alert" className="grid h-full place-items-center p-4 text-center text-sm text-red-700">{error}</div>;
+  if (!preview || preview.url !== url) return <div className="grid h-full place-items-center text-sm text-slate-500">A carregar imagem...</div>;
+  return <img src={preview.blob} alt={alt} className={className} width={width} height={height} decoding="async" onError={() => setError("Não foi possível apresentar este ficheiro de imagem.")} />;
 }
