@@ -20,7 +20,7 @@ export default function StoreLocationsEditor({ user, storeId, onUpdated }: { use
    else{setSnapshot(current=>current.map(row=>{const draft=rows.find(item=>item.id===row.id);return draft?{...row,linked:draft.linked,is_fulfilment_location:draft.is_fulfilment_location,is_collection_location:draft.is_collection_location,is_default:draft.is_default}:row;}));}
    setMessage("Locais atualizados.");await onUpdated();
   }catch(reason){setError(reason instanceof Error?reason.message:"Erro ao guardar locais.");}finally{busy.current=false;setSaving(false);}}
- return <section className="mb-6 space-y-4 rounded-2xl border bg-white p-6"><h3 className="text-xl font-bold">Locais físicos e endereços da loja</h3>
+ return <section className="mb-6 space-y-4 rounded-2xl border bg-white p-6 text-slate-950"><h3 className="text-xl font-bold">Locais físicos e endereços da loja</h3>
  <p className="text-sm text-slate-600">O endereço pertence ao local físico e será atualizado também onde esse local é usado no PEN. Alterar os locais de expedição muda a disponibilidade apresentada na loja; não transfere stock.</p>
  {error&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-red-800">{error}</p>}{message&&<p role="status" className="text-emerald-800">{message}</p>}
  {loading?<p>A carregar locais...</p>:<><fieldset disabled={saving} className="space-y-4">{rows.filter(row=>row.location_active||row.linked).map(row=><div key={row.id} className="space-y-3 rounded-xl border p-4">
