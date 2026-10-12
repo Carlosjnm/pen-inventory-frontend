@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 import { User } from "firebase/auth";
+import ProviderCategoriesEditor from "./ProviderCategoriesEditor";
 import ServiceApplicationsManager from "./ServiceApplicationsManager";
 import ServiceMaterialsManager from "./ServiceMaterialsManager";
 import ProviderMediaManager from "./ProviderMediaManager";
@@ -238,6 +239,7 @@ export default function ServicesManager({
     providerCategorySearch,
     setProviderCategorySearch,
   ] = useState("");
+  const [editingCategoriesProvider, setEditingCategoriesProvider] = useState<Provider | null>(null);
   const [providers, setProviders] =
     useState<Provider[]>([]);
   const [requests, setRequests] =
@@ -677,6 +679,12 @@ export default function ServicesManager({
 
       {section === "providers" && (
         <>
+          {editingCategoriesProvider && <ProviderCategoriesEditor
+            key={editingCategoriesProvider.id}
+            user={user} provider={editingCategoriesProvider} categories={categories}
+            onClose={() => setEditingCategoriesProvider(null)}
+            onSaved={() => { setEditingCategoriesProvider(null); void loadData(); }}
+          />}
           {selectedMediaProvider && (
             <ProviderMediaManager
               user={user}
@@ -1317,6 +1325,15 @@ export default function ServicesManager({
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-2">
+                  <button type="button" disabled={saving} onClick={() => {
+                    setEditingCategoriesProvider(provider);
+                    setSelectedMediaProvider(null);
+                    setSelectedAccountsProvider(null);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }} className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900">
+                    Editar serviços / categorias
+                  </button>
+
                   <button
                     type="button"
                     disabled={saving}
