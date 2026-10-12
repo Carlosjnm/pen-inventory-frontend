@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 import { User } from "firebase/auth";
+import ProviderProfileEditor from "./ProviderProfileEditor";
 import ProviderCategoriesEditor from "./ProviderCategoriesEditor";
 import ServiceApplicationsManager from "./ServiceApplicationsManager";
 import ServiceMaterialsManager from "./ServiceMaterialsManager";
@@ -239,6 +240,7 @@ export default function ServicesManager({
     providerCategorySearch,
     setProviderCategorySearch,
   ] = useState("");
+  const [editingProfileProvider, setEditingProfileProvider] = useState<Provider | null>(null);
   const [editingCategoriesProvider, setEditingCategoriesProvider] = useState<Provider | null>(null);
   const [providers, setProviders] =
     useState<Provider[]>([]);
@@ -679,6 +681,11 @@ export default function ServicesManager({
 
       {section === "providers" && (
         <>
+          {isSuperAdmin && editingProfileProvider && <ProviderProfileEditor
+            key={editingProfileProvider.id} user={user} providerId={editingProfileProvider.id}
+            onClose={() => setEditingProfileProvider(null)}
+            onSaved={() => { setEditingProfileProvider(null); void loadData(); }}
+          />}
           {editingCategoriesProvider && <ProviderCategoriesEditor
             key={editingCategoriesProvider.id}
             user={user} provider={editingCategoriesProvider} categories={categories}
@@ -698,6 +705,7 @@ export default function ServicesManager({
           {selectedAccountsProvider && (
             <ProviderAccountsManager
               user={user}
+              isSuperAdmin={isSuperAdmin}
               provider={selectedAccountsProvider}
               onClose={() =>
                 setSelectedAccountsProvider(null)
@@ -1325,6 +1333,14 @@ export default function ServicesManager({
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-2">
+                  {isSuperAdmin && <button type="button" disabled={saving} onClick={() => {
+                    setEditingProfileProvider(provider); setEditingCategoriesProvider(null);
+                    setSelectedMediaProvider(null); setSelectedAccountsProvider(null);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }} className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900">
+                    Editar perfil e atendimento
+                  </button>}
+
                   <button type="button" disabled={saving} onClick={() => {
                     setEditingCategoriesProvider(provider);
                     setSelectedMediaProvider(null);

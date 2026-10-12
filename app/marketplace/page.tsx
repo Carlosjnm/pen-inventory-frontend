@@ -12,6 +12,7 @@ import { auth } from "@/lib/firebase";
 import MobileNav from "@/components/MobileNav";
 import PermissionGate from "@/components/PermissionGate";
 import HomepageEditor from "./HomepageEditor";
+import StoreLocationsEditor from "./StoreLocationsEditor";
 import ServicesManager from "./ServicesManager";
 import StoreImportControl from "./StoreImportControl";
 import StoreOrderingControl from "./StoreOrderingControl";
@@ -3167,6 +3168,9 @@ export default function MarketplacePage() {
                             stores={stores}
                             onUpdated={refreshAll}
                           />
+
+            <StoreLocationsEditor key={selectedStore.id} user={firebaseUser}
+              storeId={selectedStore.id} onUpdated={refreshAll} />
 
             <StoreOrderingControl
               user={firebaseUser}

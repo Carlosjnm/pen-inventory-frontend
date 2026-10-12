@@ -5,6 +5,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import LoginEmailEditor from "./LoginEmailEditor";
 import { User } from "firebase/auth";
 
 const API_URL =
@@ -92,11 +93,14 @@ export default function ProviderAccountsManager({
   user,
   provider,
   onClose,
+  isSuperAdmin = false,
 }: {
   user: User;
   provider: Provider;
   onClose: () => void;
+  isSuperAdmin?: boolean;
 }) {
+  const [emailMember, setEmailMember] = useState<ProviderMember | null>(null);
   const [members, setMembers] =
     useState<ProviderMember[]>([]);
 
@@ -224,6 +228,12 @@ export default function ProviderAccountsManager({
 
   return (
     <section className="rounded-2xl border border-blue-200 bg-blue-50/50 p-5 shadow-sm md:p-6">
+      {isSuperAdmin && emailMember && <LoginEmailEditor
+        key={emailMember.id} user={user} providerId={provider.id} memberId={emailMember.id} currentEmail={emailMember.email}
+        onClose={() => setEmailMember(null)}
+        onSaved={(email) => setMembers(current => current.map(member => member.user_id === emailMember.user_id ? { ...member, email } : member))}
+      />}
+
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
@@ -487,6 +497,9 @@ export default function ProviderAccountsManager({
                 >
                   Editar acesso
                 </button>
+                {isSuperAdmin && <button type="button" onClick={() => { setEmailMember(member); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="ml-3 mt-5 rounded-xl border border-amber-300 px-4 py-2 text-sm font-bold">
+                  Alterar email de login
+                </button>}
               </article>
             ))}
 
