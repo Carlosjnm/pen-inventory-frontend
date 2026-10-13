@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 import { User } from "firebase/auth";
+import ProviderOfferingsManager from "./ProviderOfferingsManager";
 import ProviderProfileEditor from "./ProviderProfileEditor";
 import ProviderCategoriesEditor from "./ProviderCategoriesEditor";
 import ServiceApplicationsManager from "./ServiceApplicationsManager";
@@ -240,6 +241,7 @@ export default function ServicesManager({
     providerCategorySearch,
     setProviderCategorySearch,
   ] = useState("");
+  const [offeringsProvider, setOfferingsProvider] = useState<Provider | null>(null);
   const [editingProfileProvider, setEditingProfileProvider] = useState<Provider | null>(null);
   const [editingCategoriesProvider, setEditingCategoriesProvider] = useState<Provider | null>(null);
   const [providers, setProviders] =
@@ -681,6 +683,7 @@ export default function ServicesManager({
 
       {section === "providers" && (
         <>
+          {offeringsProvider && <ProviderOfferingsManager key={offeringsProvider.id} user={user} provider={offeringsProvider} onClose={() => setOfferingsProvider(null)} />}
           {isSuperAdmin && editingProfileProvider && <ProviderProfileEditor
             key={editingProfileProvider.id} user={user} providerId={editingProfileProvider.id}
             onClose={() => setEditingProfileProvider(null)}
@@ -1333,6 +1336,12 @@ export default function ServicesManager({
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-2">
+                  <button type="button" disabled={saving} onClick={() => {
+                    setOfferingsProvider(provider); setEditingProfileProvider(null); setEditingCategoriesProvider(null);
+                    setSelectedMediaProvider(null); setSelectedAccountsProvider(null);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }} className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900">Gerir serviços</button>
+
                   {isSuperAdmin && <button type="button" disabled={saving} onClick={() => {
                     setEditingProfileProvider(provider); setEditingCategoriesProvider(null);
                     setSelectedMediaProvider(null); setSelectedAccountsProvider(null);
@@ -1347,7 +1356,7 @@ export default function ServicesManager({
                     setSelectedAccountsProvider(null);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }} className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900">
-                    Editar serviços / categorias
+                    Editar categorias
                   </button>
 
                   <button
