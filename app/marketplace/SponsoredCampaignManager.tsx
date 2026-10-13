@@ -5,8 +5,10 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import SponsoredCampaignWorkspace from "./SponsoredCampaignWorkspace";
 import { User } from "firebase/auth";
 
 const API_URL =
@@ -36,37 +38,6 @@ type Candidates = {
   billing_models: string[];
 };
 
-type CampaignItem = {
-  id: string;
-  item_type: string;
-  item_name: string;
-  custom_headline: string | null;
-  call_to_action: string | null;
-  is_active: boolean;
-};
-
-type Campaign = {
-  id: string;
-  name: string;
-  advertiser_type: "store" | "provider";
-  advertiser_name: string;
-  status: string;
-  payment_status: string;
-  billing_model: string;
-  currency: string;
-  budget: number | null;
-  priority: number;
-  starts_at: string;
-  ends_at: string;
-  maximum_impressions: number | null;
-  paid_at: string | null;
-  internal_notes: string | null;
-  items: CampaignItem[];
-  placements: string[];
-  impression_count: number;
-  click_count: number;
-};
-
 const placementLabels: Record<string, string> = {
   marketplace_home: "Página inicial",
   all_stores: "Todas as lojas",
@@ -74,22 +45,6 @@ const placementLabels: Record<string, string> = {
   product_page: "Página do produto",
   all_services: "Todos os serviços",
   provider_page: "Página do profissional",
-};
-
-const statusLabels: Record<string, string> = {
-  draft: "Rascunho",
-  pending_approval: "A aguardar aprovação",
-  active: "Ativa",
-  paused: "Pausada",
-  ended: "Terminada",
-  cancelled: "Cancelada",
-};
-
-const paymentLabels: Record<string, string> = {
-  pending: "Pagamento pendente",
-  paid: "Pago",
-  waived: "Dispensado",
-  refunded: "Reembolsado",
 };
 
 function localDateTime(days: number) {
@@ -164,10 +119,12 @@ export default function SponsoredCampaignManager({
 }: {
   user: User;
 }) {
+  const [showCreate, setShowCreate] = useState(false);
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const consumeFocus = useCallback(() => setFocusId(null), []);
+  const creating = useRef(false);
   const [candidates, setCandidates] =
     useState<Candidates | null>(null);
-  const [campaigns, setCampaigns] =
-    useState<Campaign[]>([]);
   const [form, setForm] =
     useState(initialForm);
   const [placements, setPlacements] =
@@ -180,8 +137,6 @@ export default function SponsoredCampaignManager({
     useState(true);
   const [saving, setSaving] =
     useState(false);
-  const [busyId, setBusyId] =
-    useState<string | null>(null);
   const [message, setMessage] =
     useState("");
   const [isError, setIsError] =
@@ -193,22 +148,8 @@ export default function SponsoredCampaignManager({
         setLoading(true);
         setMessage("");
 
-        const [candidateData, campaignData] =
-          await Promise.all([
-            apiFetch(
-              user,
-              "/api/marketplace/sponsored-campaigns/candidates"
-            ),
-            apiFetch(
-              user,
-              "/api/marketplace/sponsored-campaigns"
-            ),
-          ]);
-
+        const candidateData = await apiFetch(user, "/api/marketplace/sponsored-campaigns/candidates");
         setCandidates(candidateData);
-        setCampaigns(
-          campaignData.campaigns || []
-        );
       } catch (error) {
         setIsError(true);
         setMessage(
@@ -281,6 +222,7 @@ export default function SponsoredCampaignManager({
     event: FormEvent
   ) {
     event.preventDefault();
+    if (creating.current) return;
 
     if (
       !form.advertiser_id ||
@@ -295,10 +237,11 @@ export default function SponsoredCampaignManager({
     }
 
     try {
+      creating.current = true;
       setSaving(true);
       setMessage("");
 
-      await apiFetch(
+      const created = await apiFetch(
         user,
         "/api/marketplace/sponsored-campaigns",
         {
@@ -362,7 +305,8 @@ export default function SponsoredCampaignManager({
       setMessage(
         "Campanha criada em rascunho."
       );
-      await loadData();
+      setShowCreate(false);
+      setFocusId(created.campaign_id);
     } catch (error) {
       setIsError(true);
       setMessage(
@@ -371,40 +315,8 @@ export default function SponsoredCampaignManager({
           : "Erro ao criar campanha."
       );
     } finally {
+      creating.current = false;
       setSaving(false);
-    }
-  }
-
-  async function updateCampaign(
-    campaignId: string,
-    changes: Record<string, unknown>,
-    successMessage: string
-  ) {
-    try {
-      setBusyId(campaignId);
-      setMessage("");
-
-      await apiFetch(
-        user,
-        `/api/marketplace/sponsored-campaigns/${campaignId}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify(changes),
-        }
-      );
-
-      setIsError(false);
-      setMessage(successMessage);
-      await loadData();
-    } catch (error) {
-      setIsError(true);
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Erro ao atualizar campanha."
-      );
-    } finally {
-      setBusyId(null);
     }
   }
 
@@ -417,7 +329,7 @@ export default function SponsoredCampaignManager({
   }
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 text-slate-950">
       <div className="rounded-3xl bg-gradient-to-br from-amber-950 via-amber-900 to-orange-800 p-6 text-white shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-300">
           Montra patrocinada
@@ -445,6 +357,8 @@ export default function SponsoredCampaignManager({
         </div>
       )}
 
+      <div className="flex justify-end"><button type="button" disabled={saving} onClick={() => setShowCreate(value => !value)} className="rounded-xl bg-amber-500 px-5 py-3 font-black text-amber-950">{showCreate ? "Fechar formulário" : "Nova campanha"}</button></div>
+      {showCreate && (
       <form
         onSubmit={createCampaign}
         className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
@@ -457,6 +371,7 @@ export default function SponsoredCampaignManager({
           <Field label="Nome da campanha">
             <input
               required
+              maxLength={180}
               value={form.name}
               onChange={(event) =>
                 updateForm(
@@ -652,6 +567,7 @@ export default function SponsoredCampaignManager({
 
           <Field label="Título público">
             <input
+              maxLength={180}
               value={form.custom_headline}
               onChange={(event) =>
                 updateForm(
@@ -665,6 +581,7 @@ export default function SponsoredCampaignManager({
 
           <Field label="Botão">
             <input
+              maxLength={80}
               value={form.call_to_action}
               onChange={(event) =>
                 updateForm(
@@ -745,207 +662,9 @@ export default function SponsoredCampaignManager({
             : "Criar campanha"}
         </button>
       </form>
-
-      <div className="grid gap-5 xl:grid-cols-2">
-        {campaigns.map((campaign) => (
-          <article
-            key={campaign.id}
-            className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-black uppercase tracking-wide text-amber-700">
-                  Patrocinado
-                </p>
-                <h3 className="mt-1 text-lg font-black">
-                  {campaign.name}
-                </h3>
-                <p className="text-sm text-slate-600">
-                  {campaign.advertiser_name}
-                  {" · "}
-                  {campaign.items
-                    .map(
-                      (item) =>
-                        item.item_name
-                    )
-                    .join(", ")}
-                </p>
-              </div>
-
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black">
-                {statusLabels[
-                  campaign.status
-                ] || campaign.status}
-              </span>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-              <Stat
-                label="Pagamento"
-                value={
-                  paymentLabels[
-                    campaign.payment_status
-                  ] ||
-                  campaign.payment_status
-                }
-              />
-              <Stat
-                label="Impressões"
-                value={String(
-                  campaign.impression_count
-                )}
-              />
-              <Stat
-                label="Cliques"
-                value={String(
-                  campaign.click_count
-                )}
-              />
-              <Stat
-                label="Prioridade"
-                value={String(
-                  campaign.priority
-                )}
-              />
-            </div>
-
-            <p className="mt-4 text-xs leading-5 text-slate-500">
-              {new Date(
-                campaign.starts_at
-              ).toLocaleString("pt-PT")}
-              {" — "}
-              {new Date(
-                campaign.ends_at
-              ).toLocaleString("pt-PT")}
-            </p>
-
-            <div className="mt-2 flex flex-wrap gap-2">
-              {campaign.placements.map(
-                (placement) => (
-                  <span
-                    key={placement}
-                    className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800"
-                  >
-                    {placementLabels[
-                      placement
-                    ] || placement}
-                  </span>
-                )
-              )}
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              {campaign.payment_status ===
-                "pending" && (
-                <>
-                  <Action
-                    disabled={
-                      busyId === campaign.id
-                    }
-                    onClick={() =>
-                      void updateCampaign(
-                        campaign.id,
-                        {
-                          payment_status:
-                            "paid",
-                        },
-                        "Pagamento confirmado."
-                      )
-                    }
-                  >
-                    Confirmar pagamento
-                  </Action>
-
-                  <Action
-                    disabled={
-                      busyId === campaign.id
-                    }
-                    onClick={() =>
-                      void updateCampaign(
-                        campaign.id,
-                        {
-                          payment_status:
-                            "waived",
-                        },
-                        "Campanha autorizada sem cobrança."
-                      )
-                    }
-                  >
-                    Dispensar cobrança
-                  </Action>
-                </>
-              )}
-
-              {campaign.status !==
-                "active" &&
-                campaign.status !==
-                  "ended" &&
-                campaign.status !==
-                  "cancelled" && (
-                  <Action
-                    disabled={
-                      busyId === campaign.id
-                    }
-                    onClick={() =>
-                      void updateCampaign(
-                        campaign.id,
-                        { status: "active" },
-                        "Campanha ativada."
-                      )
-                    }
-                  >
-                    Ativar
-                  </Action>
-                )}
-
-              {campaign.status ===
-                "active" && (
-                <Action
-                  disabled={
-                    busyId === campaign.id
-                  }
-                  onClick={() =>
-                    void updateCampaign(
-                      campaign.id,
-                      { status: "paused" },
-                      "Campanha pausada."
-                    )
-                  }
-                >
-                  Pausar
-                </Action>
-              )}
-
-              {![
-                "ended",
-                "cancelled",
-              ].includes(campaign.status) && (
-                <Action
-                  disabled={
-                    busyId === campaign.id
-                  }
-                  onClick={() =>
-                    void updateCampaign(
-                      campaign.id,
-                      { status: "ended" },
-                      "Campanha terminada."
-                    )
-                  }
-                >
-                  Terminar
-                </Action>
-              )}
-            </div>
-          </article>
-        ))}
-      </div>
-
-      {!campaigns.length && (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">
-          Ainda não existem campanhas
-          patrocinadas.
-        </div>
       )}
+
+      <SponsoredCampaignWorkspace user={user} focusId={focusId} onFocusConsumed={consumeFocus} />
 
       <style jsx>{`
         .input {
@@ -974,45 +693,5 @@ function Field({
       {label}
       {children}
     </label>
-  );
-}
-
-function Stat({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-xl bg-slate-50 p-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-      <p className="mt-1 font-black text-slate-900">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function Action({
-  children,
-  disabled,
-  onClick,
-}: {
-  children: React.ReactNode;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-    >
-      {children}
-    </button>
   );
 }
